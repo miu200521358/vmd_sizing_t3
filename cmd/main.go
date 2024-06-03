@@ -6,6 +6,7 @@ package main
 import (
 	"embed"
 	"fmt"
+	"log"
 	"runtime"
 
 	"github.com/miu200521358/walk/pkg/walk"
@@ -23,6 +24,7 @@ func init() {
 		walk.MustRegisterWindowClass(mwidget.FilePickerClass)
 		walk.MustRegisterWindowClass(mwidget.MotionPlayerClass)
 		walk.MustRegisterWindowClass(mwidget.ConsoleViewClass)
+		walk.MustRegisterWindowClass(ui.SizingPageClass)
 	})
 }
 
@@ -45,12 +47,18 @@ func main() {
 	mWindow, err = mwidget.NewMWindow(resourceFiles, appConfig, true, 512, 768, ui.GetMenuItems)
 	mwidget.CheckError(err, nil, mi18n.T("メインウィンドウ生成エラー"))
 
-	motionPlayer := ui.NewFileTabPage(mWindow, resourceFiles)
+	filePage, err := ui.NewFileTabPage(mWindow, resourceFiles)
+	mwidget.CheckError(err, nil, mi18n.T("ファイルタブ生成エラー"))
 
 	glWindow, err := mwidget.NewGlWindow(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("ビューワー")),
-		512, 768, 0, resourceFiles, nil, motionPlayer)
+		512, 768, 0, resourceFiles, nil, filePage.MotionPlayer)
 	mwidget.CheckError(err, mWindow, mi18n.T("ビューワーウィンドウ生成エラー"))
 	mWindow.AddGlWindow(glWindow)
+
+	// コンソールはタブ外に表示
+	mWindow.ConsoleView, err = mwidget.NewConsoleView(mWindow, 256, 30)
+	mwidget.CheckError(err, mWindow, mi18n.T("コンソール生成エラー"))
+	log.SetOutput(mWindow.ConsoleView)
 
 	mWindow.Center()
 	mWindow.Run()
