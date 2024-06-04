@@ -95,6 +95,7 @@ func NewFileTabPage(mWindow *mwidget.MWindow, resourceFiles embed.FS) (*FileTabP
 		return nil, err
 	}
 
+	// サイジングページ
 	fileTabPage.sizingPage, err = NewSizingPage(mWindow, fileTabPage, nil)
 	if err != nil {
 		return nil, err
@@ -117,6 +118,18 @@ func NewFileTabPage(mWindow *mwidget.MWindow, resourceFiles embed.FS) (*FileTabP
 		err = fileTabPage.resetSizingSet()
 		mwidget.CheckError(err, mWindow, mi18n.T("サイジングセット全削除エラー"))
 	})
+
+	fileTabPage.MotionPlayer.OnPlay = func(isPlaying bool) error {
+		// 入力欄は全部再生中は無効化
+		addButton.SetEnabled(!isPlaying)
+		deleteButton.SetEnabled(!isPlaying)
+		fileTabPage.sizingPage.SetEnabled(!isPlaying)
+		fileTabPage.MotionPlayer.SetEnabled(!isPlaying)
+		fileTabPage.MotionPlayer.PlayButton.SetEnabled(true)
+		mWindow.GetMainGlWindow().Play(isPlaying)
+
+		return nil
+	}
 
 	return fileTabPage, nil
 }
