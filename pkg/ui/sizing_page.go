@@ -39,7 +39,7 @@ func NewSizingPage(
 	var err error
 	sizingPage.OriginalVmdPicker, err = (mwidget.NewVmdVpdReadFilePicker(
 		mWindow,
-		ftp.PageComposite,
+		sizingPage.Composite,
 		"vmd",
 		mi18n.T("サイジング対象モーション(Vmd/Vpd)"),
 		mi18n.T("サイジング対象モーション(Vmd/Vpd)ファイルを選択してください"),
@@ -51,7 +51,7 @@ func NewSizingPage(
 
 	sizingPage.OriginalPmxPicker, err = (mwidget.NewPmxReadFilePicker(
 		mWindow,
-		ftp.PageComposite,
+		sizingPage.Composite,
 		"org_pmx",
 		mi18n.T("モーション作成元モデル(Pmx)"),
 		mi18n.T("モーション作成元モデルPmxファイルを選択してください"),
@@ -63,7 +63,7 @@ func NewSizingPage(
 
 	sizingPage.SizingPmxPicker, err = (mwidget.NewPmxReadFilePicker(
 		mWindow,
-		ftp.PageComposite,
+		sizingPage.Composite,
 		"rep_pmx",
 		mi18n.T("サイジング先モデル(Pmx)"),
 		mi18n.T("サイジング先モデルPmxファイルを選択してください"),
@@ -75,7 +75,7 @@ func NewSizingPage(
 
 	sizingPage.OutputVmdPicker, err = (mwidget.NewVmdSaveFilePicker(
 		mWindow,
-		ftp.PageComposite,
+		sizingPage.Composite,
 		mi18n.T("出力モーション(Vmd)"),
 		mi18n.T("出力モーション(Vmd)ファイルパスを指定してください"),
 		mi18n.T("出力モーションの使い方"),
@@ -86,7 +86,7 @@ func NewSizingPage(
 
 	sizingPage.OutputPmxPicker, err = (mwidget.NewPmxSaveFilePicker(
 		mWindow,
-		ftp.PageComposite,
+		sizingPage.Composite,
 		mi18n.T("出力モデル(Pmx)"),
 		mi18n.T("出力モデル(Pmx)ファイルパスを指定してください"),
 		mi18n.T("出力モデルの使い方"),
