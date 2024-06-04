@@ -116,6 +116,18 @@ func NewSizingPage(
 		ftp.MotionPlayer.SetEnabled(sp.OutputPmxPicker.Exists() && sp.OriginalVmdPicker.ExistsOrEmpty())
 	}
 
+	// モーション作成元モデル読み込み時の処理
+	sp.OriginalPmxPicker.OnPathChanged = func(path string) {
+		if sp.OriginalPmxPicker.Exists() {
+			_, err := sp.OriginalPmxPicker.GetData()
+			if err != nil {
+				mlog.E(mi18n.T("Pmxファイル読み込みエラー"), err.Error())
+				return
+			}
+
+		}
+	}
+
 	// サイジング対象モーション読み込み時の処理
 	sp.OriginalVmdPicker.OnPathChanged = func(path string) {
 		if sp.OriginalVmdPicker.Exists() {

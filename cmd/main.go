@@ -50,10 +50,15 @@ func main() {
 	filePage, err := ui.NewFileTabPage(mWindow, resourceFiles)
 	mwidget.CheckError(err, nil, mi18n.T("ファイルタブ生成エラー"))
 
-	glWindow, err := mwidget.NewGlWindow(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("ビューワー")),
+	sizingGlWindow, err := mwidget.NewGlWindow(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("サイジング用ビューワー")),
 		512, 768, 0, resourceFiles, nil, filePage.MotionPlayer)
 	mwidget.CheckError(err, mWindow, mi18n.T("ビューワーウィンドウ生成エラー"))
-	mWindow.AddGlWindow(glWindow)
+	mWindow.AddGlWindow(sizingGlWindow)
+
+	originalGlWindow, err := mwidget.NewGlWindow(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("元モデル用ビューワー")),
+		512, 768, 0, resourceFiles, sizingGlWindow, filePage.MotionPlayer)
+	mwidget.CheckError(err, mWindow, mi18n.T("ビューワーウィンドウ生成エラー"))
+	mWindow.AddGlWindow(originalGlWindow)
 
 	// コンソールはタブ外に表示
 	mWindow.ConsoleView, err = mwidget.NewConsoleView(mWindow, 256, 30)
