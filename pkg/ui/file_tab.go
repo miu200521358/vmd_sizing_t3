@@ -126,7 +126,9 @@ func NewFileTabPage(mWindow *mwidget.MWindow, resourceFiles embed.FS) (*FileTabP
 		fileTabPage.sizingPage.SetEnabled(!isPlaying)
 		fileTabPage.MotionPlayer.SetEnabled(!isPlaying)
 		fileTabPage.MotionPlayer.PlayButton.SetEnabled(true)
-		mWindow.GetMainGlWindow().Play(isPlaying)
+		for _, glWindow := range mWindow.GlWindows {
+			glWindow.Play(isPlaying)
+		}
 
 		return nil
 	}

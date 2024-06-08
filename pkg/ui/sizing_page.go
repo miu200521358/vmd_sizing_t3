@@ -125,6 +125,7 @@ func NewSizingPage(
 				return
 			}
 
+			sp.updateMotionPlayer()
 		}
 	}
 
@@ -138,6 +139,14 @@ func NewSizingPage(
 			}
 
 			sp.updateOutputPath()
+
+			motion := sp.OriginalVmdPicker.GetCache().(*vmd.VmdMotion)
+			outputMotion := motion.Copy().(*vmd.VmdMotion)
+			outputMotion.Path = sp.OutputVmdPicker.PathLineEdit.Text()
+
+			// サイジング対象モーションをコピーして、出力モーションに設定
+			sp.OutputVmdPicker.SetCache(outputMotion)
+
 			sp.updateMotionPlayer()
 		}
 
@@ -170,18 +179,38 @@ func NewSizingPage(
 }
 
 func (sp *SizingPage) updateMotionPlayer() {
-	if sp.SizingPmxPicker.IsCached() && sp.OriginalVmdPicker.IsCached() {
-		model := sp.SizingPmxPicker.GetCache().(*pmx.PmxModel)
-		motion := sp.OriginalVmdPicker.GetCache().(*vmd.VmdMotion)
+	if sp.SizingPmxPicker.IsCached() || sp.OriginalPmxPicker.IsCached() {
+		if sp.SizingPmxPicker.IsCached() {
+			model := sp.SizingPmxPicker.GetCache().(*pmx.PmxModel)
+			var motion *vmd.VmdMotion
+			if sp.OutputVmdPicker.GetCache() != nil {
+				motion = sp.OutputVmdPicker.GetCache().(*vmd.VmdMotion)
 
-		sp.page.MotionPlayer.SetRange(0, motion.GetMaxFrame()+1)
-		sp.page.MotionPlayer.SetValue(0)
+				sp.page.MotionPlayer.SetRange(0, motion.GetMaxFrame()+1)
+				sp.page.MotionPlayer.SetValue(0)
+			} else {
+				motion = vmd.NewVmdMotion("")
+			}
+			sp.mWindow.GetMainGlWindow().AddData(model, motion)
+		}
+
+		if sp.OriginalPmxPicker.IsCached() {
+			model := sp.OriginalPmxPicker.GetCache().(*pmx.PmxModel)
+			var motion *vmd.VmdMotion
+			if sp.OriginalVmdPicker.IsCached() {
+				motion = sp.OriginalVmdPicker.GetCache().(*vmd.VmdMotion)
+
+				sp.page.MotionPlayer.SetRange(0, motion.GetMaxFrame()+1)
+				sp.page.MotionPlayer.SetValue(0)
+			} else {
+				motion = vmd.NewVmdMotion("")
+			}
+			sp.mWindow.GetMainGlWindow().AddData(model, motion)
+		}
 
 		sp.page.MotionPlayer.SetEnabled(true)
 		sp.mWindow.GetMainGlWindow().SetFrame(0)
 		sp.mWindow.GetMainGlWindow().Play(false)
-		sp.mWindow.GetMainGlWindow().ClearData()
-		sp.mWindow.GetMainGlWindow().AddData(model, motion)
 		sp.mWindow.GetMainGlWindow().Run()
 	} else {
 		sp.page.MotionPlayer.SetEnabled(false)
@@ -201,6 +230,7 @@ func (sp *SizingPage) updateOutputPath() {
 	}
 
 	if model == nil || motion == nil {
+		sp.mWindow.GetMainGlWindow().ClearData()
 		return
 	}
 
