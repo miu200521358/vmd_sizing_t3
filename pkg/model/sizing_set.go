@@ -6,6 +6,8 @@ import (
 )
 
 type SizingSet struct {
+	Index int
+
 	OriginalVmdPath string
 	OriginalPmxPath string
 	SizingPmxPath   string
@@ -19,8 +21,9 @@ type SizingSet struct {
 	OutputVmd   *vmd.VmdMotion
 }
 
-func NewSizingSet() *SizingSet {
+func NewSizingSet(index int) *SizingSet {
 	return &SizingSet{
+		Index:       index,
 		OriginalVmd: nil,
 		OriginalPmx: nil,
 		SizingPmx:   nil,

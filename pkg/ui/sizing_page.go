@@ -1,9 +1,7 @@
 package ui
 
 import (
-	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/miu200521358/mlib_go/pkg/mutils"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
@@ -119,20 +117,28 @@ func NewSizingPage(
 	// モーション作成元モデル読み込み時の処理
 	sp.OriginalPmxPicker.OnPathChanged = func(path string) {
 		if sp.OriginalPmxPicker.Exists() {
-			_, err := sp.OriginalPmxPicker.GetData()
+			data, err := sp.OriginalPmxPicker.GetData()
 			if err != nil {
 				mlog.E(mi18n.T("Pmxファイル読み込みエラー"), err.Error())
 				return
 			}
 
-			sp.updateMotionPlayer()
+			model := data.(*pmx.PmxModel)
+
+			go func() {
+				sp.mWindow.GetMainGlWindow().FrameChannel <- 0
+				sp.mWindow.GetMainGlWindow().IsPlayingChannel <- false
+				sp.mWindow.GetMainGlWindow().ReplaceModelSetChannel <- map[int]*mwidget.ModelSet{0: {NextModel: model}}
+			}()
+
+			sp.page.MotionPlayer.SetEnabled(true)
 		}
 	}
 
 	// サイジング対象モーション読み込み時の処理
 	sp.OriginalVmdPicker.OnPathChanged = func(path string) {
 		if sp.OriginalVmdPicker.Exists() {
-			_, err := sp.OriginalVmdPicker.GetData()
+			data, err := sp.OriginalVmdPicker.GetData()
 			if err != nil {
 				mlog.E(mi18n.T("Vmdファイル読み込みエラー"), err.Error())
 				return
@@ -140,14 +146,19 @@ func NewSizingPage(
 
 			sp.updateOutputPath()
 
-			motion := sp.OriginalVmdPicker.GetCache().(*vmd.VmdMotion)
-			outputMotion := motion.Copy().(*vmd.VmdMotion)
-			outputMotion.Path = sp.OutputVmdPicker.PathLineEdit.Text()
-
 			// サイジング対象モーションをコピーして、出力モーションに設定
+			outputMotion := sp.OriginalVmdPicker.GetDataForce().(*vmd.VmdMotion)
 			sp.OutputVmdPicker.SetCache(outputMotion)
 
-			sp.updateMotionPlayer()
+			motion := data.(*vmd.VmdMotion)
+
+			go func() {
+				sp.mWindow.GetMainGlWindow().FrameChannel <- 0
+				sp.mWindow.GetMainGlWindow().IsPlayingChannel <- false
+				sp.mWindow.GetMainGlWindow().ReplaceModelSetChannel <- map[int]*mwidget.ModelSet{0: {NextMotion: motion}}
+			}()
+
+			sp.page.MotionPlayer.SetEnabled(true)
 		}
 
 		onFilePathChanged()
@@ -162,60 +173,27 @@ func NewSizingPage(
 		}
 
 		if sp.SizingPmxPicker.Exists() {
-			_, err := sp.SizingPmxPicker.GetData()
+			data, err := sp.SizingPmxPicker.GetData()
 			if err != nil {
 				mlog.E(mi18n.T("Pmxファイル読み込みエラー"), err.Error())
 				return
 			}
 
 			sp.updateOutputPath()
-			sp.updateMotionPlayer()
-		}
 
-		onFilePathChanged()
+			model := data.(*pmx.PmxModel)
+
+			go func() {
+				sp.mWindow.GetMainGlWindow().FrameChannel <- 0
+				sp.mWindow.GetMainGlWindow().IsPlayingChannel <- false
+				sp.mWindow.GetMainGlWindow().ReplaceModelSetChannel <- map[int]*mwidget.ModelSet{1: {NextModel: model, NextMotion: sp.OutputVmdPicker.GetCache().(*vmd.VmdMotion)}}
+			}()
+
+			sp.page.MotionPlayer.SetEnabled(true)
+		}
 	}
 
 	return sp, nil
-}
-
-func (sp *SizingPage) updateMotionPlayer() {
-	if sp.SizingPmxPicker.IsCached() || sp.OriginalPmxPicker.IsCached() {
-		if sp.SizingPmxPicker.IsCached() {
-			model := sp.SizingPmxPicker.GetCache().(*pmx.PmxModel)
-			var motion *vmd.VmdMotion
-			if sp.OutputVmdPicker.GetCache() != nil {
-				motion = sp.OutputVmdPicker.GetCache().(*vmd.VmdMotion)
-
-				sp.page.MotionPlayer.SetRange(0, motion.GetMaxFrame()+1)
-				sp.page.MotionPlayer.SetValue(0)
-			} else {
-				motion = vmd.NewVmdMotion("")
-			}
-			sp.mWindow.GetMainGlWindow().AddData(model, motion)
-		}
-
-		if sp.OriginalPmxPicker.IsCached() {
-			model := sp.OriginalPmxPicker.GetCache().(*pmx.PmxModel)
-			var motion *vmd.VmdMotion
-			if sp.OriginalVmdPicker.IsCached() {
-				motion = sp.OriginalVmdPicker.GetCache().(*vmd.VmdMotion)
-
-				sp.page.MotionPlayer.SetRange(0, motion.GetMaxFrame()+1)
-				sp.page.MotionPlayer.SetValue(0)
-			} else {
-				motion = vmd.NewVmdMotion("")
-			}
-			sp.mWindow.GetMainGlWindow().AddData(model, motion)
-		}
-
-		sp.page.MotionPlayer.SetEnabled(true)
-		sp.mWindow.GetMainGlWindow().SetFrame(0)
-		sp.mWindow.GetMainGlWindow().Play(false)
-		sp.mWindow.GetMainGlWindow().Run()
-	} else {
-		sp.page.MotionPlayer.SetEnabled(false)
-		sp.mWindow.GetMainGlWindow().Play(false)
-	}
 }
 
 func (sp *SizingPage) updateOutputPath() {
@@ -230,24 +208,22 @@ func (sp *SizingPage) updateOutputPath() {
 	}
 
 	if model == nil || motion == nil {
-		sp.mWindow.GetMainGlWindow().ClearData()
 		return
 	}
 
+	// 出力モデルパス
+	_, modelFileName := filepath.Split(model.Path)
+	modelFileNameNotExt := modelFileName[:len(modelFileName)-len(filepath.Ext(modelFileName))]
+
 	// 出力モーションパス
-	motionDir, motionFileName := filepath.Split(motion.Path)
-	motionExt := filepath.Ext(motionFileName)
-	motionOutputPath := filepath.Join(motionDir, fmt.Sprintf("%s_%s%s",
-		motionFileName[:len(motionFileName)-len(motionExt)], time.Now().Format("20060102_150405"), motionExt))
+	_, motionFileName := filepath.Split(motion.Path)
+	motionFileNameNotExt := motionFileName[:len(motionFileName)-len(filepath.Ext(motionFileName))]
+
+	motionOutputPath := mutils.CreateOutputPath(motion.GetPath(), modelFileNameNotExt)
 	sp.OutputPmxPicker.PathLineEdit.SetText(motionOutputPath)
 
-	// 出力モデルパス
-	modelDir, modelFileName := filepath.Split(model.Path)
-	ext := filepath.Ext(modelFileName)
-	pmxOutputPath := filepath.Join(modelDir, fmt.Sprintf("%s_%s%s",
-		modelFileName[:len(modelFileName)-len(ext)], motionFileName[:len(motionFileName)-len(motionExt)], ext))
+	pmxOutputPath := mutils.CreateOutputPath(model.GetPath(), motionFileNameNotExt)
 	sp.OutputPmxPicker.PathLineEdit.SetText(pmxOutputPath)
-
 }
 
 func (sp *SizingPage) SetEnabled(visible bool) {

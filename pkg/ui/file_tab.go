@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"embed"
 	"fmt"
 
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
@@ -23,7 +22,7 @@ type FileTabPage struct {
 	SizingSets                  []*model.SizingSet
 }
 
-func NewFileTabPage(mWindow *mwidget.MWindow, resourceFiles embed.FS) (*FileTabPage, error) {
+func NewFileTabPage(mWindow *mwidget.MWindow) (*FileTabPage, error) {
 	page, err := mwidget.NewMTabPage(mWindow, mWindow.TabWidget, mi18n.T("ファイル"))
 	if err != nil {
 		return nil, err
@@ -73,7 +72,7 @@ func NewFileTabPage(mWindow *mwidget.MWindow, resourceFiles embed.FS) (*FileTabP
 	}
 	playerComposite.SetLayout(walk.NewVBoxLayout())
 
-	fileTabPage.MotionPlayer, err = mwidget.NewMotionPlayer(playerComposite, mWindow, resourceFiles)
+	fileTabPage.MotionPlayer, err = mwidget.NewMotionPlayer(playerComposite, mWindow)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +126,7 @@ func NewFileTabPage(mWindow *mwidget.MWindow, resourceFiles embed.FS) (*FileTabP
 		fileTabPage.MotionPlayer.SetEnabled(!isPlaying)
 		fileTabPage.MotionPlayer.PlayButton.SetEnabled(true)
 		for _, glWindow := range mWindow.GlWindows {
-			glWindow.Play(isPlaying)
+			glWindow.TriggerPlay(isPlaying)
 		}
 
 		return nil
@@ -159,7 +158,7 @@ func (ftp *FileTabPage) addSizingSet() error {
 		return err
 	}
 	ftp.navToolBar.Actions().Add(action)
-	ftp.SizingSets = append(ftp.SizingSets, model.NewSizingSet())
+	ftp.SizingSets = append(ftp.SizingSets, model.NewSizingSet(len(ftp.SizingSets)))
 
 	if len(ftp.SizingSets) > 0 {
 		if err := ftp.setCurrentAction(len(ftp.SizingSets) - 1); err != nil {

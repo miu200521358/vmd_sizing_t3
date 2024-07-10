@@ -30,41 +30,56 @@ func init() {
 
 var env string
 
-//go:embed resources/*
-var resourceFiles embed.FS
+//go:embed app/*
+var appFiles embed.FS
+
+//go:embed i18n/*
+var appI18nFiles embed.FS
 
 func main() {
 	var mWindow *mwidget.MWindow
 	var err error
 
-	appConfig := mconfig.LoadAppConfig(resourceFiles)
+	appConfig := mconfig.LoadAppConfig(appFiles)
 	appConfig.Env = env
+	mi18n.Initialize(appI18nFiles)
 
-	if appConfig.IsEnvProd() {
+	if appConfig.IsEnvProd() || appConfig.IsEnvDev() {
 		defer mwidget.RecoverFromPanic(mWindow)
 	}
 
-	mWindow, err = mwidget.NewMWindow(resourceFiles, appConfig, true, 512, 768, ui.GetMenuItems)
-	mwidget.CheckError(err, nil, mi18n.T("メインウィンドウ生成エラー"))
+	iconImg, err := mconfig.LoadIconFile(appFiles)
+	mwidget.CheckError(err, nil, mi18n.T("アイコン生成エラー"))
 
-	filePage, err := ui.NewFileTabPage(mWindow, resourceFiles)
-	mwidget.CheckError(err, nil, mi18n.T("ファイルタブ生成エラー"))
-
-	sizingGlWindow, err := mwidget.NewGlWindow(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("サイジング用ビューワー")),
-		512, 768, 0, resourceFiles, nil, filePage.MotionPlayer)
+	glWindow, err := mwidget.NewGlWindow(512, 768, 0, iconImg, appConfig, nil, nil)
 	mwidget.CheckError(err, mWindow, mi18n.T("ビューワーウィンドウ生成エラー"))
-	mWindow.AddGlWindow(sizingGlWindow)
 
-	originalGlWindow, err := mwidget.NewGlWindow(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("元モデル用ビューワー")),
-		512, 768, 0, resourceFiles, sizingGlWindow, filePage.MotionPlayer)
-	mwidget.CheckError(err, mWindow, mi18n.T("ビューワーウィンドウ生成エラー"))
-	mWindow.AddGlWindow(originalGlWindow)
+	go func() {
+		mWindow, err = mwidget.NewMWindow(512, 768, ui.GetMenuItems, iconImg, appConfig, true)
+		mwidget.CheckError(err, nil, mi18n.T("メインウィンドウ生成エラー"))
 
-	// コンソールはタブ外に表示
-	mWindow.ConsoleView, err = mwidget.NewConsoleView(mWindow, 256, 30)
-	mwidget.CheckError(err, mWindow, mi18n.T("コンソール生成エラー"))
-	log.SetOutput(mWindow.ConsoleView)
+		filePage, err := ui.NewFileTabPage(mWindow)
+		mwidget.CheckError(err, nil, mi18n.T("ファイルタブ生成エラー"))
 
-	mWindow.Center()
-	mWindow.Run()
+		// コンソールはタブ外に表示
+		mWindow.ConsoleView, err = mwidget.NewConsoleView(mWindow, 256, 30)
+		mwidget.CheckError(err, mWindow, mi18n.T("コンソール生成エラー"))
+		log.SetOutput(mWindow.ConsoleView)
+
+		glWindow.SetMotionPlayer(filePage.MotionPlayer)
+		glWindow.SetTitle(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("ビューワー")))
+		mWindow.AddGlWindow(glWindow)
+
+		mWindow.AsFormBase().Closing().Attach(func(canceled *bool, reason walk.CloseReason) {
+			go func() {
+				mWindow.GetMainGlWindow().IsClosedChannel <- true
+			}()
+			mWindow.Close()
+		})
+
+		mWindow.Center()
+		mWindow.Run()
+	}()
+
+	glWindow.Run()
 }
