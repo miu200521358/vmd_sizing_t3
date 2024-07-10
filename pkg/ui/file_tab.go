@@ -119,15 +119,12 @@ func NewFileTabPage(mWindow *mwidget.MWindow) (*FileTabPage, error) {
 	})
 
 	fileTabPage.MotionPlayer.OnPlay = func(isPlaying bool) error {
-		// 入力欄は全部再生中は無効化
-		addButton.SetEnabled(!isPlaying)
-		deleteButton.SetEnabled(!isPlaying)
+
 		fileTabPage.sizingPage.SetEnabled(!isPlaying)
-		fileTabPage.MotionPlayer.SetEnabled(!isPlaying)
 		fileTabPage.MotionPlayer.PlayButton.SetEnabled(true)
-		for _, glWindow := range mWindow.GlWindows {
-			glWindow.TriggerPlay(isPlaying)
-		}
+		go func() {
+			mWindow.GetMainGlWindow().IsPlayingChannel <- isPlaying
+		}()
 
 		return nil
 	}

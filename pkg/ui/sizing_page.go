@@ -107,13 +107,6 @@ func NewSizingPage(
 
 	sp.OriginalVmdPicker.PathLineEdit.SetFocus()
 
-	var onFilePathChanged = func() {
-		if ftp.MotionPlayer.Playing() {
-			ftp.MotionPlayer.Play(false)
-		}
-		ftp.MotionPlayer.SetEnabled(sp.OutputPmxPicker.Exists() && sp.OriginalVmdPicker.ExistsOrEmpty())
-	}
-
 	// モーション作成元モデル読み込み時の処理
 	sp.OriginalPmxPicker.OnPathChanged = func(path string) {
 		if sp.OriginalPmxPicker.Exists() {
@@ -159,9 +152,9 @@ func NewSizingPage(
 			}()
 
 			sp.page.MotionPlayer.SetEnabled(true)
+			sp.page.MotionPlayer.SetRange(0, motion.GetMaxFrame()+1)
+			sp.page.MotionPlayer.SetValue(0)
 		}
-
-		onFilePathChanged()
 	}
 
 	// サイジング先モデル読み込み時の処理
