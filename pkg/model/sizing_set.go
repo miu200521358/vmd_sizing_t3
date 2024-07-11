@@ -14,6 +14,10 @@ type SizingSet struct {
 	OutputPmxPath   string
 	OutputVmdPath   string
 
+	OriginalVmdName string
+	OriginalPmxName string
+	SizingPmxName   string
+
 	OriginalVmd *vmd.VmdMotion
 	OriginalPmx *pmx.PmxModel
 	SizingPmx   *pmx.PmxModel
@@ -23,11 +27,6 @@ type SizingSet struct {
 
 func NewSizingSet(index int) *SizingSet {
 	return &SizingSet{
-		Index:       index,
-		OriginalVmd: nil,
-		OriginalPmx: nil,
-		SizingPmx:   nil,
-		OutputPmx:   nil,
-		OutputVmd:   nil,
+		Index: index,
 	}
 }
