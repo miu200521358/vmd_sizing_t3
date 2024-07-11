@@ -109,11 +109,11 @@ func NewFileTabPage(mWindow *mwidget.MWindow) (*FileTabPage, error) {
 		mwidget.CheckError(err, mWindow, mi18n.T("サイジングセット追加エラー"))
 	})
 
-	// deleteButton.Clicked().Attach(func() {
-	// 	// 全削除ボタンが押されたらサイジングセット全削除
-	// 	err = fileTabPage.resetSizingSet()
-	// 	mwidget.CheckError(err, mWindow, mi18n.T("サイジングセット全削除エラー"))
-	// })
+	deleteButton.Clicked().Attach(func() {
+		// 全削除ボタンが押されたらサイジングセット全削除
+		err = fileTabPage.resetSizingSet()
+		mwidget.CheckError(err, mWindow, mi18n.T("サイジングセット全削除エラー"))
+	})
 
 	fileTabPage.MotionPlayer.OnPlay = func(isPlaying bool) error {
 
@@ -129,21 +129,27 @@ func NewFileTabPage(mWindow *mwidget.MWindow) (*FileTabPage, error) {
 	return fileTabPage, nil
 }
 
-// func (ftp *FileTabPage) resetSizingSet() error {
-// 	// 一旦全部削除
-// 	for range ftp.navToolBar.Actions().Len() {
-// 		ftp.navToolBar.Actions().RemoveAt(ftp.navToolBar.Actions().Len() - 1)
-// 	}
-// 	ftp.currentIndex = -1
+func (ftp *FileTabPage) resetSizingSet() error {
+	// 一旦全部削除
+	for i := range ftp.navToolBar.Actions().Len() {
+		ftp.navToolBar.Actions().RemoveAt(ftp.navToolBar.Actions().Len() - 1)
 
-// 	// 1セット追加
-// 	err := ftp.addSizingSet()
-// 	if err != nil {
-// 		return err
-// 	}
+		go func() {
+			ftp.mWindow.GetMainGlWindow().RemoveModelSetIndexChannel <- (i * 2)
+			ftp.mWindow.GetMainGlWindow().RemoveModelSetIndexChannel <- (i*2 + 1)
+		}()
+	}
+	ftp.items.sizingSets = make([]*model.SizingSet, 0)
+	ftp.items.currentIndex = -1
 
-// 	return nil
-// }
+	// 1セット追加
+	err := ftp.addSizingSet()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (ftp *FileTabPage) CurrentPageChanged() *walk.Event {
 	return ftp.currentPageChangedPublisher.Event()
@@ -180,97 +186,7 @@ func (ftp *FileTabPage) newPageAction() (*walk.Action, error) {
 	return action, nil
 }
 
-// func (ftp *FileTabPage) saveSizingSet(index int) {
-// 	if index < 0 {
-// 		return
-// 	}
-
-// 	originalVmd := ftp.items.OriginalVmdPicker.GetCache()
-// 	if originalVmd != nil {
-// 		ftp.items.sizingSets[index].OriginalVmd = originalVmd.(*vmd.VmdMotion)
-// 	} else {
-// 		ftp.items.sizingSets[index].OriginalVmd = nil
-// 	}
-// 	ftp.items.sizingSets[index].OriginalVmdPath = ftp.items.OriginalVmdPicker.PathLineEdit.Text()
-
-// 	originalPmx := ftp.items.OriginalPmxPicker.GetCache()
-// 	if originalPmx != nil {
-// 		ftp.items.sizingSets[index].OriginalPmx = originalPmx.(*pmx.PmxModel)
-// 	} else {
-// 		ftp.items.sizingSets[index].OriginalPmx = nil
-// 	}
-// 	ftp.items.sizingSets[index].OriginalPmxPath = ftp.items.OriginalPmxPicker.PathLineEdit.Text()
-
-// 	sizingPmx := ftp.items.SizingPmxPicker.GetCache()
-// 	if sizingPmx != nil {
-// 		ftp.items.sizingSets[index].SizingPmx = sizingPmx.(*pmx.PmxModel)
-// 	} else {
-// 		ftp.items.sizingSets[index].SizingPmx = nil
-// 	}
-// 	ftp.items.sizingSets[index].SizingPmxPath = ftp.items.SizingPmxPicker.PathLineEdit.Text()
-
-// 	outputPmx := ftp.items.OutputPmxPicker.GetCache()
-// 	if outputPmx != nil {
-// 		ftp.items.sizingSets[index].OutputPmx = outputPmx.(*pmx.PmxModel)
-// 	} else {
-// 		ftp.items.sizingSets[index].OutputPmx = nil
-// 	}
-// 	ftp.items.sizingSets[index].OutputPmxPath = ftp.items.OutputPmxPicker.PathLineEdit.Text()
-
-// 	outputVmd := ftp.items.OutputVmdPicker.GetCache()
-// 	if outputVmd != nil {
-// 		ftp.items.sizingSets[index].OutputVmd = outputVmd.(*vmd.VmdMotion)
-// 	} else {
-// 		ftp.items.sizingSets[index].OutputVmd = nil
-// 	}
-// 	ftp.items.sizingSets[index].OutputVmdPath = ftp.items.OutputVmdPicker.PathLineEdit.Text()
-// }
-
-// func (ftp *FileTabPage) restoreSizingSet(index int) {
-// 	if index < 0 {
-// 		return
-// 	}
-
-// 	originalVmd := ftp.items.sizingSets[index].OriginalVmd
-// 	if originalVmd != nil {
-// 		ftp.items.OriginalVmdPicker.PathLineEdit.SetText(originalVmd.Path)
-// 	} else {
-// 		ftp.items.OriginalVmdPicker.PathLineEdit.SetText(ftp.items.sizingSets[index].OriginalVmdPath)
-// 	}
-
-// 	originalPmx := ftp.items.sizingSets[index].OriginalPmx
-// 	if originalPmx != nil {
-// 		ftp.items.OriginalPmxPicker.PathLineEdit.SetText(originalPmx.Path)
-// 	} else {
-// 		ftp.items.OriginalPmxPicker.PathLineEdit.SetText(ftp.items.sizingSets[index].OriginalPmxPath)
-// 	}
-
-// 	sizingPmx := ftp.items.sizingSets[index].SizingPmx
-// 	if sizingPmx != nil {
-// 		ftp.items.SizingPmxPicker.PathLineEdit.SetText(sizingPmx.Path)
-// 	} else {
-// 		ftp.items.SizingPmxPicker.PathLineEdit.SetText(ftp.items.sizingSets[index].SizingPmxPath)
-// 	}
-
-// 	outputPmx := ftp.items.sizingSets[index].OutputPmx
-// 	if outputPmx != nil {
-// 		ftp.items.OutputPmxPicker.PathLineEdit.SetText(outputPmx.Path)
-// 	} else {
-// 		ftp.items.OutputPmxPicker.PathLineEdit.SetText(ftp.items.sizingSets[index].OutputPmxPath)
-// 	}
-
-// 	outputVmd := ftp.items.sizingSets[index].OutputVmd
-// 	if outputVmd != nil {
-// 		ftp.items.OutputVmdPicker.PathLineEdit.SetText(outputVmd.Path)
-// 	} else {
-// 		ftp.items.OutputVmdPicker.PathLineEdit.SetText(ftp.items.sizingSets[index].OutputVmdPath)
-// 	}
-// }
-
 func (ftp *FileTabPage) setCurrentAction(index int) error {
-	// // 切り替える前のページの情報を保存
-	// ftp.saveSizingSet(ftp.currentIndex)
-
 	ftp.SetFocus()
 
 	// 一旦すべてのチェックを外す
@@ -281,9 +197,6 @@ func (ftp *FileTabPage) setCurrentAction(index int) error {
 	ftp.items.currentIndex = index
 	ftp.navToolBar.Actions().At(index).SetChecked(true)
 	ftp.currentPageChangedPublisher.Publish()
-
-	// // 切り替えた後のページの情報を復元
-	// ftp.restoreSizingSet(index)
 
 	return nil
 }
