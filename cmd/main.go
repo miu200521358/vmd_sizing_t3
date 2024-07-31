@@ -5,30 +5,34 @@ package main
 
 import (
 	"embed"
-	"fmt"
 	"log"
 	"runtime"
 
+	"github.com/miu200521358/vmd_sizing_t3/pkg/ui"
 	"github.com/miu200521358/walk/pkg/walk"
 
+	"github.com/miu200521358/mlib_go/pkg/interface/app"
+	"github.com/miu200521358/mlib_go/pkg/interface/controller"
+	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
+	"github.com/miu200521358/mlib_go/pkg/interface/viewer"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mconfig"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
-	"github.com/miu200521358/mlib_go/pkg/mwidget"
-	"github.com/miu200521358/vmd_sizing_t3/pkg/ui"
 )
+
+var env string
 
 func init() {
 	runtime.LockOSThread()
 
+	// システム上のすべての論理プロセッサを使用させる
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	walk.AppendToWalkInit(func() {
-		walk.MustRegisterWindowClass(mwidget.FilePickerClass)
-		walk.MustRegisterWindowClass(mwidget.MotionPlayerClass)
-		walk.MustRegisterWindowClass(mwidget.ConsoleViewClass)
-		walk.MustRegisterWindowClass(ui.SizingPageClass)
+		walk.MustRegisterWindowClass(widget.FilePickerClass)
+		walk.MustRegisterWindowClass(widget.MotionPlayerClass)
+		walk.MustRegisterWindowClass(widget.ConsoleViewClass)
 	})
 }
-
-var env string
 
 //go:embed app/*
 var appFiles embed.FS
@@ -37,49 +41,35 @@ var appFiles embed.FS
 var appI18nFiles embed.FS
 
 func main() {
-	var mWindow *mwidget.MWindow
-	var err error
-
 	appConfig := mconfig.LoadAppConfig(appFiles)
 	appConfig.Env = env
 	mi18n.Initialize(appI18nFiles)
 
-	if appConfig.IsEnvProd() || appConfig.IsEnvDev() {
-		defer mwidget.RecoverFromPanic(mWindow)
-	}
+	mApp := app.NewMApp(appConfig)
 
-	iconImg, err := mconfig.LoadIconFile(appFiles)
-	mwidget.CheckError(err, nil, mi18n.T("アイコン生成エラー"))
-
-	glWindow, err := mwidget.NewGlWindow(512, 768, 0, iconImg, appConfig, nil, nil)
-	mwidget.CheckError(err, mWindow, mi18n.T("ビューワーウィンドウ生成エラー"))
+	controlState := controller.NewControlState(mApp)
+	controlState.Run()
 
 	go func() {
-		mWindow, err = mwidget.NewMWindow(512, 768, ui.GetMenuItems, iconImg, appConfig, true)
-		mwidget.CheckError(err, nil, mi18n.T("メインウィンドウ生成エラー"))
+		// 操作ウィンドウは別スレッドで起動
+		controlWindow := controller.NewControlWindow(appConfig, controlState, ui.GetMenuItems, 2)
+		mApp.SetControlWindow(controlWindow)
 
-		filePage, err := ui.NewFileTabPage(mWindow)
-		mwidget.CheckError(err, nil, mi18n.T("ファイルタブ生成エラー"))
+		controlWindow.InitTabWidget()
+		ui.NewToolState(mApp, controlWindow)
 
-		// コンソールはタブ外に表示
-		mWindow.ConsoleView, err = mwidget.NewConsoleView(mWindow, 256, 30)
-		mwidget.CheckError(err, mWindow, mi18n.T("コンソール生成エラー"))
-		log.SetOutput(mWindow.ConsoleView)
+		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 50)
+		log.SetOutput(consoleView)
 
-		glWindow.SetMotionPlayer(filePage.MotionPlayer)
-		glWindow.SetTitle(fmt.Sprintf("%s %s", mWindow.Title(), mi18n.T("ビューワー")))
-		mWindow.AddGlWindow(glWindow)
-
-		mWindow.AsFormBase().Closing().Attach(func(canceled *bool, reason walk.CloseReason) {
-			go func() {
-				mWindow.GetMainGlWindow().IsClosedChannel <- true
-			}()
-			mWindow.Close()
-		})
-
-		mWindow.Center()
-		mWindow.Run()
+		mApp.ControllerRun()
 	}()
 
-	glWindow.Run()
+	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, "メインビューワー", nil))
+	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, "プレビュービューワー", mApp.MainViewWindow().GetWindow()))
+
+	mApp.ExtendAnimationState(0, 0)
+	mApp.ExtendAnimationState(1, 0)
+
+	mApp.Center()
+	mApp.ViewerRun()
 }

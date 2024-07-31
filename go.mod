@@ -2,7 +2,7 @@ module github.com/miu200521358/vmd_sizing_t3
 
 go 1.22.4
 
-require github.com/miu200521358/walk v0.0.3
+require github.com/miu200521358/walk v0.0.4
 
 require (
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71 // indirect
