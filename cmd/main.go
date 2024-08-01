@@ -58,14 +58,14 @@ func main() {
 		controlWindow.InitTabWidget()
 		ui.NewToolState(mApp, controlWindow)
 
-		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 50)
+		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 1)
 		log.SetOutput(consoleView)
 
 		mApp.ControllerRun()
 	}()
 
-	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, "メインビューワー", nil))
-	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, "プレビュービューワー", mApp.MainViewWindow().GetWindow()))
+	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, mi18n.T("サイジング用ビューワー"), nil))
+	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, mi18n.T("元モデル用ビューワー"), mApp.MainViewWindow().GetWindow()))
 
 	mApp.ExtendAnimationState(0, 0)
 	mApp.ExtendAnimationState(1, 0)

@@ -98,6 +98,23 @@
     {
         "id": "元モデル用ビューワー",
         "translation": "元モデル用ビューワー"
+    },
+    {
+        "id": "サイジング",
+        "translation": "サイジング"
+    },
+    {
+        "id": "サイジングTabLabel",
+        "translation": "サイジングTabLabel"
+    },
+    {
+        "id": "サイジングセット設定読込",
+        "translation": "サイジングセット設定読込"
+    },
+    {
+        "id": "保存",
+        "translation": "サイジング結果保存"
     }
+
 
 ]
