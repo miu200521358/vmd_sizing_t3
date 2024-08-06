@@ -116,7 +116,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		{
 			toolState.OriginalVmdPicker = widget.NewVmdVpdReadFilePicker(
 				controlWindow,
-				scrollView.Composite(),
+				scrollView,
 				"OriginalVmd",
 				mi18n.T("サイジング対象モーション(Vmd/Vpd)"),
 				mi18n.T("サイジング対象モーション(Vmd/Vpd)ファイルを選択してください"),
@@ -152,7 +152,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		{
 			toolState.OriginalPmxPicker = widget.NewPmxReadFilePicker(
 				controlWindow,
-				scrollView.Composite(),
+				scrollView,
 				"OriginalPmx",
 				mi18n.T("モーション作成元モデル(Pmx)"),
 				mi18n.T("モーション作成元モデルPmxファイルを選択してください"),
@@ -171,7 +171,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		{
 			toolState.SizingPmxPicker = widget.NewPmxReadFilePicker(
 				controlWindow,
-				scrollView.Composite(),
+				scrollView,
 				"OriginalPmx",
 				mi18n.T("サイジング先モデル(Pmx)"),
 				mi18n.T("サイジング先モデルPmxファイルを選択してください"),
@@ -190,7 +190,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		{
 			toolState.OutputVmdPicker = widget.NewVmdVpdReadFilePicker(
 				controlWindow,
-				scrollView.Composite(),
+				scrollView,
 				"OriginalVmd",
 				mi18n.T("出力モーション(Vmd)"),
 				mi18n.T("出力モーション(Vmd)ファイルパスを指定してください"),
