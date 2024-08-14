@@ -22,7 +22,6 @@ type ToolState struct {
 	OriginalVmdPicker           *widget.FilePicker // サイジング対象モーション(Vmd/Vpd)ファイル選択
 	OriginalPmxPicker           *widget.FilePicker // モーション作成元モデル(Pmx)ファイル選択
 	SizingPmxPicker             *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
-	OutputPmxPicker             *widget.FilePicker // 出力モデル(Pmx)ファイル選択
 	OutputVmdPicker             *widget.FilePicker // 出力モーション(Vmd)ファイル選択
 	SizingTabSaveButton         *walk.PushButton   // サイジングタブ保存ボタン
 	currentPageChangedPublisher walk.EventPublisher
@@ -106,6 +105,18 @@ func (toolState *ToolState) addSizingSet() error {
 		}
 	}
 
+	// セット追加したら一旦クリア
+	toolState.OriginalVmdPicker.SetPath("")
+	toolState.OriginalVmdPicker.SetName("")
+
+	toolState.OriginalPmxPicker.SetPath("")
+	toolState.OriginalPmxPicker.SetName("")
+
+	toolState.SizingPmxPicker.SetPath("")
+	toolState.SizingPmxPicker.SetName("")
+
+	toolState.OutputVmdPicker.SetPath("")
+
 	return nil
 }
 
@@ -132,6 +143,19 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.CurrentIndex = index
 	toolState.NavToolBar.Actions().At(index).SetChecked(true)
 	toolState.currentPageChangedPublisher.Publish()
+
+	// サイジングセットの情報を切り替え
+	sizingSet := toolState.SizingSets[index]
+	toolState.OriginalVmdPicker.SetPath(sizingSet.OriginalVmdPath)
+	toolState.OriginalVmdPicker.SetName(sizingSet.OriginalPmxName)
+
+	toolState.OriginalPmxPicker.SetPath(sizingSet.OriginalPmxPath)
+	toolState.OriginalPmxPicker.SetName(sizingSet.OriginalPmxName)
+
+	toolState.SizingPmxPicker.SetPath(sizingSet.SizingPmxPath)
+	toolState.SizingPmxPicker.SetName(sizingSet.SizingPmxName)
+
+	toolState.OutputVmdPicker.SetPath(sizingSet.OutputVmdPath)
 
 	return nil
 }

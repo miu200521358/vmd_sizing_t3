@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"math/rand"
+
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
@@ -69,12 +72,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 		loadButton.SetMinMaxSize(walk.Size{Width: 130, Height: 30}, walk.Size{Width: 130, Height: 30})
 		loadButton.SetText(mi18n.T("サイジングセット設定読込"))
-
-		// プレイヤー
-		player := widget.NewMotionPlayer(headerComposite, controlWindow)
-		controlWindow.SetPlayer(player)
-
-		walk.NewVSeparator(toolState.SizingTab)
 	}
 
 	{
@@ -130,9 +127,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					// 元モデル用モーション
 					motion := data.(*vmd.VmdMotion)
+					motion.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath = path
 					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = motion
+					toolState.SizingSets[toolState.CurrentIndex].OriginalVmdName = motion.Name()
+
 					// サイジング先モデル用モーション
 					sizingMotion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
+					sizingMotion.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 
 					controlWindow.UpdateMaxFrame(motion.MaxFrame())
@@ -154,9 +157,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.OriginalPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.OriginalPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
+					model.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					model.SetIndex(toolState.CurrentIndex)
 
 					// 元モデル
+					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = model
+					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = model.Name()
 
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
@@ -179,9 +186,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.SizingPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.SizingPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
+					model.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					model.SetIndex(toolState.CurrentIndex)
 
 					// サイジングモデル
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = model
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = model.Name()
 
 					if toolState.SizingSets[toolState.CurrentIndex].OutputVmd == nil {
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
@@ -202,10 +213,21 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 	}
 
-	// 保存ボタン
+	// ヘッダ
 	{
-		var err error
-		toolState.SizingTabSaveButton, err = walk.NewPushButton(toolState.SizingTab)
+		walk.NewVSeparator(toolState.SizingTab)
+
+		playerComposite, err := walk.NewComposite(toolState.SizingTab)
+		if err != nil {
+			widget.RaiseError(err)
+		}
+		playerComposite.SetLayout(walk.NewVBoxLayout())
+
+		// プレイヤー
+		player := widget.NewMotionPlayer(playerComposite, controlWindow)
+		controlWindow.SetPlayer(player)
+
+		toolState.SizingTabSaveButton, err = walk.NewPushButton(playerComposite)
 		if err != nil {
 			widget.RaiseError(err)
 		}
