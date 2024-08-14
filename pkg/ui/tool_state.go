@@ -3,7 +3,9 @@ package ui
 import (
 	"fmt"
 
-	"github.com/miu200521358/mlib_go/pkg/infrastructure/state"
+	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
+	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
+	"github.com/miu200521358/mlib_go/pkg/interface/app"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
@@ -11,7 +13,7 @@ import (
 )
 
 type ToolState struct {
-	AppState                    state.IAppState
+	App                         *app.MApp
 	ControlWindow               *controller.ControlWindow
 	SizingTab                   *widget.MTabPage   // ファイルタブページ
 	CurrentIndex                int                // 現在のインデックス
@@ -26,15 +28,45 @@ type ToolState struct {
 	currentPageChangedPublisher walk.EventPublisher
 }
 
-func NewToolState(appState state.IAppState, controlWindow *controller.ControlWindow) *ToolState {
+func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolState {
 	toolState := &ToolState{
-		AppState:      appState,
+		App:           app,
 		ControlWindow: controlWindow,
 		SizingSets:    make([]*model.SizingSet, 0),
 	}
 
 	newSizingTab(controlWindow, toolState)
 	toolState.addSizingSet()
+
+	toolState.App.SetFuncGetModels(
+		func() [][]*pmx.PmxModel {
+			models := make([][]*pmx.PmxModel, 2)
+			models[0] = make([]*pmx.PmxModel, len(toolState.SizingSets))
+			models[1] = make([]*pmx.PmxModel, len(toolState.SizingSets))
+
+			for i, sizingSet := range toolState.SizingSets {
+				models[0][i] = sizingSet.SizingPmx
+				models[1][i] = sizingSet.OriginalPmx
+			}
+
+			return models
+		},
+	)
+
+	toolState.App.SetFuncGetMotions(
+		func() [][]*vmd.VmdMotion {
+			motions := make([][]*vmd.VmdMotion, 2)
+			motions[0] = make([]*vmd.VmdMotion, len(toolState.SizingSets))
+			motions[1] = make([]*vmd.VmdMotion, len(toolState.SizingSets))
+
+			for i, sizingSet := range toolState.SizingSets {
+				motions[0][i] = sizingSet.OutputVmd
+				motions[1][i] = sizingSet.OriginalVmd
+			}
+
+			return motions
+		},
+	)
 
 	return toolState
 }

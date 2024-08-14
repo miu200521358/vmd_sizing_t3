@@ -46,30 +46,29 @@ func main() {
 	mi18n.Initialize(appI18nFiles)
 
 	mApp := app.NewMApp(appConfig)
-
-	controlState := controller.NewControlState(mApp)
-	controlState.Run()
+	mApp.RunViewerToControlChannel()
+	mApp.RunControlToViewerChannel()
 
 	go func() {
 		// 操作ウィンドウは別スレッドで起動
-		controlWindow := controller.NewControlWindow(appConfig, controlState, ui.GetMenuItems, 2)
+		controlWindow := controller.NewControlWindow(appConfig, mApp.ControlToViewerChannel(), ui.GetMenuItems, 2)
 		mApp.SetControlWindow(controlWindow)
 
 		controlWindow.InitTabWidget()
 		ui.NewToolState(mApp, controlWindow)
 
-		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 1)
+		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 50)
 		log.SetOutput(consoleView)
 
-		mApp.ControllerRun()
+		mApp.RunController()
 	}()
 
-	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, mi18n.T("サイジング用ビューワー"), nil))
-	mApp.AddViewWindow(viewer.NewViewWindow(mApp.ViewerCount(), appConfig, mApp, mi18n.T("元モデル用ビューワー"), mApp.MainViewWindow().GetWindow()))
-
-	mApp.ExtendAnimationState(0, 0)
-	mApp.ExtendAnimationState(1, 0)
+	mApp.AddViewWindow(viewer.NewViewWindow(
+		mApp.ViewerCount(), appConfig, mApp, mApp.ViewerToControlChannel(), mi18n.T("サイジング用ビューワー"), nil))
+	mApp.AddViewWindow(viewer.NewViewWindow(
+		mApp.ViewerCount(), appConfig, mApp, mApp.ViewerToControlChannel(), mi18n.T("元モデル用ビューワー"),
+		mApp.MainViewWindow().GetWindow()))
 
 	mApp.Center()
-	mApp.ViewerRun()
+	mApp.RunViewer()
 }

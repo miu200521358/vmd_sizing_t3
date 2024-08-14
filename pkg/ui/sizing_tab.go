@@ -3,11 +3,11 @@ package ui
 import (
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
-	"github.com/miu200521358/mlib_go/pkg/infrastructure/animation"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
 	"github.com/miu200521358/mlib_go/pkg/mutils"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/walk/pkg/walk"
 )
 
@@ -117,7 +117,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.OriginalVmdPicker = widget.NewVmdVpdReadFilePicker(
 				controlWindow,
 				scrollView,
-				"OriginalVmd",
+				"vmd",
 				mi18n.T("サイジング対象モーション(Vmd/Vpd)"),
 				mi18n.T("サイジング対象モーション(Vmd/Vpd)ファイルを選択してください"),
 				mi18n.T("サイジング対象モーションの使い方"))
@@ -128,23 +128,16 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					outputPath := mutils.CreateOutputPath(path, "sizing")
 					toolState.OutputVmdPicker.SetPath(outputPath)
 
-					{
-						// 元モデル用モーション
-						motion := data.(*vmd.VmdMotion)
-						animationState := animation.NewAnimationState(1, toolState.CurrentIndex)
-						animationState.SetMotion(motion)
-						controlWindow.SetAnimationState(animationState)
-						controlWindow.UpdateMaxFrame(motion.MaxFrame())
-					}
+					// 元モデル用モーション
+					motion := data.(*vmd.VmdMotion)
+					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = motion
+					// サイジング先モデル用モーション
+					sizingMotion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
+					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 
-					{
-						// サイジング用モーション
-						motion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-						animationState := animation.NewAnimationState(0, toolState.CurrentIndex)
-						animationState.SetMotion(motion)
-						controlWindow.SetAnimationState(animationState)
-						controlWindow.UpdateMaxFrame(motion.MaxFrame())
-					}
+					controlWindow.UpdateMaxFrame(motion.MaxFrame())
+				} else {
+					mlog.E(mi18n.T("読み込み失敗"), err)
 				}
 			})
 		}
@@ -153,7 +146,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.OriginalPmxPicker = widget.NewPmxReadFilePicker(
 				controlWindow,
 				scrollView,
-				"OriginalPmx",
+				"org_pmx",
 				mi18n.T("モーション作成元モデル(Pmx)"),
 				mi18n.T("モーション作成元モデルPmxファイルを選択してください"),
 				mi18n.T("モーション作成元モデルの使い方"))
@@ -161,9 +154,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.OriginalPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.OriginalPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
-					animationState := animation.NewAnimationState(1, toolState.CurrentIndex)
-					animationState.SetModel(model)
-					controlWindow.SetAnimationState(animationState)
+
+					// 元モデル
+					toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = model
+
+					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+					}
+				} else {
+					mlog.E(mi18n.T("読み込み失敗"), err)
 				}
 			})
 		}
@@ -172,7 +171,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.SizingPmxPicker = widget.NewPmxReadFilePicker(
 				controlWindow,
 				scrollView,
-				"OriginalPmx",
+				"rep_pmx",
 				mi18n.T("サイジング先モデル(Pmx)"),
 				mi18n.T("サイジング先モデルPmxファイルを選択してください"),
 				mi18n.T("サイジング先モデルの使い方"))
@@ -180,18 +179,23 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.SizingPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.SizingPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
-					animationState := animation.NewAnimationState(0, toolState.CurrentIndex)
-					animationState.SetModel(model)
-					controlWindow.SetAnimationState(animationState)
+
+					// サイジングモデル
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = model
+
+					if toolState.SizingSets[toolState.CurrentIndex].OutputVmd == nil {
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
+					}
+				} else {
+					mlog.E(mi18n.T("読み込み失敗"), err)
 				}
 			})
 		}
 
 		{
-			toolState.OutputVmdPicker = widget.NewVmdVpdReadFilePicker(
+			toolState.OutputVmdPicker = widget.NewVmdSaveFilePicker(
 				controlWindow,
 				scrollView,
-				"OriginalVmd",
 				mi18n.T("出力モーション(Vmd)"),
 				mi18n.T("出力モーション(Vmd)ファイルパスを指定してください"),
 				mi18n.T("出力モーションの使い方"))
