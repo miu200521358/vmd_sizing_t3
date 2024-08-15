@@ -1,26 +1,20 @@
 package ui
 
 import (
-	"embed"
 	"fmt"
 	"math/rand"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
-	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
 	"github.com/miu200521358/mlib_go/pkg/mutils"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/usecase"
 	"github.com/miu200521358/walk/pkg/walk"
 )
-
-//go:embed model/*
-var modelFs embed.FS
 
 func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState) {
 	toolState.SizingTab = widget.NewMTabPage(mi18n.T("サイジング"))
@@ -135,6 +129,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					// 元モデル用モーション
 					motion := data.(*vmd.VmdMotion)
+					// Fit用モーフ追加しておく
+					motion = usecase.AddFitMorph(motion)
+					// 強制更新用にハッシュ設定
 					motion.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
 					toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath = path
 					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = motion
@@ -166,14 +163,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				if data, err := toolState.OriginalPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
 
+					// jsonから読み込んだ場合、モデル定義を適用して読み込みしなおす
 					if strings.HasSuffix(strings.ToLower(toolState.OriginalPmxPicker.GetPath()), ".json") {
-						// JSONファイルが指定されている場合、embedからPMXモデルの素体を読み込む
-						if f, err := modelFs.Open("model/mannequin.pmx"); err == nil {
-							if pmxData, err := repository.NewPmxRepository().LoadByFile(f); err == nil {
-								pmxModel := pmxData.(*pmx.PmxModel)
-								toolState.loadOriginalPmxTextures(pmxModel)
-								model = pmxModel
-							}
+						originalModel, err := usecase.LoadOriginalPmx(model)
+						if err != nil {
+							mlog.E(mi18n.T("素体読み込み失敗"), err)
+						} else {
+							model = originalModel
 						}
 					}
 
@@ -186,7 +182,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = model.Name()
 
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
-						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+						// モーション未設定の場合、空モーションを定義する
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd =
+							usecase.AddFitMorph(vmd.NewVmdMotion(""))
 					}
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
@@ -254,42 +252,4 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		toolState.SizingTabSaveButton.SetText(mi18n.T("保存"))
 		// toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
 	}
-}
-
-func (toolState *ToolState) loadOriginalPmxTextures(model *pmx.PmxModel) {
-	model.SetPath(filepath.Join(os.TempDir(), "model"))
-	for _, tex := range model.Textures.Data {
-		texPath := filepath.Join("model", tex.Name())
-		err := toolState.loadTex(texPath)
-		if err == nil {
-			tex.SetName(texPath)
-		}
-	}
-}
-
-func (toolState *ToolState) loadTex(texPath string) error {
-	fsTexPath := strings.ReplaceAll(texPath, "\\", "/")
-	texFile, err := modelFs.ReadFile(fsTexPath)
-	if err != nil {
-		mlog.E(fmt.Sprintf("Failed to read original pmx tex file: %s", texPath), err)
-		return err
-	}
-
-	tmpTexPath := filepath.Join(os.TempDir(), texPath)
-
-	// 仮パスのフォルダ構成を作成する
-	err = os.MkdirAll(filepath.Dir(tmpTexPath), 0755)
-	if err != nil {
-		mlog.E(fmt.Sprintf("Failed to create directory: %s", tmpTexPath), err)
-		return err
-	}
-
-	// 作業フォルダにファイルを書き込む
-	err = os.WriteFile(tmpTexPath, texFile, 0644)
-	if err != nil {
-		mlog.E(fmt.Sprintf("Failed to write file: %s", tmpTexPath), err)
-		return err
-	}
-
-	return nil
 }
