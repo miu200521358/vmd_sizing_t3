@@ -27,7 +27,5 @@ build/
 distribution/
 
 cmd/user_config.json
-*.vmd
-*.pmx
 *.pprof
 *.log
