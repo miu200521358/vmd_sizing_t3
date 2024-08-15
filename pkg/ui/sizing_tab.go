@@ -1,11 +1,16 @@
 package ui
 
 import (
+	"embed"
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
+	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
 	"github.com/miu200521358/mlib_go/pkg/mutils"
@@ -13,6 +18,9 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/walk/pkg/walk"
 )
+
+//go:embed model/*
+var modelFs embed.FS
 
 func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState) {
 	toolState.SizingTab = widget.NewMTabPage(mi18n.T("サイジング"))
@@ -157,6 +165,18 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.OriginalPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.OriginalPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
+
+					if strings.HasSuffix(strings.ToLower(toolState.OriginalPmxPicker.GetPath()), ".json") {
+						// JSONファイルが指定されている場合、embedからPMXモデルの素体を読み込む
+						if f, err := modelFs.Open("model/mannequin.pmx"); err == nil {
+							if pmxData, err := repository.NewPmxRepository().LoadByFile(f); err == nil {
+								pmxModel := pmxData.(*pmx.PmxModel)
+								toolState.loadOriginalPmxTextures(pmxModel)
+								model = pmxModel
+							}
+						}
+					}
+
 					model.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
 					model.SetIndex(toolState.CurrentIndex)
 
@@ -234,4 +254,42 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		toolState.SizingTabSaveButton.SetText(mi18n.T("保存"))
 		// toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
 	}
+}
+
+func (toolState *ToolState) loadOriginalPmxTextures(model *pmx.PmxModel) {
+	model.SetPath(filepath.Join(os.TempDir(), "model"))
+	for _, tex := range model.Textures.Data {
+		texPath := filepath.Join("model", tex.Name())
+		err := toolState.loadTex(texPath)
+		if err == nil {
+			tex.SetName(texPath)
+		}
+	}
+}
+
+func (toolState *ToolState) loadTex(texPath string) error {
+	fsTexPath := strings.ReplaceAll(texPath, "\\", "/")
+	texFile, err := modelFs.ReadFile(fsTexPath)
+	if err != nil {
+		mlog.E(fmt.Sprintf("Failed to read original pmx tex file: %s", texPath), err)
+		return err
+	}
+
+	tmpTexPath := filepath.Join(os.TempDir(), texPath)
+
+	// 仮パスのフォルダ構成を作成する
+	err = os.MkdirAll(filepath.Dir(tmpTexPath), 0755)
+	if err != nil {
+		mlog.E(fmt.Sprintf("Failed to create directory: %s", tmpTexPath), err)
+		return err
+	}
+
+	// 作業フォルダにファイルを書き込む
+	err = os.WriteFile(tmpTexPath, texFile, 0644)
+	if err != nil {
+		mlog.E(fmt.Sprintf("Failed to write file: %s", tmpTexPath), err)
+		return err
+	}
+
+	return nil
 }
