@@ -111,6 +111,98 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 
 			// 親からの相対位置から比率で求める
 			newBone.Position = jsonParentBone.Position.Added(bone.Extend.ParentRelativePosition.MuledScalar(ratio))
+
+			// 腕捩の場合、腕とひじの間に置く
+			if strings.Contains(bone.Name(), "腕捩") {
+				armBone := model.Bones.GetByName(
+					strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(
+						bone.Name(), "腕捩1", "腕"), "腕捩2", "腕"), "腕捩3", "腕"), "腕捩", "腕"))
+				elbowBone := model.Bones.GetByName(
+					strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(
+						bone.Name(), "腕捩1", "ひじ"), "腕捩2", "ひじ"), "腕捩3", "ひじ"), "腕捩", "ひじ"))
+
+				twistRatio := bone.Position.Subed(armBone.Position).Length() / elbowBone.Position.Subed(armBone.Position).Length()
+
+				jsonArmBone := jsonModel.Bones.GetByName(armBone.Name())
+				jsonElbowBone := jsonModel.Bones.GetByName(elbowBone.Name())
+				newBone.Position = jsonArmBone.Position.Lerp(jsonElbowBone.Position, twistRatio)
+			} else if strings.Contains(bone.Name(), "手捩") {
+				elbowBone := model.Bones.GetByName(
+					strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(
+						bone.Name(), "手捩1", "ひじ"), "手捩2", "ひじ"), "手捩3", "ひじ"), "手捩", "ひじ"))
+				wristBone := model.Bones.GetByName(
+					strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(
+						bone.Name(), "手捩1", "手首"), "手捩2", "手首"), "手捩3", "手首"), "手捩", "手首"))
+
+				twistRatio := bone.Position.Subed(wristBone.Position).Length() / elbowBone.Position.Subed(wristBone.Position).Length()
+
+				jsonElbowBone := jsonModel.Bones.GetByName(elbowBone.Name())
+				jsonWristBone := jsonModel.Bones.GetByName(wristBone.Name())
+				newBone.Position = jsonElbowBone.Position.Lerp(jsonWristBone.Position, twistRatio)
+			} else if strings.Contains(bone.Name(), "肩P") {
+				// 肩Pの場合、肩と同じ位置に置く
+				shoulderBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "肩P", "肩"))
+				jsonShoulderBone := jsonModel.Bones.GetByName(shoulderBone.Name())
+				newBone.Position = jsonShoulderBone.Position.Copy()
+			} else if strings.Contains(bone.Name(), "肩C") {
+				// 肩Cの場合、腕と同じ位置に置く
+				armBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "肩C", "腕"))
+				jsonArmBone := jsonModel.Bones.GetByName(armBone.Name())
+				newBone.Position = jsonArmBone.Position.Copy()
+			} else if strings.Contains(bone.Name(), "腰") {
+				// 腰は上半身と下半身の間
+				jsonUpperBone := jsonModel.Bones.GetByName(pmx.UPPER.String())
+				jsonLowerBone := jsonModel.Bones.GetByName(pmx.LOWER.String())
+				newBone.Position = jsonUpperBone.Position.Lerp(jsonLowerBone.Position, 0.5)
+			} else if strings.Contains(bone.Name(), "根元") {
+				// 首根元・肩根元は首根元の位置
+				newBone.Position = jsonNeckRootPos.Copy()
+			} else if strings.Contains(bone.Name(), "親指０") {
+				// 親指０は手首と親指１の間
+				wristBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "親指０", "手首"))
+				thumbBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "親指０", "親指１"))
+				thumbRatio := bone.Position.Subed(wristBone.Position).Length() / thumbBone.Position.Subed(wristBone.Position).Length()
+
+				jsonWristBone := jsonModel.Bones.GetByName(wristBone.Name())
+				jsonThumbBone := jsonModel.Bones.GetByName(thumbBone.Name())
+				newBone.Position = jsonWristBone.Position.Lerp(jsonThumbBone.Position, thumbRatio)
+			} else if strings.Contains(bone.Name(), "腰キャンセル") {
+				// 腰キャンセルは足と同じ位置
+				legBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "腰キャンセル", "足"))
+				jsonLegBone := jsonModel.Bones.GetByName(legBone.Name())
+				newBone.Position = jsonLegBone.Position.Copy()
+			} else if strings.Contains(bone.Name(), "足IK親") {
+				// 足IK親 は 足IKのYを0にした位置
+				legIkBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足IK親", "足ＩＫ"))
+				jsonLegIkBone := jsonModel.Bones.GetByName(legIkBone.Name())
+				newBone.Position = jsonLegIkBone.Position.Copy()
+				newBone.Position.Y = 0
+			} else if strings.Contains(bone.Name(), "足D") {
+				// 足D は 足の位置
+				legBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足D", "足"))
+				jsonLegBone := jsonModel.Bones.GetByName(legBone.Name())
+				newBone.Position = jsonLegBone.Position.Copy()
+			} else if strings.Contains(bone.Name(), "ひざD") {
+				// ひざD は ひざの位置
+				kneeBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "ひざD", "ひざ"))
+				jsonKneeBone := jsonModel.Bones.GetByName(kneeBone.Name())
+				newBone.Position = jsonKneeBone.Position.Copy()
+			} else if strings.Contains(bone.Name(), "足首D") {
+				// 足首D は 足首の位置
+				ankleBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足首D", "足首"))
+				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+				newBone.Position = jsonAnkleBone.Position.Copy()
+			} else if strings.Contains(bone.Name(), "足先EX") {
+				// 足先EXは 足首とつま先の間
+				ankleBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足先EX", "足首"))
+				// つま先のボーン名は標準ではないので、つま先ＩＫのターゲットから取る
+				toeBone := model.Bones.Get(model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足先EX", "つま先ＩＫ")).Ik.BoneIndex)
+				toeRatio := bone.Position.Subed(ankleBone.Position).Length() / toeBone.Position.Subed(ankleBone.Position).Length()
+
+				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+				jsonToeBone := jsonModel.Bones.GetByName(toeBone.Name())
+				newBone.Position = jsonAnkleBone.Position.Lerp(jsonToeBone.Position, toeRatio)
+			}
 		}
 
 		// 付与親がある場合、付与親のINDEXを変更
