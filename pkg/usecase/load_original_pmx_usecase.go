@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
@@ -64,10 +63,10 @@ func loadMannequinPmx() (*pmx.PmxModel, error) {
 	return model, nil
 }
 
-// model にあって、 jsonModel にないボーンを追加する
-func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
-	if !jsonModel.Bones.ContainsByName(pmx.ARM.Left()) || !jsonModel.Bones.ContainsByName(pmx.ARM.Right()) {
-		return jsonModel
+func getRootRatio(model, jsonModel *pmx.PmxModel) float64 {
+	if !jsonModel.Bones.ContainsByName(pmx.ARM.Left()) || !jsonModel.Bones.ContainsByName(pmx.ARM.Right()) ||
+		!model.Bones.ContainsByName(pmx.ARM.Left()) || !model.Bones.ContainsByName(pmx.ARM.Right()) {
+		return 1.0
 	}
 
 	// 両腕の中央を首根元として、両モデルの比率を取得
@@ -77,6 +76,17 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 		jsonModel.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
 	ratio := jsonNeckRootPos.Length() / neckRootPos.Length()
 
+	return ratio
+}
+
+// model にあって、 jsonModel にないボーンを追加する
+func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
+	if !jsonModel.Bones.ContainsByName(pmx.ARM.Left()) || !jsonModel.Bones.ContainsByName(pmx.ARM.Right()) {
+		return jsonModel
+	}
+
+	ratio := getRootRatio(model, jsonModel)
+
 	for i, boneIndex := range model.Bones.LayerSortedIndexes {
 		bone := model.Bones.Get(boneIndex)
 		// 存在するボーンの場合
@@ -85,7 +95,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 			if jsonBone.ParentIndex < 0 && jsonBone.Name() != pmx.ROOT.String() {
 				// センターがルートなどの場合に、全ての親を親に切り替える
 				jsonBone.ParentIndex = jsonModel.Bones.GetByName(pmx.ROOT.String()).Index()
-			} else {
+			} else if bone.ParentIndex >= 0 {
 				// それ以外も親を切り替える
 				jsonBone.ParentIndex = jsonModel.Bones.GetByName(model.Bones.Get(bone.ParentIndex).Name()).Index()
 			}
@@ -159,7 +169,8 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 				newBone.Position = jsonUpperBone.Position.Lerp(jsonLowerBone.Position, 0.5)
 			} else if strings.Contains(bone.Name(), "根元") {
 				// 首根元・肩根元は首根元の位置
-				newBone.Position = jsonNeckRootPos.Copy()
+				newBone.Position = jsonModel.Bones.GetByName(pmx.ARM.Left()).Position.Added(
+					jsonModel.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
 			} else if strings.Contains(bone.Name(), "親指０") {
 				// 親指０は手首と親指１の間
 				wristBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "親指０", "手首"))
@@ -252,13 +263,17 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	offsets := make([]pmx.IMorphOffset, 0)
 
-	// 対象のボーン名をスライスにまとめる
-	ignoredBones := []string{"頭", "左目", "右目", "両目"}
-
 	// {
-	// 	bone := model.Bones.GetByName("上半身")
-	// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.NewMRotation())
-	// 	offset.Extend.LocalScale = &mmath.MVec3{X: 2, Y: 1, Z: 1}
+	// 	bone := model.Bones.GetByName("左腕")
+	// 	jsonBone := jsonModel.Bones.GetByName(bone.Name())
+
+	// 	// 回転系
+	// 	boneAxis := bone.Extend.NormalizedLocalAxisX
+	// 	jsonBoneAxis := jsonBone.Extend.NormalizedLocalAxisX
+	// 	// ボーンの傾き補正
+	// 	offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
+	// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.MQuaternionIdent)
+	// 	offset.Extend.LocalRotation = offsetQuat
 	// 	offsets = append(offsets, offset)
 	// }
 
@@ -276,28 +291,59 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	// 	offsets = append(offsets, offset)
 	// }
 
-	for _, bone := range model.Bones.Data {
-		// 頭系のボーンは一括処理
-		if slices.Contains(ignoredBones, bone.Name()) {
-			continue
-		}
+	ratio := getRootRatio(model, jsonModel)
 
+	for _, bone := range model.Bones.Data {
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
 			parentBone := model.Bones.Get(bone.ParentIndex)
 			if parentBone == nil {
 				continue
 			}
 
-			if bone.CanTranslate() {
-				// 移動系
-				boneParentRelativePosition := bone.Position.Sub(parentBone.Position)
-				jsonParentBone := jsonModel.Bones.GetByName(parentBone.Name())
-				jsonBoneParentRelativePosition := jsonBone.Position.Sub(jsonParentBone.Position)
-
-				bonePosDiff := jsonBoneParentRelativePosition.Subed(boneParentRelativePosition)
-				offset := pmx.NewBoneMorphOffset(bone.Index(), bonePosDiff, mmath.NewMRotation())
-				offsets = append(offsets, offset)
+			var jsonChildBone *pmx.Bone
+			var childBone *pmx.Bone
+			if len(jsonBone.Extend.ChildBoneIndexes) > 0 {
+				jsonChildBone = jsonModel.Bones.Get(jsonBone.Extend.ChildBoneIndexes[0])
+				childBone = model.Bones.GetByName(jsonChildBone.Name())
 			}
+
+			offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.MQuaternionIdent)
+
+			{
+				// 回転補正
+				jsonBoneAxis := jsonBone.Extend.NormalizedLocalAxisX
+				boneAxis := bone.Extend.NormalizedLocalAxisX
+
+				offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
+				offset.Extend.LocalRotation = offsetQuat
+			}
+
+			if childBone != nil && jsonChildBone != nil && !jsonBone.CanTranslate() {
+				// スケール補正
+				jsonBoneLength := jsonBone.Position.Distance(jsonChildBone.Position)
+				boneLength := bone.Position.Distance(childBone.Position)
+
+				offsetScale := ratio
+				if boneLength != 0 && jsonBoneLength != 0 {
+					offsetScale = jsonBoneLength / boneLength
+				}
+				// offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.MQuaternionIdent)
+				offset.Extend.LocalScale = &mmath.MVec3{X: offsetScale, Y: ratio, Z: ratio}
+			}
+
+			offsets = append(offsets, offset)
+
+			// else {
+			// 	// 回転系
+			// 	boneAxis := bone.Extend.NormalizedLocalAxisX
+			// 	jsonBoneAxis := jsonBone.Extend.NormalizedLocalAxisX
+			// 	// ボーンの傾き補正
+			// 	offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
+			// 	offsetRot := mmath.NewMRotationFromQuaternion(offsetQuat)
+			// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.NewMRotation())
+			// 	offset.Extend.LocalRotation = offsetRot
+			// 	offsets = append(offsets, offset)
+			// }
 		}
 
 		// 	// } else {
