@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
@@ -77,7 +78,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 
 	for i, boneIndex := range model.Bones.LayerSortedIndexes {
 		bone := model.Bones.Get(boneIndex)
-		// 存在するボーンはスキップ
+		// 存在するボーンの場合
 		if jsonModel.Bones.ContainsByName(bone.Name()) {
 			jsonBone := jsonModel.Bones.GetByName(bone.Name())
 			if jsonBone.ParentIndex < 0 && jsonBone.Name() != pmx.ROOT.String() {
@@ -94,7 +95,6 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 		newBone := bone.Copy().(*pmx.Bone)
 		// 最後に追加
 		newBone.SetIndex(jsonModel.Bones.Len())
-		// 変形階層は親ボーンと一緒
 		if bone.ParentIndex < 0 {
 			if newBone.Name() == pmx.ROOT.String() {
 				newBone.ParentIndex = -1
@@ -126,6 +126,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 				jsonArmBone := jsonModel.Bones.GetByName(armBone.Name())
 				jsonElbowBone := jsonModel.Bones.GetByName(elbowBone.Name())
 				newBone.Position = jsonArmBone.Position.Lerp(jsonElbowBone.Position, twistRatio)
+				newBone.FixedAxis = jsonElbowBone.Position.Subed(jsonArmBone.Position).Normalized()
 			} else if strings.Contains(bone.Name(), "手捩") {
 				elbowBone := model.Bones.GetByName(
 					strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(
@@ -139,6 +140,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 				jsonElbowBone := jsonModel.Bones.GetByName(elbowBone.Name())
 				jsonWristBone := jsonModel.Bones.GetByName(wristBone.Name())
 				newBone.Position = jsonElbowBone.Position.Lerp(jsonWristBone.Position, twistRatio)
+				newBone.FixedAxis = jsonWristBone.Position.Subed(jsonElbowBone.Position).Normalized()
 			} else if strings.Contains(bone.Name(), "肩P") {
 				// 肩Pの場合、肩と同じ位置に置く
 				shoulderBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "肩P", "肩"))
@@ -248,7 +250,6 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 
 func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	offsets := make([]pmx.IMorphOffset, 0)
-	// nonExistBones := make([]*pmx.Bone, 0)
 
 	// 対象のボーン名をスライスにまとめる
 	ignoredBones := []string{"頭", "左目", "右目", "両目"}
@@ -279,14 +280,18 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 		if slices.Contains(ignoredBones, bone.Name()) {
 			continue
 		}
-		// if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
-		// 	// 移動系
-		// 	parentBone := model.Bones.Get(bone.ParentIndex)
-		// 	boneParentRelativePosition := bone.Position.Sub(parentBone.Position)
 
-		// 	bonePosDiff := jsonBone.Extend.ParentRelativePosition.Subed()
-		// 	offset := pmx.NewBoneMorphOffset(bone.Index(), bonePosDiff, mmath.NewMRotation())
-		// 	offsets = append(offsets, offset)
+		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
+			// 移動系
+			parentBone := model.Bones.Get(bone.ParentIndex)
+			boneParentRelativePosition := bone.Position.Sub(parentBone.Position)
+			jsonParentBone := jsonModel.Bones.GetByName(parentBone.Name())
+			jsonBoneParentRelativePosition := jsonBone.Position.Sub(jsonParentBone.Position)
+
+			bonePosDiff := jsonBoneParentRelativePosition.Subed(boneParentRelativePosition)
+			offset := pmx.NewBoneMorphOffset(bone.Index(), bonePosDiff, mmath.NewMRotation())
+			offsets = append(offsets, offset)
+		}
 
 		// 	// } else {
 		// 	// 	// 回転系
@@ -305,23 +310,8 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 
 		// 	// 	offsets = append(offsets, offset)
 		// 	// }
-		// 	// } else {
-		// 	// 	// 準標準ボーンが無い場合、後でボーン位置を調整する
-		// 	// 	nonExistBones = append(nonExistBones, bone)
 		// }
 	}
-
-	// // 存在しなかったボーンを補正
-	// for _, bone := range nonExistBones {
-	// 	parentBone := model.Bones.Get(bone.ParentIndex)
-	// 	var childBone *pmx.Bone
-	// 	if len(bone.Extend.ChildBoneIndexes) > 0 {
-	// 		childBone = model.Bones.Get(bone.Extend.ChildBoneIndexes[0])
-	// 	}
-	// 	if parentBone != nil && childBone != nil {
-	// 		// 親子ボーンの中間点を求める
-	// 	}
-	// }
 
 	morph := pmx.NewMorph()
 	morph.SetIndex(model.Morphs.Len())
