@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 )
 
-//go:embed base_model/*
+//go:embed base_model/*.pmx
 //go:embed base_model/tex/*.png
 var modelFs embed.FS
 
@@ -32,7 +32,13 @@ func LoadOriginalPmx(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 	loadOriginalPmxTextures(model)
 
 	// 足りないボーンを追加
-	jsonModel = addNonExistBones(model, jsonModel)
+	addNonExistBones(model, jsonModel)
+
+	// ボーン設定を補正
+	fixBaseBones(model, jsonModel)
+
+	jsonModel.Setup()
+	model.Setup()
 
 	// フィットボーンモーフを作成
 	createFitMorph(model, jsonModel, fit_morph_name)
@@ -64,25 +70,25 @@ func loadMannequinPmx() (*pmx.PmxModel, error) {
 }
 
 func getRootRatio(model, jsonModel *pmx.PmxModel) float64 {
-	if !jsonModel.Bones.ContainsByName(pmx.ARM.Left()) || !jsonModel.Bones.ContainsByName(pmx.ARM.Right()) ||
-		!model.Bones.ContainsByName(pmx.ARM.Left()) || !model.Bones.ContainsByName(pmx.ARM.Right()) {
+	if !jsonModel.Bones.ContainsByName(pmx.SHOULDER.Left()) || !jsonModel.Bones.ContainsByName(pmx.SHOULDER.Right()) ||
+		!model.Bones.ContainsByName(pmx.SHOULDER.Left()) || !model.Bones.ContainsByName(pmx.SHOULDER.Right()) {
 		return 1.0
 	}
 
 	// 両腕の中央を首根元として、両モデルの比率を取得
-	neckRootPos := model.Bones.GetByName(pmx.ARM.Left()).Position.Added(
-		model.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
-	jsonNeckRootPos := jsonModel.Bones.GetByName(pmx.ARM.Left()).Position.Added(
-		jsonModel.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
+	neckRootPos := model.Bones.GetByName(pmx.SHOULDER.Left()).Position.Added(
+		model.Bones.GetByName(pmx.SHOULDER.Right()).Position).MuledScalar(0.5)
+	jsonNeckRootPos := jsonModel.Bones.GetByName(pmx.SHOULDER.Left()).Position.Added(
+		jsonModel.Bones.GetByName(pmx.SHOULDER.Right()).Position).MuledScalar(0.5)
 	ratio := jsonNeckRootPos.Length() / neckRootPos.Length()
 
 	return ratio
 }
 
 // model にあって、 jsonModel にないボーンを追加する
-func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
-	if !jsonModel.Bones.ContainsByName(pmx.ARM.Left()) || !jsonModel.Bones.ContainsByName(pmx.ARM.Right()) {
-		return jsonModel
+func addNonExistBones(model, jsonModel *pmx.PmxModel) {
+	if !jsonModel.Bones.ContainsByName(pmx.SHOULDER.Left()) || !jsonModel.Bones.ContainsByName(pmx.SHOULDER.Right()) {
+		return
 	}
 
 	ratio := getRootRatio(model, jsonModel)
@@ -123,8 +129,25 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 			// 親からの相対位置から比率で求める
 			newBone.Position = jsonParentBone.Position.Added(bone.Extend.ParentRelativePosition.MuledScalar(ratio))
 
-			// 腕捩の場合、腕とひじの間に置く
-			if strings.Contains(bone.Name(), "腕捩") {
+			if strings.Contains(bone.Name(), "上半身2") {
+				// 上半身2の場合、首根元と上半身の間に置く
+				neckRootBone := model.Bones.GetByName(pmx.NECK_ROOT.String())
+				upperBone := model.Bones.GetByName(pmx.UPPER.String())
+				upper2Bone := model.Bones.GetByName(pmx.UPPER2.String())
+
+				jsonUpperBone := jsonModel.Bones.GetByName(upperBone.Name())
+				jsonNeckRootPosition := jsonModel.Bones.GetByName(pmx.SHOULDER.Left()).Position.Added(
+					jsonModel.Bones.GetByName(pmx.SHOULDER.Right()).Position).MuledScalar(0.5)
+
+				// 上半身の長さを上半身と首根元の距離で求める
+				upperLength := upperBone.Position.Distance(neckRootBone.Position)
+				jsonUpperLength := jsonUpperBone.Position.Distance(jsonNeckRootPosition)
+				upperRatio := upperLength / jsonUpperLength
+
+				upper2Offset := upper2Bone.Position.Subed(upperBone.Position).MuledScalar(upperRatio)
+				newBone.Position = jsonUpperBone.Position.Added(upper2Offset)
+			} else if strings.Contains(bone.Name(), "腕捩") {
+				// 腕捩の場合、腕とひじの間に置く
 				armBone := model.Bones.GetByName(
 					strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(
 						bone.Name(), "腕捩1", "腕"), "腕捩2", "腕"), "腕捩3", "腕"), "腕捩", "腕"))
@@ -162,15 +185,10 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 				armBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "肩C", "腕"))
 				jsonArmBone := jsonModel.Bones.GetByName(armBone.Name())
 				newBone.Position = jsonArmBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "腰") {
-				// 腰は上半身と下半身の間
-				jsonUpperBone := jsonModel.Bones.GetByName(pmx.UPPER.String())
-				jsonLowerBone := jsonModel.Bones.GetByName(pmx.LOWER.String())
-				newBone.Position = jsonUpperBone.Position.Lerp(jsonLowerBone.Position, 0.5)
-			} else if strings.Contains(bone.Name(), "根元") {
+			} else if strings.Contains(bone.Name(), "首根元") || strings.Contains(bone.Name(), "肩根元") {
 				// 首根元・肩根元は首根元の位置
-				newBone.Position = jsonModel.Bones.GetByName(pmx.ARM.Left()).Position.Added(
-					jsonModel.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
+				newBone.Position = jsonModel.Bones.GetByName(pmx.SHOULDER.Left()).Position.Added(
+					jsonModel.Bones.GetByName(pmx.SHOULDER.Right()).Position).MuledScalar(0.5)
 			} else if strings.Contains(bone.Name(), "親指０") {
 				// 親指０は手首と親指１の間
 				wristBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "親指０", "手首"))
@@ -180,11 +198,20 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 				jsonWristBone := jsonModel.Bones.GetByName(wristBone.Name())
 				jsonThumbBone := jsonModel.Bones.GetByName(thumbBone.Name())
 				newBone.Position = jsonWristBone.Position.Lerp(jsonThumbBone.Position, thumbRatio)
+			} else if strings.Contains(bone.Name(), "足中心") || strings.Contains(bone.Name(), "足根元") {
+				// 足中心は足の中心
+				newBone.Position = jsonModel.Bones.GetByName(pmx.LEG.Left()).Position.Added(
+					jsonModel.Bones.GetByName(pmx.LEG.Right()).Position).MuledScalar(0.5)
 			} else if strings.Contains(bone.Name(), "腰キャンセル") {
 				// 腰キャンセルは足と同じ位置
-				legBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "腰キャンセル", "足"))
-				jsonLegBone := jsonModel.Bones.GetByName(legBone.Name())
+				legBoneName := fmt.Sprintf("%s足", bone.Direction())
+				jsonLegBone := jsonModel.Bones.GetByName(legBoneName)
 				newBone.Position = jsonLegBone.Position.Copy()
+			} else if strings.Contains(bone.Name(), "腰") {
+				// 腰は上半身と下半身の間
+				jsonUpperBone := jsonModel.Bones.GetByName(pmx.UPPER.String())
+				jsonLowerBone := jsonModel.Bones.GetByName(pmx.LOWER.String())
+				newBone.Position = jsonUpperBone.Position.Lerp(jsonLowerBone.Position, 0.5)
 			} else if strings.Contains(bone.Name(), "足IK親") {
 				// 足IK親 は 足IKのYを0にした位置
 				legIkBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足IK親", "足ＩＫ"))
@@ -254,116 +281,91 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) *pmx.PmxModel {
 		jsonModel.Bones.Append(newBone)
 
 	}
-
-	jsonModel.Setup()
-
-	return jsonModel
 }
 
 func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	offsets := make([]pmx.IMorphOffset, 0)
-
-	// {
-	// 	bone := model.Bones.GetByName("左腕")
-	// 	jsonBone := jsonModel.Bones.GetByName(bone.Name())
-
-	// 	// 回転系
-	// 	boneAxis := bone.Extend.NormalizedLocalAxisX
-	// 	jsonBoneAxis := jsonBone.Extend.NormalizedLocalAxisX
-	// 	// ボーンの傾き補正
-	// 	offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
-	// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.MQuaternionIdent)
-	// 	offset.Extend.LocalRotation = offsetQuat
-	// 	offsets = append(offsets, offset)
-	// }
-
-	// {
-	// 	bone := model.Bones.GetByName("右足")
-	// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.NewMRotation())
-	// 	offset.Extend.LocalScale = &mmath.MVec3{X: 2, Y: 2, Z: 2}
-	// 	offsets = append(offsets, offset)
-	// }
-
-	// {
-	// 	bone := model.Bones.GetByName("左腕")
-	// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.NewMRotation())
-	// 	offset.Extend.LocalScale = &mmath.MVec3{X: 2, Y: 1, Z: 1}
-	// 	offsets = append(offsets, offset)
-	// }
-
 	ratio := getRootRatio(model, jsonModel)
 
 	for _, bone := range model.Bones.Data {
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
-			parentBone := model.Bones.Get(bone.ParentIndex)
-			if parentBone == nil {
+			var parentBone *pmx.Bone
+			var jsonParentBone *pmx.Bone
+			for _, parentBoneName := range bone.ConfigParentBoneNames() {
+				if model.Bones.ContainsByName(parentBoneName) && jsonModel.Bones.ContainsByName(parentBoneName) {
+					parentBone = model.Bones.GetByName(parentBoneName)
+					jsonParentBone = jsonModel.Bones.GetByName(parentBoneName)
+					break
+				}
+			}
+
+			if parentBone == nil || jsonParentBone == nil {
 				continue
 			}
 
 			var jsonChildBone *pmx.Bone
 			var childBone *pmx.Bone
-			if len(jsonBone.Extend.ChildBoneIndexes) > 0 {
-				jsonChildBone = jsonModel.Bones.Get(jsonBone.Extend.ChildBoneIndexes[0])
-				childBone = model.Bones.GetByName(jsonChildBone.Name())
+			for _, childBoneName := range bone.ConfigChildBoneNames() {
+				if model.Bones.ContainsByName(childBoneName) && jsonModel.Bones.ContainsByName(childBoneName) {
+					childBone = model.Bones.GetByName(childBoneName)
+					jsonChildBone = jsonModel.Bones.GetByName(childBoneName)
+					break
+				}
 			}
 
-			offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.MQuaternionIdent)
+			offset := pmx.NewBoneMorphOffset(bone.Index())
 
-			{
+			if bone.CanFitMove() || bone.CanFitLocalMove() {
+				// 位置補正
+				offsetPosition := jsonBone.Position.Subed(bone.Position)
+
+				if bone.CanFitMove() {
+					offset.Position = offsetPosition
+				} else {
+					offset.Extend.LocalPosition = offsetPosition
+				}
+			}
+
+			if childBone != nil && jsonChildBone != nil && (bone.CanFitRotate() || bone.CanFitLocalRotate()) {
 				// 回転補正
-				jsonBoneAxis := jsonBone.Extend.NormalizedLocalAxisX
-				boneAxis := bone.Extend.NormalizedLocalAxisX
+				jsonBoneAxis := jsonChildBone.Position.Subed(jsonBone.Position).Normalized()
+				boneAxis := childBone.Position.Subed(bone.Position).Normalized()
 
 				offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
-				offset.Extend.LocalRotation = offsetQuat
+				if bone.CanFitRotate() {
+					offset.Rotation = offsetQuat
+				} else {
+					offset.Extend.LocalRotation = offsetQuat
+				}
 			}
 
-			if childBone != nil && jsonChildBone != nil && !jsonBone.CanTranslate() {
+			if bone.CanFitScale() || bone.CanFitLocalScale() {
 				// スケール補正
-				jsonBoneLength := jsonBone.Position.Distance(jsonChildBone.Position)
-				boneLength := bone.Position.Distance(childBone.Position)
-
 				offsetScale := ratio
-				if boneLength != 0 && jsonBoneLength != 0 {
-					offsetScale = jsonBoneLength / boneLength
+
+				if childBone != nil && jsonChildBone != nil {
+					jsonBoneLength := jsonBone.Position.Distance(jsonChildBone.Position)
+					boneLength := bone.Position.Distance(childBone.Position)
+					if boneLength != 0 && jsonBoneLength != 0 {
+						offsetScale = jsonBoneLength / boneLength
+					}
 				}
-				// offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.MQuaternionIdent)
-				offset.Extend.LocalScale = &mmath.MVec3{X: offsetScale, Y: ratio, Z: ratio}
+
+				offsetScales := &mmath.MVec3{X: offsetScale, Y: ratio, Z: ratio}
+				if bone.IsHead() {
+					// 頭系の場合、均一にスケールする
+					offsetScales = &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
+				}
+
+				if bone.CanFitScale() {
+					offset.Extend.Scale = offsetScales
+				} else {
+					offset.Extend.LocalScale = offsetScales
+				}
 			}
 
 			offsets = append(offsets, offset)
-
-			// else {
-			// 	// 回転系
-			// 	boneAxis := bone.Extend.NormalizedLocalAxisX
-			// 	jsonBoneAxis := jsonBone.Extend.NormalizedLocalAxisX
-			// 	// ボーンの傾き補正
-			// 	offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
-			// 	offsetRot := mmath.NewMRotationFromQuaternion(offsetQuat)
-			// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.NewMRotation())
-			// 	offset.Extend.LocalRotation = offsetRot
-			// 	offsets = append(offsets, offset)
-			// }
 		}
-
-		// 	// } else {
-		// 	// 	// 回転系
-		// 	// 	boneQuatMat := bone.Extend.NormalizedLocalAxisX.ToLocalMat()
-		// 	// 	jsonBoneQuatMat := jsonBone.Extend.NormalizedLocalAxisX.ToLocalMat()
-
-		// 	// 	// ボーンの傾き補正
-		// 	// 	offsetQuat := jsonBoneQuatMat.Mul(boneQuatMat.Inverse()).Quaternion()
-		// 	// 	offsetRot := mmath.NewMRotationFromQuaternion(offsetQuat)
-		// 	// 	// ボーンの長さ補正
-		// 	// 	// offsetScale := jsonBone.Extend.ChildRelativePosition.Length() / bone.Extend.ChildRelativePosition.Length()
-
-		// 	// 	offset := pmx.NewBoneMorphOffset(bone.Index(), mmath.MVec3Zero, mmath.NewMRotation())
-		// 	// 	offset.Extend.LocalRotation = offsetRot
-		// 	// 	// offset.Extend.LocalScale = &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
-
-		// 	// 	offsets = append(offsets, offset)
-		// 	// }
-		// }
 	}
 
 	morph := pmx.NewMorph()
@@ -376,20 +378,19 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	model.Morphs.Append(morph)
 }
 
-func fixBones(model, jsonModel *pmx.PmxModel) {
+// 素体モデルのボーン設定を、素体モデルのボーン設定に合わせる
+func fixBaseBones(model, jsonModel *pmx.PmxModel) {
 	for _, bone := range model.Bones.Data {
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
-			bone.Position = jsonBone.Position
 			bone.BoneFlag = jsonBone.BoneFlag
 			bone.TailPosition = jsonBone.TailPosition
 			bone.FixedAxis = jsonBone.FixedAxis
 			bone.LocalAxisX = jsonBone.LocalAxisX
 			bone.LocalAxisZ = jsonBone.LocalAxisZ
 
-			if bone.IsEffectorRotation() || bone.IsEffectorTranslation() {
+			if (bone.IsEffectorRotation() || bone.IsEffectorTranslation()) && model.Bones.Contains(bone.EffectIndex) {
 				if jsonEffectorBone := jsonModel.Bones.GetByName(
 					model.Bones.Get(bone.EffectIndex).Name()); jsonEffectorBone != nil {
-					bone.EffectIndex = jsonEffectorBone.Index()
 					bone.EffectFactor = jsonBone.EffectFactor
 				}
 			}
@@ -397,20 +398,116 @@ func fixBones(model, jsonModel *pmx.PmxModel) {
 			if bone.Ik != nil && jsonBone.Ik != nil {
 				if jsonIkBone := jsonModel.Bones.GetByName(
 					model.Bones.Get(bone.Ik.BoneIndex).Name()); jsonIkBone != nil {
-					bone.Ik.BoneIndex = jsonIkBone.Index()
 					bone.Ik.LoopCount = jsonBone.Ik.LoopCount
 					bone.Ik.UnitRotation = jsonBone.Ik.UnitRotation
-					bone.Ik.Links = make([]*pmx.IkLink, len(jsonBone.Ik.Links))
 					for i, jsonLink := range jsonBone.Ik.Links {
 						if linkBone := model.Bones.GetByName(
 							jsonModel.Bones.Get(jsonLink.BoneIndex).Name()); linkBone != nil {
-							jsonLink.BoneIndex = linkBone.Index()
-							bone.Ik.Links[i] = jsonLink
+							bone.Ik.Links[i].AngleLimit = jsonLink.AngleLimit
+							bone.Ik.Links[i].MaxAngleLimit = jsonLink.MaxAngleLimit
+							bone.Ik.Links[i].MinAngleLimit = jsonLink.MinAngleLimit
+							bone.Ik.Links[i].LocalAngleLimit = jsonLink.LocalAngleLimit
+							bone.Ik.Links[i].LocalMaxAngleLimit = jsonLink.LocalMaxAngleLimit
+							bone.Ik.Links[i].LocalMinAngleLimit = jsonLink.LocalMinAngleLimit
 						}
 					}
 				}
 			}
 		}
+	}
+
+	// 肩ボーンの位置を、肩・腕・首根元から求める
+	for _, shoulderBoneName := range []string{pmx.SHOULDER.Left(), pmx.SHOULDER.Right()} {
+		armBoneName := strings.ReplaceAll(shoulderBoneName, "肩", "腕")
+		shoulderPBoneName := strings.ReplaceAll(shoulderBoneName, "肩", "肩P")
+		neckRootBoneName := pmx.NECK_ROOT.String()
+
+		shoulderBone := model.Bones.GetByName(shoulderBoneName)
+		armBone := model.Bones.GetByName(armBoneName)
+		shoulderPBone := model.Bones.GetByName(shoulderPBoneName)
+		neckRootBone := model.Bones.GetByName(neckRootBoneName)
+
+		jsonShoulderBone := jsonModel.Bones.GetByName(shoulderBoneName)
+		jsonArmBone := jsonModel.Bones.GetByName(armBoneName)
+		jsonNeckRootBone := jsonModel.Bones.GetByName(neckRootBoneName)
+
+		// 肩幅を腕と首根元の距離で求める
+		shoulderWidth := armBone.Position.Distance(neckRootBone.Position)
+		jsonShoulderWidth := jsonArmBone.Position.Distance(jsonNeckRootBone.Position)
+		shoulderRatio := shoulderWidth / jsonShoulderWidth
+
+		// 肩・腕・首根元の三角形の重心を求める
+		shoulderCenter := shoulderBone.Position.Added(armBone.Position).Added(neckRootBone.Position).DivedScalar(3.0)
+		jsonShoulderCenter := jsonShoulderBone.Position.Added(jsonArmBone.Position).Added(jsonNeckRootBone.Position).DivedScalar(3.0)
+		shoulderRelativeCenter := shoulderCenter.Subed(neckRootBone.Position)
+		jsonShoulderRelativeCenter := jsonShoulderCenter.Subed(jsonNeckRootBone.Position)
+
+		// 重心の差分に縮尺をかけて、肩ボーンの位置を求める
+		shoulderOffset := shoulderRelativeCenter.Subed(jsonShoulderRelativeCenter.MuledScalar(shoulderRatio))
+		shoulderBone.Position.Add(shoulderOffset)
+		shoulderPBone.Position.Add(shoulderOffset)
+	}
+
+	// 頭ボーンの位置を、首根元・上半身・頭から求める
+	{
+		headBoneName := pmx.HEAD.String()
+		neckRootBoneName := pmx.NECK_ROOT.String()
+		upperBoneName := pmx.UPPER.String()
+
+		headBone := model.Bones.GetByName(headBoneName)
+		neckRootBone := model.Bones.GetByName(neckRootBoneName)
+		upperBone := model.Bones.GetByName(upperBoneName)
+
+		jsonHeadBone := jsonModel.Bones.GetByName(headBoneName)
+		jsonNeckRootBone := jsonModel.Bones.GetByName(neckRootBoneName)
+		jsonUpperBone := jsonModel.Bones.GetByName(upperBoneName)
+
+		// 上半身幅を上半身と首根元の距離で求める
+		upperWidth := upperBone.Position.Distance(neckRootBone.Position)
+		jsonUpperWidth := jsonUpperBone.Position.Distance(jsonNeckRootBone.Position)
+		upperRatio := upperWidth / jsonUpperWidth
+
+		// 首根元・上半身・頭の三角形の重心を求める
+		headCenter := headBone.Position.Added(neckRootBone.Position).Added(upperBone.Position).DivedScalar(3.0)
+		jsonHeadCenter := jsonHeadBone.Position.Added(jsonNeckRootBone.Position).Added(jsonUpperBone.Position).DivedScalar(3.0)
+		headRelativeCenter := headCenter.Subed(upperBone.Position)
+		jsonHeadRelativeCenter := jsonHeadCenter.Subed(jsonUpperBone.Position)
+
+		// 重心の差分に縮尺をかけて、頭ボーンの位置を求める
+		headOffset := jsonHeadRelativeCenter.Subed(headRelativeCenter).MuledScalar(upperRatio)
+		headBone.Position.Y += headOffset.Y
+		headBone.Position.Z += headOffset.Z
+	}
+
+	// 首ボーンの位置を、首根元・首・頭から求める
+	{
+		neckBoneName := pmx.NECK.String()
+		neckRootBoneName := pmx.NECK_ROOT.String()
+		headBoneName := pmx.HEAD.String()
+
+		neckBone := model.Bones.GetByName(neckBoneName)
+		neckRootBone := model.Bones.GetByName(neckRootBoneName)
+		headBone := model.Bones.GetByName(headBoneName)
+
+		jsonNeckBone := jsonModel.Bones.GetByName(neckBoneName)
+		jsonNeckRootBone := jsonModel.Bones.GetByName(neckRootBoneName)
+		jsonHeadBone := jsonModel.Bones.GetByName(headBoneName)
+
+		// 首幅を頭と首根元の距離で求める
+		headWidth := headBone.Position.Distance(neckRootBone.Position)
+		jsonHeadWidth := jsonHeadBone.Position.Distance(jsonNeckRootBone.Position)
+		headRatio := headWidth / jsonHeadWidth
+
+		// 首根元・首・頭の三角形の重心を求める
+		neckCenter := neckBone.Position.Added(neckRootBone.Position).Added(headBone.Position).DivedScalar(3.0)
+		jsonNeckCenter := jsonNeckBone.Position.Added(jsonNeckRootBone.Position).Added(jsonHeadBone.Position).DivedScalar(3.0)
+		neckRelativeCenter := neckCenter.Subed(neckRootBone.Position)
+		jsonNeckRelativeCenter := jsonNeckCenter.Subed(jsonNeckRootBone.Position)
+
+		// 重心の差分に縮尺をかけて、首ボーンの位置を求める
+		neckOffset := jsonNeckRelativeCenter.Subed(neckRelativeCenter).MuledScalar(headRatio)
+		neckBone.Position.Y += neckOffset.Y
+		neckBone.Position.Z += neckOffset.Z
 	}
 }
 

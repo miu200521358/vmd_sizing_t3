@@ -29,3 +29,4 @@ distribution/
 cmd/user_config.json
 *.pprof
 *.log
+test_resources/

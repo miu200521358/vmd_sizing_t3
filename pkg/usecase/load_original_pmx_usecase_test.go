@@ -40,8 +40,11 @@ func TestUsecase_addNonExistBones(t *testing.T) {
 		t.Errorf("Expected error to be nil, got %q", err)
 	}
 
-	jsonModel = addNonExistBones(model, jsonModel)
+	rep := repository.NewPmxRepository()
 
-	outputPath := "C:/MMD/vmd_sizing_t3/test_resources/sizing_model_debug.pmx"
-	repository.NewPmxRepository().Save(outputPath, jsonModel, true)
+	addNonExistBones(model, jsonModel)
+	rep.Save("C:/MMD/vmd_sizing_t3/test_resources/sizing_model_debug_add.pmx", jsonModel, true)
+
+	fixBaseBones(model, jsonModel)
+	rep.Save("C:/MMD/vmd_sizing_t3/test_resources/sizing_model_debug_fix.pmx", model, true)
 }
