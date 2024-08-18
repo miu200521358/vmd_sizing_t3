@@ -15,7 +15,8 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 )
 
-//go:embed model/*
+//go:embed base_model/*
+//go:embed base_model/tex/*.png
 var modelFs embed.FS
 
 // FitBoneモーフ名
@@ -52,7 +53,7 @@ func loadMannequinPmx() (*pmx.PmxModel, error) {
 	var model *pmx.PmxModel
 
 	// JSONファイルが指定されている場合、embedからPMXモデルの素体を読み込む
-	if f, err := modelFs.Open("model/mannequin.pmx"); err != nil {
+	if f, err := modelFs.Open("base_model/model.pmx"); err != nil {
 		return nil, err
 	} else if pmxData, err := repository.NewPmxRepository().LoadByFile(f); err != nil {
 		return nil, err
@@ -282,15 +283,21 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 		}
 
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
-			// 移動系
 			parentBone := model.Bones.Get(bone.ParentIndex)
-			boneParentRelativePosition := bone.Position.Sub(parentBone.Position)
-			jsonParentBone := jsonModel.Bones.GetByName(parentBone.Name())
-			jsonBoneParentRelativePosition := jsonBone.Position.Sub(jsonParentBone.Position)
+			if parentBone == nil {
+				continue
+			}
 
-			bonePosDiff := jsonBoneParentRelativePosition.Subed(boneParentRelativePosition)
-			offset := pmx.NewBoneMorphOffset(bone.Index(), bonePosDiff, mmath.NewMRotation())
-			offsets = append(offsets, offset)
+			if bone.CanTranslate() {
+				// 移動系
+				boneParentRelativePosition := bone.Position.Sub(parentBone.Position)
+				jsonParentBone := jsonModel.Bones.GetByName(parentBone.Name())
+				jsonBoneParentRelativePosition := jsonBone.Position.Sub(jsonParentBone.Position)
+
+				bonePosDiff := jsonBoneParentRelativePosition.Subed(boneParentRelativePosition)
+				offset := pmx.NewBoneMorphOffset(bone.Index(), bonePosDiff, mmath.NewMRotation())
+				offsets = append(offsets, offset)
+			}
 		}
 
 		// 	// } else {
@@ -362,9 +369,9 @@ func fixBones(model, jsonModel *pmx.PmxModel) {
 }
 
 func loadOriginalPmxTextures(model *pmx.PmxModel) {
-	model.SetPath(filepath.Join(os.TempDir(), "model"))
+	model.SetPath(filepath.Join(os.TempDir(), "base_model"))
 	for _, tex := range model.Textures.Data {
-		texPath := filepath.Join("model", tex.Name())
+		texPath := filepath.Join("base_model", tex.Name())
 		if loadTex(texPath) == nil {
 			// 問題なくテクスチャがコピーできたら、パスを設定する
 			tex.SetName(texPath)
