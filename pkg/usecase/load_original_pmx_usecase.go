@@ -399,7 +399,7 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 					offset.Extend.Scale = offsetScales
 				} else {
 					// ローカルスケールは元モデルの軸に合わせる
-					offset.Extend.LocalScaleMat = jsonBone.Extend.LocalAxis.ToScaleLocalMat(offsetScales)
+					offset.Extend.LocalScaleMat = bone.Extend.LocalAxis.ToScaleLocalMat(offsetScales)
 				}
 			}
 
@@ -502,6 +502,24 @@ func fixBaseBones(model, jsonModel *pmx.PmxModel) {
 		// 素体モデルの肩ボーンの位置を求める
 		shoulderBone.Position = neckRootBone.Position.Added(shoulderOffset)
 		shoulderPBone.Position = neckRootBone.Position.Added(shoulderOffset)
+	}
+
+	// 腕捩ボーンの位置を、腕とひじの間に合わせる
+	for _, twistBoneName := range []string{pmx.ARM_TWIST.Left(), pmx.ARM_TWIST.Right(),
+		pmx.WRIST_TWIST.Left(), pmx.WRIST_TWIST.Right()} {
+		jsonTwistBone := jsonModel.Bones.GetByName(twistBoneName)
+		jsonTwistParentBone := jsonModel.Bones.GetByName(jsonTwistBone.ConfigParentBoneNames()[0])
+		jsonTwistChildBone := jsonModel.Bones.GetByName(jsonTwistBone.ConfigChildBoneNames()[0])
+		for n := range 3 {
+			twistBonePartName := fmt.Sprintf("%s%d", twistBoneName, n+1)
+			jsonTwistPartBone := jsonModel.Bones.GetByName(twistBonePartName)
+			twistBoneFactor := 0.25 * float64(n+1)
+			twistBonePosition := jsonTwistParentBone.Position.Lerp(jsonTwistChildBone.Position, twistBoneFactor)
+			jsonTwistPartBone.Position = twistBonePosition
+			if n == 1 {
+				jsonTwistBone.Position = twistBonePosition.Copy()
+			}
+		}
 	}
 }
 
