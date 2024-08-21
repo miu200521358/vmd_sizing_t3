@@ -340,19 +340,24 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			if bone.CanFitMove() || bone.CanFitLocalMove() {
 				offsetPosition := jsonBone.Position.Subed(bone.Position)
 
-				// if bone.IsSole() {
-				// 	// 靴底はY=0に合わせる
-				// 	for _, ankleOffset := range offsets {
-				// 		ankleBone := model.Bones.Get(ankleOffset.(*pmx.BoneMorphOffset).BoneIndex)
-				// 		if strings.Contains(ankleBone.Name(), fmt.Sprintf("%s足首", bone.Direction())) {
-				// 			jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
-				// 			scaledAnklePosition := jsonAnkleBone.Position.Added(ankleBone.Extend.ChildRelativePosition)
+				if bone.IsSole() {
+					// 靴底はY=0に合わせる
+					for _, ankleOffset := range offsets {
+						ankleBone := model.Bones.Get(ankleOffset.(*pmx.BoneMorphOffset).BoneIndex)
+						if strings.Contains(ankleBone.Name(), fmt.Sprintf("%s足首", bone.Direction())) {
+							ankleScale := ankleOffset.(*pmx.BoneMorphOffset).Extend.Scale
 
-				// 			offsetPosition.Y = -scaledAnklePosition.Y
-				// 			break
-				// 		}
-				// 	}
-				// }
+							jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+							scaledAnklePosition := jsonAnkleBone.Extend.ChildRelativePosition.Muled(ankleScale)
+							ankleDiff := ankleBone.Extend.ChildRelativePosition.Subed(scaledAnklePosition)
+
+							offsetPosition.X = 0
+							offsetPosition.Y = -ankleDiff.Y * ratio
+							offsetPosition.Z = 0
+							break
+						}
+					}
+				}
 
 				if bone.CanFitMove() {
 					// グローバル位置補正
@@ -520,6 +525,33 @@ func fixBaseBones(model, jsonModel *pmx.PmxModel) {
 				jsonTwistBone.Position = twistBonePosition.Copy()
 			}
 		}
+	}
+
+	// 素体のつま先IKの位置を、元モデルのつま先IKの位置に合わせる
+	for _, toeIkBoneName := range []string{pmx.TOE_IK.Left(), pmx.TOE_IK.Right()} {
+		toeIkBone := model.Bones.GetByName(toeIkBoneName)
+		jsonToeIkBone := jsonModel.Bones.GetByName(toeIkBoneName)
+
+		ankleBone := model.Bones.GetByName(fmt.Sprintf("%s足首", toeIkBone.Direction()))
+		jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+
+		ankleYRatio := ankleBone.Position.Y / jsonAnkleBone.Position.Y
+		toeIkZRatio := (toeIkBone.Position.Z - ankleBone.Position.Z) / (jsonToeIkBone.Position.Z - jsonAnkleBone.Position.Z)
+
+		toeIkBone.Position.Y = jsonToeIkBone.Position.Y * ankleYRatio
+		toeIkBone.Position.Z = jsonAnkleBone.Position.Z + (toeIkBone.Position.Z-ankleBone.Position.Z)*toeIkZRatio
+
+		toeBone := model.Bones.GetByName(fmt.Sprintf("%sつま先", toeIkBone.Direction()))
+		toeBone.Position.Y = toeIkBone.Position.Y
+		toeBone.Position.Z = toeIkBone.Position.Z
+		toeDBone := model.Bones.GetByName(fmt.Sprintf("%sつま先D", toeIkBone.Direction()))
+		toeDBone.Position.Y = toeIkBone.Position.Y
+		toeDBone.Position.Z = toeIkBone.Position.Z
+
+		heelBone := model.Bones.GetByName(fmt.Sprintf("%sかかと", toeIkBone.Direction()))
+		heelBone.Position.Y = toeIkBone.Position.Y
+		heelDBone := model.Bones.GetByName(fmt.Sprintf("%sかかとD", toeIkBone.Direction()))
+		heelDBone.Position.Y = toeIkBone.Position.Y
 	}
 }
 
