@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-	"math/rand"
 	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
@@ -132,14 +130,14 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// Fit用モーフ追加しておく
 					motion = usecase.AddFitMorph(motion)
 					// 強制更新用にハッシュ設定
-					motion.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					motion.SetRandHash()
 					toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath = path
 					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = motion
 					toolState.SizingSets[toolState.CurrentIndex].OriginalVmdName = motion.Name()
 
 					// サイジング先モデル用モーション
 					sizingMotion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-					sizingMotion.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					sizingMotion.SetRandHash()
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 
@@ -173,7 +171,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						}
 					}
 
-					model.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					model.SetRandHash()
 					model.SetIndex(toolState.CurrentIndex)
 
 					// 元モデル
@@ -204,7 +202,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.SizingPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.SizingPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
-					model.SetHash(fmt.Sprintf("%d", rand.Intn(10000)))
+					model.SetRandHash()
 					model.SetIndex(toolState.CurrentIndex)
 
 					// サイジングモデル

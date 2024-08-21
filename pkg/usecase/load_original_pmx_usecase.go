@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
@@ -39,6 +40,8 @@ func LoadOriginalPmx(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 
 	jsonModel.Setup()
 	model.Setup()
+	// 矯正更新用にハッシュ上書き
+	model.SetRandHash()
 
 	// フィットボーンモーフを作成
 	createFitMorph(model, jsonModel, fit_morph_name)
@@ -243,6 +246,12 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
 				jsonToeBone := jsonModel.Bones.GetByName(toeBone.Name())
 				newBone.Position = jsonAnkleBone.Position.Lerp(jsonToeBone.Position, toeRatio)
+			} else if strings.Contains(bone.Name(), "かかと") {
+				// かかとXは足首Dと同じ
+				ankleBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "かかと", "足首"))
+				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+				newBone.Position.X = jsonAnkleBone.Position.X
+				newBone.Position.Y = 0
 			}
 		}
 
@@ -331,6 +340,37 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 				boneAxis := childBone.Position.Subed(bone.Position).Normalized()
 
 				offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
+
+				// 親ボーンに親を引き継ぐ設定を持つボーンが居るか確認
+				for _, parentBoneIndex := range bone.Extend.ParentBoneIndexes {
+					parentBone := model.Bones.Get(parentBoneIndex)
+					if parentBone.IsInheritParent() {
+						// 引き継ぐボーンの親ボーンの軸を取得する
+						parentParentBoneNames := parentBone.ConfigParentBoneNames()
+						var parentParentBoneName string
+						for _, parentParentBoneName = range parentParentBoneNames {
+							if model.Bones.ContainsByName(parentParentBoneName) &&
+								jsonModel.Bones.ContainsByName(parentParentBoneName) {
+								break
+							}
+						}
+
+						// 引き継ぐボーンの親が見つかった場合
+						if parentParentBoneName != "" {
+							parentParentBone := model.Bones.GetByName(parentParentBoneName)
+							jsonParentParentBone := jsonModel.Bones.GetByName(parentParentBoneName)
+
+							parentBoneAxis := parentBone.Position.Subed(parentParentBone.Position).Normalized()
+							jsonParentBoneAxis := jsonBone.Position.Subed(jsonParentParentBone.Position).Normalized()
+
+							parentOffsetQuat := mmath.NewMQuaternionRotate(parentBoneAxis, jsonParentBoneAxis)
+							offsetQuat.Mul(parentOffsetQuat.Inverse())
+						}
+
+						break
+					}
+				}
+
 				if bone.CanFitRotate() {
 					offset.Rotation = offsetQuat
 				} else {
@@ -351,8 +391,8 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 				}
 
 				offsetScales := &mmath.MVec3{X: offsetScale, Y: ratio, Z: ratio}
-				if bone.IsHead() {
-					// 頭系の場合、均一にスケールする
+				if bone.IsHead() || slices.Contains([]string{pmx.ANKLE_D.Left(), pmx.ANKLE_D.Right()}, bone.Name()) {
+					// 頭系・足首Dの場合、均一にスケールする
 					offsetScales = &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
 				}
 
@@ -381,11 +421,10 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 func fixBaseBones(model, jsonModel *pmx.PmxModel) {
 	for _, bone := range model.Bones.Data {
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
-			bone.BoneFlag = jsonBone.BoneFlag
-			bone.TailPosition = jsonBone.TailPosition
-			bone.FixedAxis = jsonBone.FixedAxis
-			bone.LocalAxisX = jsonBone.LocalAxisX
-			bone.LocalAxisZ = jsonBone.LocalAxisZ
+			// bone.TailPosition = jsonBone.TailPosition
+			// bone.FixedAxis = jsonBone.FixedAxis
+			// bone.LocalAxisX = jsonBone.LocalAxisX
+			// bone.LocalAxisZ = jsonBone.LocalAxisZ
 
 			if (bone.IsEffectorRotation() || bone.IsEffectorTranslation()) && model.Bones.Contains(bone.EffectIndex) {
 				if jsonEffectorBone := jsonModel.Bones.GetByName(
