@@ -210,8 +210,8 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				legBoneName := fmt.Sprintf("%s足", bone.Direction())
 				jsonLegBone := jsonModel.Bones.GetByName(legBoneName)
 				newBone.Position = jsonLegBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "腰") {
-				// 腰は上半身と下半身の間
+			} else if strings.Contains(bone.Name(), "体幹中心") {
+				// 体幹中心は上半身と下半身の間
 				jsonUpperBone := jsonModel.Bones.GetByName(pmx.UPPER.String())
 				jsonLowerBone := jsonModel.Bones.GetByName(pmx.LOWER.String())
 				newBone.Position = jsonUpperBone.Position.Lerp(jsonLowerBone.Position, 0.5)
@@ -338,26 +338,27 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			offset := pmx.NewBoneMorphOffset(bone.Index())
 
 			if bone.CanFitMove() || bone.CanFitLocalMove() {
-				// 位置補正
 				offsetPosition := jsonBone.Position.Subed(bone.Position)
 
-				if bone.IsSole() {
-					// 靴底はY=0に合わせる
-					for _, ankleOffset := range offsets {
-						ankleBone := model.Bones.Get(ankleOffset.(*pmx.BoneMorphOffset).BoneIndex)
-						if strings.Contains(ankleBone.Name(), fmt.Sprintf("%s足首", bone.Direction())) {
-							jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
-							scaledAnklePosition := jsonAnkleBone.Position.Added(ankleBone.Extend.ChildRelativePosition)
+				// if bone.IsSole() {
+				// 	// 靴底はY=0に合わせる
+				// 	for _, ankleOffset := range offsets {
+				// 		ankleBone := model.Bones.Get(ankleOffset.(*pmx.BoneMorphOffset).BoneIndex)
+				// 		if strings.Contains(ankleBone.Name(), fmt.Sprintf("%s足首", bone.Direction())) {
+				// 			jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+				// 			scaledAnklePosition := jsonAnkleBone.Position.Added(ankleBone.Extend.ChildRelativePosition)
 
-							offsetPosition.Y = -scaledAnklePosition.Y
-							break
-						}
-					}
-				}
+				// 			offsetPosition.Y = -scaledAnklePosition.Y
+				// 			break
+				// 		}
+				// 	}
+				// }
 
 				if bone.CanFitMove() {
+					// グローバル位置補正
 					offset.Position = offsetPosition
 				} else {
+					// ローカル位置補正
 					offset.Extend.LocalPosition = offsetPosition
 				}
 			}
@@ -397,7 +398,8 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 				if bone.CanFitScale() {
 					offset.Extend.Scale = offsetScales
 				} else {
-					offset.Extend.LocalScale = offsetScales
+					// ローカルスケールは元モデルの軸に合わせる
+					offset.Extend.LocalScaleMat = jsonBone.Extend.LocalAxis.ToScaleLocalMat(offsetScales)
 				}
 			}
 
