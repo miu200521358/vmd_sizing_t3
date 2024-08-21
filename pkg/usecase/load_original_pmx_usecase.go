@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
@@ -111,6 +110,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 
 			continue
 		}
+
 		// 存在しないボーンは追加
 		newBone := bone.Copy().(*pmx.Bone)
 		// 最後に追加
@@ -252,6 +252,20 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
 				newBone.Position.X = jsonAnkleBone.Position.X
 				newBone.Position.Y = 0
+			} else if strings.Contains(bone.Name(), "指先") {
+				// 指先ボーンは親ボーンの相対表示先位置
+				parentBoneName := bone.ConfigParentBoneNames()[0]
+				jsonParentBone := jsonModel.Bones.GetByName(parentBoneName)
+				if jsonParentBone != nil {
+					newBone.Position = jsonParentBone.Position.Added(jsonParentBone.Extend.ChildRelativePosition)
+				}
+			} else if strings.Contains(bone.Name(), "つま先") {
+				// つま先ボーンはつま先IKの位置と同じ
+				toeIkBoneName := fmt.Sprintf("%sつま先ＩＫ", bone.Direction())
+				toeIkBone := jsonModel.Bones.GetByName(toeIkBoneName)
+				if toeIkBone != nil {
+					newBone.Position = toeIkBone.Position.Copy()
+				}
 			}
 		}
 
@@ -327,6 +341,20 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 				// 位置補正
 				offsetPosition := jsonBone.Position.Subed(bone.Position)
 
+				if bone.IsSole() {
+					// 靴底はY=0に合わせる
+					for _, ankleOffset := range offsets {
+						ankleBone := model.Bones.Get(ankleOffset.(*pmx.BoneMorphOffset).BoneIndex)
+						if strings.Contains(ankleBone.Name(), fmt.Sprintf("%s足首", bone.Direction())) {
+							jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+							scaledAnklePosition := jsonAnkleBone.Position.Added(ankleBone.Extend.ChildRelativePosition)
+
+							offsetPosition.Y = -scaledAnklePosition.Y
+							break
+						}
+					}
+				}
+
 				if bone.CanFitMove() {
 					offset.Position = offsetPosition
 				} else {
@@ -361,8 +389,8 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 				}
 
 				offsetScales := &mmath.MVec3{X: offsetScale, Y: ratio, Z: ratio}
-				if bone.IsHead() || slices.Contains([]string{pmx.ANKLE_D.Left(), pmx.ANKLE_D.Right()}, bone.Name()) {
-					// 頭系・足首Dの場合、均一にスケールする
+				if bone.IsHead() || bone.IsAnkle() {
+					// 頭系・足首の場合、均一にスケールする
 					offsetScales = &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
 				}
 

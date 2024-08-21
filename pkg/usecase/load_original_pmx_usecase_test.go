@@ -26,9 +26,32 @@ func TestUsecase_LoadOriginalPmx(t *testing.T) {
 	repository.NewPmxRepository().Save(outputPath, model, true)
 }
 
-func TestUsecase_addNonExistBones(t *testing.T) {
+func TestUsecase_addNonExistBones1(t *testing.T) {
 	// Save the model
 	jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.json"
+	data, err := repository.NewPmxJsonRepository().Load(jsonPath)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %q", err)
+	}
+	jsonModel := data.(*pmx.PmxModel)
+
+	model, err := loadMannequinPmx()
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %q", err)
+	}
+
+	rep := repository.NewPmxRepository()
+
+	addNonExistBones(model, jsonModel)
+	rep.Save("C:/MMD/vmd_sizing_t3/test_resources/sizing_model_debug_add.pmx", jsonModel, true)
+
+	fixBaseBones(model, jsonModel)
+	rep.Save("C:/MMD/vmd_sizing_t3/test_resources/sizing_model_debug_fix.pmx", model, true)
+}
+
+func TestUsecase_addNonExistBones2(t *testing.T) {
+	// Save the model
+	jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.json"
 	data, err := repository.NewPmxJsonRepository().Load(jsonPath)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %q", err)
