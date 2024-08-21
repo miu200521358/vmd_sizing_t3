@@ -341,36 +341,6 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 
 				offsetQuat := mmath.NewMQuaternionRotate(boneAxis, jsonBoneAxis)
 
-				// 親ボーンに親を引き継ぐ設定を持つボーンが居るか確認
-				for _, parentBoneIndex := range bone.Extend.ParentBoneIndexes {
-					parentBone := model.Bones.Get(parentBoneIndex)
-					if parentBone.IsInheritParent() {
-						// 引き継ぐボーンの親ボーンの軸を取得する
-						parentParentBoneNames := parentBone.ConfigParentBoneNames()
-						var parentParentBoneName string
-						for _, parentParentBoneName = range parentParentBoneNames {
-							if model.Bones.ContainsByName(parentParentBoneName) &&
-								jsonModel.Bones.ContainsByName(parentParentBoneName) {
-								break
-							}
-						}
-
-						// 引き継ぐボーンの親が見つかった場合
-						if parentParentBoneName != "" {
-							parentParentBone := model.Bones.GetByName(parentParentBoneName)
-							jsonParentParentBone := jsonModel.Bones.GetByName(parentParentBoneName)
-
-							parentBoneAxis := parentBone.Position.Subed(parentParentBone.Position).Normalized()
-							jsonParentBoneAxis := jsonBone.Position.Subed(jsonParentParentBone.Position).Normalized()
-
-							parentOffsetQuat := mmath.NewMQuaternionRotate(parentBoneAxis, jsonParentBoneAxis)
-							offsetQuat.Mul(parentOffsetQuat.Inverse())
-						}
-
-						break
-					}
-				}
-
 				if bone.CanFitRotate() {
 					offset.Rotation = offsetQuat
 				} else {
