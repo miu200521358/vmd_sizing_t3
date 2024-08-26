@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
@@ -141,7 +142,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 			// 親からの相対位置から比率で求める
 			newBone.Position = jsonParentBone.Position.Added(bone.Extend.ParentRelativePosition.MuledScalar(ratio))
 
-			if strings.Contains(bone.Name(), "上半身2") {
+			if bone.Name() == pmx.UPPER2.String() {
 				// 上半身2の場合、首根元と上半身の間に置く
 				neckRootBone := model.Bones.GetByName(pmx.NECK_ROOT.String())
 				upperBone := model.Bones.GetByName(pmx.UPPER.String())
@@ -187,21 +188,21 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				jsonWristBone := jsonModel.Bones.GetByName(wristBone.Name())
 				newBone.Position = jsonElbowBone.Position.Lerp(jsonWristBone.Position, twistRatio)
 				newBone.FixedAxis = jsonWristBone.Position.Subed(jsonElbowBone.Position).Normalized()
-			} else if strings.Contains(bone.Name(), "肩P") {
+			} else if bone.Name() == pmx.SHOULDER_P.Left() || bone.Name() == pmx.SHOULDER_P.Right() {
 				// 肩Pの場合、肩と同じ位置に置く
 				shoulderBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "肩P", "肩"))
 				jsonShoulderBone := jsonModel.Bones.GetByName(shoulderBone.Name())
 				newBone.Position = jsonShoulderBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "肩C") {
+			} else if slices.Contains([]string{pmx.SHOULDER_C.Left(), pmx.SHOULDER_C.Right()}, bone.Name()) {
 				// 肩Cの場合、腕と同じ位置に置く
 				armBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "肩C", "腕"))
 				jsonArmBone := jsonModel.Bones.GetByName(armBone.Name())
 				newBone.Position = jsonArmBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "首根元") || strings.Contains(bone.Name(), "肩根元") {
+			} else if slices.Contains([]string{pmx.NECK_ROOT.String(), pmx.SHOULDER_ROOT.Left(), pmx.SHOULDER_ROOT.Right()}, bone.Name()) {
 				// 首根元・肩根元は首根元の位置
 				newBone.Position = jsonModel.Bones.GetByName(pmx.ARM.Left()).Position.Added(
 					jsonModel.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
-			} else if strings.Contains(bone.Name(), "親指０") {
+			} else if slices.Contains([]string{pmx.THUMB0.Left(), pmx.THUMB0.Right()}, bone.Name()) {
 				// 親指０は手首と親指１の間
 				wristBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "親指０", "手首"))
 				thumbBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "親指０", "親指１"))
@@ -210,7 +211,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				jsonWristBone := jsonModel.Bones.GetByName(wristBone.Name())
 				jsonThumbBone := jsonModel.Bones.GetByName(thumbBone.Name())
 				newBone.Position = jsonWristBone.Position.Lerp(jsonThumbBone.Position, thumbRatio)
-			} else if strings.Contains(bone.Name(), "足中心") || strings.Contains(bone.Name(), "足根元") {
+			} else if slices.Contains([]string{pmx.LEG_CENTER.String(), pmx.LEG_ROOT.Left(), pmx.LEG_ROOT.Right()}, bone.Name()) {
 				// 足中心は足の中心
 				newBone.Position = jsonModel.Bones.GetByName(pmx.LEG.Left()).Position.Added(
 					jsonModel.Bones.GetByName(pmx.LEG.Right()).Position).MuledScalar(0.5)
@@ -219,33 +220,33 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				legBoneName := fmt.Sprintf("%s足", bone.Direction())
 				jsonLegBone := jsonModel.Bones.GetByName(legBoneName)
 				newBone.Position = jsonLegBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "体幹中心") {
-				// 体幹中心は上半身と下半身の間
+			} else if slices.Contains([]string{pmx.WAIST_CENTER.String(), pmx.UPPER_ROOT.String(), pmx.LOWER_ROOT.String()}, bone.Name()) {
+				// 体幹中心・上半身根元・下半身根元は上半身と下半身の間
 				jsonUpperBone := jsonModel.Bones.GetByName(pmx.UPPER.String())
 				jsonLowerBone := jsonModel.Bones.GetByName(pmx.LOWER.String())
 				newBone.Position = jsonUpperBone.Position.Lerp(jsonLowerBone.Position, 0.5)
-			} else if strings.Contains(bone.Name(), "足IK親") {
+			} else if slices.Contains([]string{pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}, bone.Name()) {
 				// 足IK親 は 足IKのYを0にした位置
 				legIkBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足IK親", "足ＩＫ"))
 				jsonLegIkBone := jsonModel.Bones.GetByName(legIkBone.Name())
 				newBone.Position = jsonLegIkBone.Position.Copy()
 				newBone.Position.Y = 0
-			} else if strings.Contains(bone.Name(), "足D") {
+			} else if slices.Contains([]string{pmx.LEG_D.Left(), pmx.LEG_D.Right()}, bone.Name()) {
 				// 足D は 足の位置
 				legBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足D", "足"))
 				jsonLegBone := jsonModel.Bones.GetByName(legBone.Name())
 				newBone.Position = jsonLegBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "ひざD") {
+			} else if slices.Contains([]string{pmx.KNEE_D.Left(), pmx.KNEE_D.Right()}, bone.Name()) {
 				// ひざD は ひざの位置
 				kneeBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "ひざD", "ひざ"))
 				jsonKneeBone := jsonModel.Bones.GetByName(kneeBone.Name())
 				newBone.Position = jsonKneeBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "足首D") {
+			} else if slices.Contains([]string{pmx.ANKLE_D.Left(), pmx.ANKLE_D.Right()}, bone.Name()) {
 				// 足首D は 足首の位置
 				ankleBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足首D", "足首"))
 				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
 				newBone.Position = jsonAnkleBone.Position.Copy()
-			} else if strings.Contains(bone.Name(), "足先EX") {
+			} else if slices.Contains([]string{pmx.TOE_EX.Left(), pmx.TOE_EX.Right()}, bone.Name()) {
 				// 足先EXは 足首とつま先の間
 				ankleBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "足先EX", "足首"))
 				// つま先のボーン名は標準ではないので、つま先ＩＫのターゲットから取る
@@ -255,7 +256,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
 				jsonToeBone := jsonModel.Bones.GetByName(toeBone.Name())
 				newBone.Position = jsonAnkleBone.Position.Lerp(jsonToeBone.Position, toeRatio)
-			} else if strings.Contains(bone.Name(), "かかと") {
+			} else if slices.Contains([]string{pmx.HEEL.Left(), pmx.HEEL.Right(), pmx.HEEL_D.Left(), pmx.HEEL_D.Right()}, bone.Name()) {
 				// かかとXは足首Dと同じ
 				ankleBone := model.Bones.GetByName(strings.ReplaceAll(bone.Name(), "かかと", "足首"))
 				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
@@ -268,7 +269,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				if jsonParentBone != nil {
 					newBone.Position = jsonParentBone.Position.Added(jsonParentBone.Extend.ChildRelativePosition)
 				}
-			} else if strings.Contains(bone.Name(), "つま先") {
+			} else if slices.Contains([]string{pmx.TOE.Left(), pmx.TOE.Right(), pmx.TOE_D.Left(), pmx.TOE_D.Right()}, bone.Name()) {
 				// つま先ボーンはつま先IKの位置と同じ
 				toeIkBoneName := fmt.Sprintf("%sつま先ＩＫ", bone.Direction())
 				toeIkBone := jsonModel.Bones.GetByName(toeIkBoneName)
@@ -316,116 +317,236 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 
 func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	offsets := make([]pmx.IMorphOffset, 0)
-	baseScale := getBaseScale(model, jsonModel)
+	offsetMatMap := make(map[int]*mmath.MMat4)
+	// baseScale := getBaseScale(model, jsonModel)
+	offsetQuats := make(map[int]*mmath.MQuaternion)
 
 	for _, bone := range model.Bones.Data {
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
-			var parentBone *pmx.Bone
-			var jsonParentBone *pmx.Bone
-			for _, parentBoneName := range bone.ConfigParentBoneNames() {
-				if model.Bones.ContainsByName(parentBoneName) && jsonModel.Bones.ContainsByName(parentBoneName) {
-					parentBone = model.Bones.GetByName(parentBoneName)
-					jsonParentBone = jsonModel.Bones.GetByName(parentBoneName)
-					break
-				}
-			}
-
-			if parentBone == nil || jsonParentBone == nil {
+			config := bone.Config()
+			if config == nil {
 				continue
 			}
+
+			offset := pmx.NewBoneMorphOffset(bone.Index())
+			offset.Extend.LocalMat = mmath.NewMMat4()
+
+			// var parentBone *pmx.Bone
+			// var jsonParentBone *pmx.Bone
+			// for _, parentBoneName := range bone.ConfigParentBoneNames() {
+			// 	if model.Bones.ContainsByName(parentBoneName) && jsonModel.Bones.ContainsByName(parentBoneName) {
+			// 		parentBone = model.Bones.GetByName(parentBoneName)
+			// 		jsonParentBone = jsonModel.Bones.GetByName(parentBoneName)
+			// 		break
+			// 	}
+			// }
 
 			var jsonChildBone *pmx.Bone
 			var childBone *pmx.Bone
 			for _, childBoneName := range bone.ConfigChildBoneNames() {
-				if model.Bones.ContainsByName(childBoneName) && jsonModel.Bones.ContainsByName(childBoneName) {
+				if model.Bones.ContainsByName(childBoneName) && jsonModel.Bones.ContainsByName(childBoneName) &&
+					!model.Bones.GetByName(childBoneName).Position.NearEquals(bone.Position, 1e-2) &&
+					!jsonModel.Bones.GetByName(childBoneName).Position.NearEquals(jsonBone.Position, 1e-2) {
 					childBone = model.Bones.GetByName(childBoneName)
 					jsonChildBone = jsonModel.Bones.GetByName(childBoneName)
 					break
 				}
 			}
 
-			offset := pmx.NewBoneMorphOffset(bone.Index())
-			offset.Extend.LocalMat = mmath.NewMMat4()
-
-			if bone.CanFitMove() || bone.CanFitCancelableMove() || bone.CanFitLocalMatrixTranslate() {
-				offsetPosition := jsonBone.Position.Subed(bone.Position)
-
-				if bone.IsSole() {
-					// 靴底はY=0に合わせる
-					for _, ankleOffset := range offsets {
-						ankleBone := model.Bones.Get(ankleOffset.(*pmx.BoneMorphOffset).BoneIndex)
-						if strings.Contains(ankleBone.Name(), fmt.Sprintf("%s足首", bone.Direction())) {
-							offsetScale := baseScale
-							if childBone != nil && jsonChildBone != nil {
-								jsonBoneLength := jsonBone.Position.Distance(jsonChildBone.Position)
-								boneLength := bone.Position.Distance(childBone.Position)
-								if boneLength != 0 && jsonBoneLength != 0 {
-									offsetScale = jsonBoneLength / boneLength
-								}
-							}
-
-							ankleScales := &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
-
-							jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
-							scaledAnklePosition := jsonAnkleBone.Extend.ChildRelativePosition.Muled(ankleScales)
-							ankleDiff := ankleBone.Extend.ChildRelativePosition.Subed(scaledAnklePosition)
-
-							offsetPosition.X = 0
-							offsetPosition.Y = -ankleDiff.Y * baseScale
-							offsetPosition.Z = 0
-							break
-						}
-					}
-				}
-
-				if bone.CanFitMove() {
-					// グローバル位置補正
-					offset.Position = offsetPosition
-				} else if bone.CanFitCancelableMove() {
-					// キャンセル付き位置補正
-					offset.Extend.CancelablePosition = offsetPosition
-				} else {
-					offset.Extend.LocalMat = offsetPosition.ToMat4().Muled(offset.Extend.LocalMat)
+			var jsonUpFromBone *pmx.Bone
+			var upFromBone *pmx.Bone
+			for _, upFromBoneName := range bone.ConfigUpFromBoneNames() {
+				if model.Bones.ContainsByName(upFromBoneName) && jsonModel.Bones.ContainsByName(upFromBoneName) &&
+					!model.Bones.GetByName(upFromBoneName).Position.NearEquals(bone.Position, 1e-2) &&
+					!jsonModel.Bones.GetByName(upFromBoneName).Position.NearEquals(jsonBone.Position, 1e-2) {
+					upFromBone = model.Bones.GetByName(upFromBoneName)
+					jsonUpFromBone = jsonModel.Bones.GetByName(upFromBoneName)
+					break
 				}
 			}
 
-			if bone.CanFitRotate() || bone.CanFitCancelableRotate() || bone.CanFitLocalMatrixRotate() {
-				// 回転補正
-				offsetQuat := mmath.NewMQuaternionRotate(bone.Extend.LocalAxis, jsonBone.Extend.LocalAxis)
-
-				if bone.CanFitRotate() {
-					offset.Rotation = offsetQuat
-				} else if bone.CanFitCancelableRotate() {
-					offset.Extend.CancelableRotation = offsetQuat
-				} else {
-					offset.Extend.LocalMat = offsetQuat.ToMat4().Muled(offset.Extend.LocalMat)
+			var jsonUpToBone *pmx.Bone
+			var upToBone *pmx.Bone
+			for _, upToBoneName := range bone.ConfigUpToBoneNames() {
+				if model.Bones.ContainsByName(upToBoneName) && jsonModel.Bones.ContainsByName(upToBoneName) &&
+					!model.Bones.GetByName(upToBoneName).Position.NearEquals(bone.Position, 1e-2) &&
+					!jsonModel.Bones.GetByName(upToBoneName).Position.NearEquals(jsonBone.Position, 1e-2) {
+					upToBone = model.Bones.GetByName(upToBoneName)
+					jsonUpToBone = jsonModel.Bones.GetByName(upToBoneName)
+					break
 				}
 			}
 
-			if bone.CanFitScale() || bone.CanFitCancelableScale() || bone.CanFitLocalMatrixScale() {
-				// スケール補正
-				offsetScale := baseScale
+			// var parentJsonUpFromBone *pmx.Bone
+			// var parentUpFromBone *pmx.Bone
+			// var parentJsonUpToBone *pmx.Bone
+			// var parentUpToBone *pmx.Bone
 
-				jsonBoneLength := jsonBone.Extend.ChildRelativePosition.Length()
-				boneLength := bone.Extend.ChildRelativePosition.Length()
-				if boneLength != 0 && jsonBoneLength != 0 {
-					offsetScale = jsonBoneLength / boneLength
-				}
+			// if parentBone != nil && jsonParentBone != nil {
+			// 	for _, parentUpFromBoneName := range parentBone.ConfigUpFromBoneNames() {
+			// 		if model.Bones.ContainsByName(parentUpFromBoneName) &&
+			// 			jsonModel.Bones.ContainsByName(parentUpFromBoneName) {
+			// 			parentUpFromBone = model.Bones.GetByName(parentUpFromBoneName)
+			// 			parentJsonUpFromBone = jsonModel.Bones.GetByName(parentUpFromBoneName)
+			// 			break
+			// 		}
+			// 	}
 
-				if bone.CanFitScale() {
-					offsetScales := &mmath.MVec3{X: baseScale, Y: baseScale, Z: baseScale}
-					offset.Extend.Scale = offsetScales
-				} else if bone.CanFitCancelableScale() {
-					offsetScales := &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
-					offset.Extend.CancelableScale = offsetScales
-				} else {
-					// ローカル行列でのスケーリングの場合、素体モデルの軸方向にスケールする
-					offsetScales := &mmath.MVec3{X: offsetScale, Y: baseScale, Z: baseScale}
-					offset.Extend.LocalMat = (jsonBone.Extend.LocalAxis.ToScaleLocalMat(offsetScales)).Muled(offset.Extend.LocalMat)
-				}
+			// 	for _, parentUpToBoneName := range parentBone.ConfigUpToBoneNames() {
+			// 		if model.Bones.ContainsByName(parentUpToBoneName) &&
+			// 			jsonModel.Bones.ContainsByName(parentUpToBoneName) {
+			// 			parentUpToBone = model.Bones.GetByName(parentUpToBoneName)
+			// 			parentJsonUpToBone = jsonModel.Bones.GetByName(parentUpToBoneName)
+			// 			break
+			// 		}
+			// 	}
+			// }
+
+			offsetPosition := jsonBone.Position.Subed(bone.Position)
+
+			// 素体モデルのボーンの傾き
+			if childBone != nil && jsonChildBone != nil &&
+				upFromBone != nil && upToBone != nil && jsonUpFromBone != nil && jsonUpToBone != nil {
+				boneDirection := childBone.Position.Subed(bone.Position).Normalized()
+				boneUp := upToBone.Position.Subed(upFromBone.Position).Normalized()
+				boneCross := boneDirection.Cross(boneUp).Normalized()
+				boneQuat := mmath.NewMQuaternionFromDirection(boneDirection, boneCross)
+
+				// jsonモデルのボーンの傾き
+				jsonBoneDirection := jsonChildBone.Position.Subed(jsonBone.Position).Normalized()
+				jsonBoneUp := jsonUpToBone.Position.Subed(jsonUpFromBone.Position).Normalized()
+				jsonBoneCross := jsonBoneDirection.Cross(jsonBoneUp).Normalized()
+				jsonBoneQuat := mmath.NewMQuaternionFromDirection(jsonBoneDirection, jsonBoneCross)
+
+				offsetQuat := jsonBoneQuat.Muled(boneQuat.Inverted()).Normalized()
+
+				offset.Extend.LocalMat = offsetQuat.ToMat4().Mul(offsetPosition.ToMat4())
+				offsets = append(offsets, offset)
+				offsetQuats[bone.Index()] = offsetQuat
+				offsetMatMap[bone.Index()] = offset.Extend.LocalMat
+
+				// if parentBone != nil && jsonParentBone != nil && !(parentUpFromBone != nil &&
+				// 	parentUpToBone != nil && parentJsonUpFromBone != nil && parentJsonUpToBone != nil) {
+				// 	// 親ボーンがあって、親ボーンのUPボーンが無い場合、自分の回転を引き継ぐ（キャンセルさせる）
+				// 	offsetMatMap[parentBone.Index()].Rotate(offsetQuat.Inverted())
+				// }
+			} else {
+				offsets = append(offsets, offset)
+				offset.Extend.LocalMat.Translate(offsetPosition)
+				offsetMatMap[bone.Index()] = offset.Extend.LocalMat
 			}
 
-			offsets = append(offsets, offset)
+			// // 親をキャンセルする
+			// for _, parentIndex := range bone.Extend.ParentBoneIndexes {
+			// 	if _, ok := offsetQuats[parentIndex]; ok {
+			// 		offsetQuat.Mul(offsetQuats[parentIndex].Inverted())
+			// 	}
+			// }
+
+			// offsetQuats[bone.Index()] = offsetQuat
+
+			// rotatedPosition := offsetQuat.MulVec3(offsetPosition)
+			// mlog.I(fmt.Sprintf("bone: %s, offsetPosition: %v, rotatedPosition: %v", bone.Name(), offsetPosition, rotatedPosition))
+
+			// // ボーンの長さ
+			// boneLength := childBone.Position.Distance(bone.Position)
+			// jsonBoneLength := jsonChildBone.Position.Distance(jsonBone.Position)
+			// if boneLength != 0 && jsonBoneLength != 0 {
+			// 	// 距離がある場合のみスケールを入れる
+			// 	offsetScale := jsonBoneLength / boneLength
+			// 	offsetScale = mmath.ClampIfVerySmall(offsetScale)
+			// 	if offsetScale == 0 {
+			// 		offsetScale = baseScale
+			// 	}
+			// 	offsetScales := &mmath.MVec3{X: offsetScale, Y: baseScale, Z: baseScale}
+			// 	scaleMat := jsonBone.Extend.LocalAxis.ToScaleLocalMat(offsetScales)
+			// 	offset.Extend.LocalMat = scaleMat.Muled(offset.Extend.LocalMat)
+			// }
+
+			// if bone.CanFitMove() || bone.CanFitCancelableMove() {
+			// 	offsetPosition := jsonBone.Position.Subed(bone.Position)
+
+			// 	if bone.IsSole() {
+			// 		// 靴底はY=0に合わせる
+			// 		for _, ankleOffset := range offsets {
+			// 			ankleBone := model.Bones.Get(ankleOffset.(*pmx.BoneMorphOffset).BoneIndex)
+			// 			if strings.Contains(ankleBone.Name(), fmt.Sprintf("%s足首", bone.Direction())) {
+			// 				offsetScale := baseScale
+			// 				if childBone != nil && jsonChildBone != nil {
+			// 					jsonBoneLength := jsonBone.Position.Distance(jsonChildBone.Position)
+			// 					boneLength := bone.Position.Distance(childBone.Position)
+			// 					if boneLength != 0 && jsonBoneLength != 0 {
+			// 						offsetScale = jsonBoneLength / boneLength
+			// 					}
+			// 				}
+
+			// 				ankleScales := &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
+
+			// 				jsonAnkleBone := jsonModel.Bones.GetByName(ankleBone.Name())
+			// 				scaledAnklePosition := jsonAnkleBone.Extend.ChildRelativePosition.Muled(ankleScales)
+			// 				ankleDiff := ankleBone.Extend.ChildRelativePosition.Subed(scaledAnklePosition)
+
+			// 				offsetPosition.X = 0
+			// 				offsetPosition.Y = -ankleDiff.Y * baseScale
+			// 				offsetPosition.Z = 0
+			// 				break
+			// 			}
+			// 		}
+			// 	}
+
+			// 	if bone.CanFitMove() {
+			// 		// グローバル位置補正
+			// 		offset.Position = offsetPosition
+			// 	} else {
+			// 		// キャンセル付き位置補正
+			// 		offset.Extend.CancelablePosition = offsetPosition
+			// 	}
+			// }
+
+			// if bone.CanFitRotate() || bone.CanFitCancelableRotate() || bone.CanFitLocalMatrixRotate() {
+			// 	// 回転補正
+			// 	offsetQuat := mmath.NewMQuaternionRotate(bone.Extend.LocalAxis, jsonBone.Extend.LocalAxis)
+
+			// 	if bone.CanFitRotate() {
+			// 		offset.Rotation = offsetQuat
+			// 	} else if bone.CanFitCancelableRotate() {
+			// 		offset.Extend.CancelableRotation = offsetQuat
+			// 	} else {
+			// 		offset.Extend.LocalMat = offsetQuat.ToMat4().Muled(offset.Extend.LocalMat)
+			// 	}
+			// }
+
+			// if bone.CanFitLocalMatrixTranslate() {
+			// 	// ベクトルの差分
+			// 	offsetVector := jsonBone.Extend.ChildRelativePosition.Subed(bone.Extend.ChildRelativePosition)
+
+			// 	offset.Extend.LocalMat = offsetPosition.ToMat4().Muled(offset.Extend.LocalMat)
+			// }
+
+			// if bone.CanFitScale() || bone.CanFitCancelableScale() {
+			// 	// スケール補正
+			// 	offsetScale := baseScale
+
+			// 	jsonBoneLength := jsonBone.Extend.ChildRelativePosition.Length()
+			// 	boneLength := bone.Extend.ChildRelativePosition.Length()
+			// 	if boneLength != 0 && jsonBoneLength != 0 {
+			// 		offsetScale = jsonBoneLength / boneLength
+			// 	}
+			// 	offsetScale = mmath.ClampIfVerySmall(offsetScale)
+			// 	if offsetScale == 0 {
+			// 		offsetScale = baseScale
+			// 	}
+
+			// 	if bone.CanFitScale() {
+			// 		offsetScales := &mmath.MVec3{X: baseScale, Y: baseScale, Z: baseScale}
+			// 		offset.Extend.Scale = offsetScales
+			// 	} else if bone.CanFitCancelableScale() {
+			// 		offsetScales := &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
+			// 		offset.Extend.CancelableScale = offsetScales
+			// 	}
+			// }
+
+			// offsets = append(offsets, offset)
 		}
 	}
 
