@@ -317,9 +317,10 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 
 func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	offsets := make([]pmx.IMorphOffset, 0)
-	// baseScale := getBaseScale(model, jsonModel)
-	offsetMatMap := make(map[int]*mmath.MMat4)
+	offsetMats := make(map[int]*mmath.MMat4)
 	offsetQuats := make(map[int]*mmath.MQuaternion)
+	baseScale := getBaseScale(model, jsonModel)
+	offsetScaleMats := make(map[int]*mmath.MMat4)
 
 	for _, bone := range model.Bones.Data {
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
@@ -331,21 +332,20 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			offset := pmx.NewBoneMorphOffset(bone.Index())
 			offset.Extend.LocalMat = mmath.NewMMat4()
 
-			var jsonParentBone *pmx.Bone
-			var parentBone *pmx.Bone
-			for _, parentBoneName := range bone.ConfigParentBoneNames() {
-				if model.Bones.ContainsByName(parentBoneName) && jsonModel.Bones.ContainsByName(parentBoneName) {
-					parentBone = model.Bones.GetByName(parentBoneName)
-					jsonParentBone = jsonModel.Bones.GetByName(parentBoneName)
-					break
-				}
-			}
+			// var jsonParentBone *pmx.Bone
+			// var parentBone *pmx.Bone
+			// for _, parentBoneName := range bone.ConfigParentBoneNames() {
+			// 	if model.Bones.ContainsByName(parentBoneName) && jsonModel.Bones.ContainsByName(parentBoneName) {
+			// 		parentBone = model.Bones.GetByName(parentBoneName)
+			// 		jsonParentBone = jsonModel.Bones.GetByName(parentBoneName)
+			// 		break
+			// 	}
+			// }
 
 			var jsonChildBone *pmx.Bone
 			var childBone *pmx.Bone
 			for _, childBoneName := range bone.ConfigChildBoneNames() {
-				if model.Bones.ContainsByName(childBoneName) && jsonModel.Bones.ContainsByName(childBoneName) &&
-					!model.Bones.GetByName(childBoneName).Position.NearEquals(bone.Position, 1e-2) {
+				if model.Bones.ContainsByName(childBoneName) && jsonModel.Bones.ContainsByName(childBoneName) {
 					childBone = model.Bones.GetByName(childBoneName)
 					jsonChildBone = jsonModel.Bones.GetByName(childBoneName)
 					break
@@ -372,20 +372,32 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			// 	}
 			// }
 
+			mlog.I("bone: %s", bone.Name())
+
 			// 移動
-			if bone.CanFitMove() {
-				offsetPosition := jsonBone.Position.Subed(bone.Position)
-				if parentBone != nil && jsonParentBone != nil {
-					offsetParentPosition := jsonParentBone.Position.Subed(parentBone.Position)
-					offsetPosition.Sub(offsetParentPosition)
+			{
+				parentMat := mmath.NewMMat4()
+				for n := range bone.Extend.ParentBoneIndexes {
+					// ルートから自分の親までをかける
+					parentIndex := bone.Extend.ParentBoneIndexes[len(bone.Extend.ParentBoneIndexes)-n-1]
+					if _, ok := offsetMats[parentIndex]; ok {
+						parentUnitMat := model.Bones.Get(parentIndex).Extend.RevertOffsetMatrix.Muled(
+							offsetMats[parentIndex])
+						parentMat.Mul(parentUnitMat)
+					}
 				}
+
+				boneMat := parentMat.Translate(bone.Extend.ParentRelativePosition)
+				offsetPosition := boneMat.Inverted().MulVec3(jsonBone.Position)
+
+				mlog.I("        trans: %v [%v] %v -> %v)", offsetPosition, jsonBone.Position, boneMat, parentMat)
 				offset.Extend.LocalMat.Translate(offsetPosition)
 			}
 
 			// 回転
-			if bone.CanFitRotate() && childBone != nil && jsonChildBone != nil {
-				boneDirection := bone.Position.Subed(childBone.Position).Normalized()
-				jsonBoneDirection := jsonBone.Position.Subed(jsonChildBone.Position).Normalized()
+			if !bone.CanFitOnlyMove() && !bone.IsHead() && childBone != nil && jsonChildBone != nil {
+				boneDirection := childBone.Position.Subed(bone.Position).Normalized()
+				jsonBoneDirection := jsonChildBone.Position.Subed(jsonBone.Position).Normalized()
 				offsetQuat := mmath.NewMQuaternionRotate(boneDirection, jsonBoneDirection)
 
 				for _, parentIndex := range bone.Extend.ParentBoneIndexes {
@@ -394,12 +406,42 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 					}
 				}
 
-				offsetQuats[bone.Index()] = offsetQuat
 				offset.Extend.LocalMat.Rotate(offsetQuat)
+				offsetQuats[bone.Index()] = offsetQuat
+				mlog.I("        degrees: %v", offsetQuat.ToMMDDegrees())
+			}
+
+			// スケール
+			if !bone.CanFitOnlyMove() && childBone != nil && jsonChildBone != nil {
+				boneDistance := bone.Position.Distance(childBone.Position)
+				jsonBoneDistance := jsonBone.Position.Distance(jsonChildBone.Position)
+
+				boneScale := mmath.Effective(jsonBoneDistance / boneDistance)
+				if !mmath.NearEquals(boneScale, 0, 1e-4) {
+					var scales *mmath.MVec3
+					var jsonScaleMat *mmath.MMat4
+					if bone.IsHead() {
+						scales = &mmath.MVec3{X: baseScale, Y: baseScale, Z: baseScale}
+						jsonScaleMat = scales.ToScaleMat4()
+					} else {
+						scales = &mmath.MVec3{X: boneScale, Y: baseScale, Z: baseScale}
+						jsonScaleMat = jsonBone.Extend.LocalAxis.ToScaleLocalMat(scales)
+					}
+
+					for _, parentIndex := range bone.Extend.ParentBoneIndexes {
+						if _, ok := offsetScaleMats[parentIndex]; ok {
+							jsonScaleMat.Mul(offsetScaleMats[parentIndex].Inverted())
+						}
+					}
+
+					offset.Extend.LocalMat.Mul(jsonScaleMat)
+					offsetScaleMats[bone.Index()] = jsonScaleMat
+					mlog.I("        scale: %v", scales)
+				}
 			}
 
 			offsets = append(offsets, offset)
-			offsetMatMap[bone.Index()] = offset.Extend.LocalMat
+			offsetMats[bone.Index()] = offset.Extend.LocalMat
 
 			// if parentBone != nil && jsonParentBone != nil && childBone != nil && jsonChildBone != nil &&
 			// 	upFromBone != nil && upToBone != nil && jsonUpFromBone != nil && jsonUpToBone != nil {
@@ -445,11 +487,6 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			// 	// jsonScaleMat := jsonBone.Extend.LocalAxis.ToScaleLocalMat(scales)
 
 			// 	offset.Extend.LocalMat = offsetQuat.ToMat4().Muled(offsetPosition.ToMat4())
-			// 	mlog.I("bone: %s", bone.Name())
-			// 	mlog.I("        degrees: %v (%v)",
-			// 		offsetQuat.ToMMDDegrees(), offset.Extend.LocalMat.Quaternion().ToMMDDegrees())
-			// 	mlog.I("        scale: %.3f (%v)", boneScale, offset.Extend.LocalMat.Scaling())
-			// 	mlog.I("        trans: %v (%v)", offsetPosition, offset.Extend.LocalMat.Translation())
 
 			// 	offsets = append(offsets, offset)
 			// 	offsetMatMap[bone.Index()] = offset.Extend.LocalMat
