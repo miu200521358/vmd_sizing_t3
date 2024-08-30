@@ -377,13 +377,12 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			// 移動
 			{
 				parentMat := mmath.NewMMat4()
-				for n := range bone.Extend.ParentBoneIndexes {
+				for _, parentIndex := range bone.Extend.ParentBoneIndexes {
 					// ルートから自分の親までをかける
-					parentIndex := bone.Extend.ParentBoneIndexes[len(bone.Extend.ParentBoneIndexes)-n-1]
 					if _, ok := offsetMats[parentIndex]; ok {
 						parentUnitMat := model.Bones.Get(parentIndex).Extend.RevertOffsetMatrix.Muled(
 							offsetMats[parentIndex])
-						parentMat.Mul(parentUnitMat)
+						parentMat = parentUnitMat.Mul(parentMat)
 					}
 				}
 
