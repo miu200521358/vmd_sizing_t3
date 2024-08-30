@@ -386,7 +386,7 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 					}
 				}
 
-				boneMat := parentMat.Translate(bone.Extend.ParentRelativePosition)
+				boneMat := parentMat.Translate(jsonBone.Extend.ParentRelativePosition)
 				offsetPosition := boneMat.Inverted().MulVec3(jsonBone.Position)
 
 				mlog.I("        trans: %v [%v] %v -> %v)", offsetPosition, jsonBone.Position, boneMat, parentMat)
