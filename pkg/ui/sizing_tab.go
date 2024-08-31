@@ -169,8 +169,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						if err != nil {
 							mlog.E(mi18n.T("素体読み込み失敗"), err)
 						} else {
-							toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx =
-								toolState.OriginalPmxPicker.LoadForce().(*pmx.PmxModel)
+							toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = model
 							model = originalModel
 
 							// 元モデル調整パラメータ有効化
@@ -274,15 +273,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						OnValueChanged: func() {
 							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxRatio =
 								toolState.OriginalPmxRatioEdit.Value()
-							if toolState.SizingSets[toolState.CurrentIndex].OriginalPmx != nil &&
-								toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx != nil {
-								toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = usecase.RemakeFitMorph(
-									toolState.SizingSets[toolState.CurrentIndex].OriginalPmx,
-									toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx,
-									toolState.SizingSets[toolState.CurrentIndex],
-								)
-								toolState.SizingSets[toolState.CurrentIndex].OriginalPmx.SetRandHash()
-							}
+							remakeFitMorph(toolState)
 						},
 					},
 					// 腕角度
@@ -294,28 +285,30 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正腕")},
 					declarative.NumberEdit{
 						AssignTo:           &toolState.OriginalPmxArmStanceEdit,
-						MinValue:           0,
+						MinValue:           -90,
 						MaxValue:           90,
 						Decimals:           1,
-						Increment:          0.1,
+						Increment:          1,
 						SpinButtonsVisible: true,
 						OnValueChanged: func() {
 							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxArmStance =
 								toolState.OriginalPmxArmStanceEdit.Value()
+							remakeFitMorph(toolState)
 						},
 					},
 					// ひじ角度
 					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正ひじ")},
 					declarative.NumberEdit{
 						AssignTo:           &toolState.OriginalPmxElbowStanceEdit,
-						MinValue:           0,
+						MinValue:           -90,
 						MaxValue:           90,
 						Decimals:           1,
-						Increment:          0.1,
+						Increment:          1,
 						SpinButtonsVisible: true,
 						OnValueChanged: func() {
 							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxElbowStance =
 								toolState.OriginalPmxElbowStanceEdit.Value()
+							remakeFitMorph(toolState)
 						},
 					},
 				},
@@ -347,5 +340,22 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 		toolState.SizingTabSaveButton.SetText(mi18n.T("保存"))
 		// toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
+	}
+}
+
+func remakeFitMorph(toolState *ToolState) {
+	if toolState.SizingSets[toolState.CurrentIndex].OriginalPmx != nil &&
+		toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx != nil {
+		// jsonモデル再読み込み
+		toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx =
+			toolState.OriginalPmxPicker.LoadForce().(*pmx.PmxModel)
+		// フィッティングモーフ再生成
+		toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = usecase.RemakeFitMorph(
+			toolState.SizingSets[toolState.CurrentIndex].OriginalPmx,
+			toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx,
+			toolState.SizingSets[toolState.CurrentIndex],
+		)
+		// 強制更新用にハッシュ設定
+		toolState.SizingSets[toolState.CurrentIndex].OriginalPmx.SetRandHash()
 	}
 }
