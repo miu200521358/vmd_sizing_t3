@@ -11,6 +11,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/usecase"
+	"github.com/miu200521358/walk/pkg/declarative"
 	"github.com/miu200521358/walk/pkg/walk"
 )
 
@@ -160,6 +161,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.OriginalPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.OriginalPmxPicker.Load(); err == nil {
 					model := data.(*pmx.PmxModel)
+					toolState.SetOriginalPmxParameterEnabled(false)
 
 					// jsonから読み込んだ場合、モデル定義を適用して読み込みしなおす
 					if strings.HasSuffix(strings.ToLower(toolState.OriginalPmxPicker.GetPath()), ".json") {
@@ -168,6 +170,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							mlog.E(mi18n.T("素体読み込み失敗"), err)
 						} else {
 							model = originalModel
+
+							// 元モデル調整パラメータ有効化
+							toolState.SetOriginalPmxParameterEnabled(true)
+							toolState.OriginalPmxRatioEdit.SetValue(1.0)
+							toolState.OriginalPmxArmStanceEdit.SetValue(0.0)
+							toolState.OriginalPmxElbowStanceEdit.SetValue(0.0)
 						}
 					}
 
@@ -226,6 +234,85 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				mi18n.T("出力モーション(Vmd)"),
 				mi18n.T("出力モーションツールチップ"),
 				mi18n.T("出力モーションの使い方"))
+		}
+
+		walk.NewVSeparator(scrollView)
+
+		// 素体調整パラメーター
+		{
+			// タイトル
+			titleLabel, err := walk.NewTextLabel(scrollView)
+			if err != nil {
+				widget.RaiseError(err)
+			}
+			titleLabel.SetText(mi18n.T("元モデル素体体格調整"))
+			titleLabel.SetToolTipText(mi18n.T("元モデル素体体格調整説明"))
+			titleLabel.MouseDown().Attach(func(x, y int, button walk.MouseButton) {
+				mlog.IL(mi18n.T("元モデル素体体格調整説明"))
+			})
+
+			composite := declarative.Composite{
+				Layout:        declarative.Grid{Columns: 5},
+				StretchFactor: 4,
+				Children: []declarative.Widget{
+					// 全体比率
+					declarative.Label{Text: mi18n.T("元モデル素体体格全体比率"),
+						ToolTipText: mi18n.T("元モデル素体体格全体比率説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体体格全体比率説明"))
+						}},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxRatioEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           1,
+						Increment:          0.1,
+						ColumnSpan:         4,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxRatio =
+								toolState.OriginalPmxRatioEdit.Value()
+						},
+					},
+					// 腕角度
+					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正"),
+						ToolTipText: mi18n.T("元モデル素体スタンス補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体スタンス補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正腕")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxArmStanceEdit,
+						MinValue:           0,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          0.1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxArmStance =
+								toolState.OriginalPmxArmStanceEdit.Value()
+						},
+					},
+					// ひじ角度
+					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正ひじ")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxElbowStanceEdit,
+						MinValue:           0,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          0.1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxElbowStance =
+								toolState.OriginalPmxElbowStanceEdit.Value()
+						},
+					},
+				},
+			}
+
+			if err := composite.Create(declarative.NewBuilder(scrollView)); err != nil {
+				widget.RaiseError(err)
+			}
 		}
 	}
 

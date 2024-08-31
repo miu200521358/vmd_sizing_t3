@@ -21,6 +21,10 @@ type SizingSet struct {
 	OriginalPmx *pmx.PmxModel
 	SizingPmx   *pmx.PmxModel
 	OutputVmd   *vmd.VmdMotion
+
+	OriginalPmxRatio       float64 // 全体比率
+	OriginalPmxArmStance   float64 // 腕スタンス
+	OriginalPmxElbowStance float64 // ひじスタンス
 }
 
 func NewSizingSet(index int) *SizingSet {

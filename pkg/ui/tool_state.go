@@ -23,6 +23,9 @@ type ToolState struct {
 	OriginalPmxPicker           *widget.FilePicker // モーション作成元モデル(Pmx)ファイル選択
 	SizingPmxPicker             *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker             *widget.FilePicker // 出力モーション(Vmd)ファイル選択
+	OriginalPmxRatioEdit        *walk.NumberEdit   // オリジナルモデル比率編集
+	OriginalPmxArmStanceEdit    *walk.NumberEdit   // オリジナルモデル腕スタンス編集
+	OriginalPmxElbowStanceEdit  *walk.NumberEdit   // オリジナルモデルひじスタンス編集
 	SizingTabSaveButton         *walk.PushButton   // サイジングタブ保存ボタン
 	currentPageChangedPublisher walk.EventPublisher
 }
@@ -36,6 +39,7 @@ func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolS
 
 	newSizingTab(controlWindow, toolState)
 	toolState.addSizingSet()
+	toolState.SetOriginalPmxParameterEnabled(false)
 
 	toolState.App.SetFuncGetModels(
 		func() [][]*pmx.PmxModel {
@@ -117,6 +121,8 @@ func (toolState *ToolState) addSizingSet() error {
 
 	toolState.OutputVmdPicker.SetPath("")
 
+	toolState.OriginalPmxRatioEdit.SetValue(1.0)
+
 	return nil
 }
 
@@ -157,5 +163,18 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 
 	toolState.OutputVmdPicker.SetPath(sizingSet.OutputVmdPath)
 
+	toolState.OriginalPmxRatioEdit.SetValue(sizingSet.OriginalPmxRatio)
+
 	return nil
+}
+
+// 素体モデルの編集パラメーターの有効/無効を設定
+func (toolState *ToolState) SetOriginalPmxParameterEnabled(enabled bool) {
+	toolState.OriginalPmxRatioEdit.SetEnabled(enabled)
+	toolState.OriginalPmxArmStanceEdit.SetEnabled(enabled)
+	toolState.OriginalPmxElbowStanceEdit.SetEnabled(enabled)
+}
+
+func (toolState *ToolState) OriginalPmxParameterEnabled() bool {
+	return toolState.OriginalPmxRatioEdit.Enabled()
 }

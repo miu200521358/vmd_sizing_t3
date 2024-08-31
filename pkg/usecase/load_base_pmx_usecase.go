@@ -40,7 +40,7 @@ func LoadOriginalPmx(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 
 	jsonModel.Setup()
 	model.Setup()
-	// 矯正更新用にハッシュ上書き
+	// 強制更新用にハッシュ上書き
 	model.SetRandHash()
 
 	// フィットボーンモーフを作成
