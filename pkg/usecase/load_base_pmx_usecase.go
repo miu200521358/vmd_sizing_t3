@@ -332,15 +332,15 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			offset := pmx.NewBoneMorphOffset(bone.Index())
 			offset.Extend.LocalMat = mmath.NewMMat4()
 
-			// var jsonParentBone *pmx.Bone
-			// var parentBone *pmx.Bone
-			// for _, parentBoneName := range bone.ConfigParentBoneNames() {
-			// 	if model.Bones.ContainsByName(parentBoneName) && jsonModel.Bones.ContainsByName(parentBoneName) {
-			// 		parentBone = model.Bones.GetByName(parentBoneName)
-			// 		jsonParentBone = jsonModel.Bones.GetByName(parentBoneName)
-			// 		break
-			// 	}
-			// }
+			var jsonParentBone *pmx.Bone
+			var parentBone *pmx.Bone
+			for _, parentBoneName := range bone.ConfigParentBoneNames() {
+				if model.Bones.ContainsByName(parentBoneName) && jsonModel.Bones.ContainsByName(parentBoneName) {
+					parentBone = model.Bones.GetByName(parentBoneName)
+					jsonParentBone = jsonModel.Bones.GetByName(parentBoneName)
+					break
+				}
+			}
 
 			var jsonChildBone *pmx.Bone
 			var childBone *pmx.Bone
@@ -374,25 +374,6 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 
 			mlog.I("bone: %s", bone.Name())
 
-			// 移動
-			{
-				parentMat := mmath.NewMMat4()
-				for _, parentIndex := range bone.Extend.ParentBoneIndexes {
-					// ルートから自分の親までをかける
-					if _, ok := offsetMats[parentIndex]; ok {
-						parentUnitMat := model.Bones.Get(parentIndex).Extend.RevertOffsetMatrix.Muled(
-							offsetMats[parentIndex])
-						parentMat = parentUnitMat.Mul(parentMat)
-					}
-				}
-
-				boneMat := parentMat.Translate(jsonBone.Extend.ParentRelativePosition)
-				offsetPosition := boneMat.Inverted().MulVec3(jsonBone.Position)
-
-				mlog.I("        trans: %v [%v] %v -> %v)", offsetPosition, jsonBone.Position, boneMat, parentMat)
-				offset.Extend.LocalMat.Translate(offsetPosition)
-			}
-
 			// 回転
 			if !bone.CanFitOnlyMove() && !bone.IsHead() && childBone != nil && jsonChildBone != nil {
 				boneDirection := childBone.Position.Subed(bone.Position).Normalized()
@@ -424,7 +405,7 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 						jsonScaleMat = scales.ToScaleMat4()
 					} else {
 						scales = &mmath.MVec3{X: boneScale, Y: baseScale, Z: baseScale}
-						jsonScaleMat = jsonBone.Extend.LocalAxis.ToScaleLocalMat(scales)
+						jsonScaleMat = bone.Extend.LocalAxis.ToScaleLocalMat(scales)
 					}
 
 					for _, parentIndex := range bone.Extend.ParentBoneIndexes {
@@ -438,6 +419,37 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 					mlog.I("        scale: %v", scales)
 				}
 			}
+
+			// 移動
+			if parentBone != nil && jsonParentBone != nil {
+				parentMat := mmath.NewMMat4()
+				for _, parentIndex := range bone.Extend.ParentBoneIndexes {
+					// ルートから自分の親までをかける
+					if _, ok := offsetMats[parentIndex]; ok {
+						parentUnitMat := model.Bones.Get(parentIndex).Extend.RevertOffsetMatrix.Muled(
+							offsetMats[parentIndex])
+						parentMat = parentUnitMat.Mul(parentMat)
+					}
+				}
+
+				unitMat := model.Bones.Get(bone.Index()).Extend.RevertOffsetMatrix.Muled(offset.Extend.LocalMat)
+				boneMat := parentMat.Muled(unitMat)
+				offsetPosition := boneMat.Inverted().MulVec3(jsonBone.Position)
+
+				mlog.I("        trans: %v json: %v)", offsetPosition, jsonBone.Position)
+				offset.Extend.LocalMat.Mul(offsetPosition.ToMat4())
+			} else {
+				offsetPosition := jsonBone.Position.Subed(bone.Position)
+
+				mlog.I("        trans: %v json: %v)", offsetPosition, jsonBone.Position)
+				offset.Extend.LocalMat.Mul(offsetPosition.ToMat4())
+			}
+
+			// for _, parentIndex := range bone.Extend.ParentBoneIndexes {
+			// 	if _, ok := offsetMats[parentIndex]; ok {
+			// 		offset.Extend.LocalMat.Mul(offsetMats[parentIndex].Inverted())
+			// 	}
+			// }
 
 			offsets = append(offsets, offset)
 			offsetMats[bone.Index()] = offset.Extend.LocalMat
