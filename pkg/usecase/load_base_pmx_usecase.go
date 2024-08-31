@@ -13,6 +13,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 )
 
 //go:embed base_model/*.pmx
@@ -44,7 +45,7 @@ func LoadOriginalPmx(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 	model.SetRandHash()
 
 	// フィットボーンモーフを作成
-	createFitMorph(model, jsonModel, fit_morph_name)
+	createFitMorph(model, jsonModel, fit_morph_name, nil)
 
 	return model, nil
 }
@@ -55,6 +56,15 @@ func AddFitMorph(motion *vmd.VmdMotion) *vmd.VmdMotion {
 	mf.Ratio = 1.0
 	motion.AppendMorphFrame(fit_morph_name, mf)
 	return motion
+}
+
+func RemakeFitMorph(model, jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) *pmx.PmxModel {
+	model.Morphs.RemoveByName(fit_morph_name)
+
+	// フィットボーンモーフを再度作成
+	createFitMorph(model, jsonModel, fit_morph_name, sizingSet)
+
+	return model
 }
 
 func loadMannequinPmx() (*pmx.PmxModel, error) {
@@ -315,11 +325,10 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 	}
 }
 
-func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
+func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string, sizingSet *model.SizingSet) {
 	offsets := make([]pmx.IMorphOffset, 0)
 	offsetMats := make(map[int]*mmath.MMat4)
 	offsetQuats := make(map[int]*mmath.MQuaternion)
-	baseScale := getBaseScale(model, jsonModel)
 	offsetScaleMats := make(map[int]*mmath.MMat4)
 
 	for _, bone := range model.Bones.Data {
@@ -356,11 +365,20 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			}
 
 			// スケール
-			if !bone.CanFitOnlyMove() && childBone != nil && jsonChildBone != nil {
-				boneDistance := bone.Position.Distance(childBone.Position)
-				jsonBoneDistance := jsonBone.Position.Distance(jsonChildBone.Position)
+			if !bone.CanFitOnlyMove() {
+				baseScale := getBaseScale(model, jsonModel)
 
-				boneScale := mmath.Effective(jsonBoneDistance / boneDistance)
+				boneScale := baseScale
+				if childBone != nil && jsonChildBone != nil {
+					boneDistance := bone.Position.Distance(childBone.Position)
+					jsonBoneDistance := jsonBone.Position.Distance(jsonChildBone.Position)
+					boneScale = mmath.Effective(jsonBoneDistance / boneDistance)
+				}
+
+				if sizingSet != nil && sizingSet.OriginalPmxRatio > 0 {
+					boneScale *= sizingSet.OriginalPmxRatio
+					baseScale *= sizingSet.OriginalPmxRatio
+				}
 				if !mmath.NearEquals(boneScale, 0, 1e-4) {
 					var scales *mmath.MVec3
 					var jsonScaleMat *mmath.MMat4
@@ -398,9 +416,13 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 
 				unitMat := model.Bones.Get(bone.Index()).Extend.RevertOffsetMatrix.Muled(offset.Extend.LocalMat)
 				boneMat := parentMat.Muled(unitMat)
-				offsetPosition := boneMat.Inverted().MulVec3(jsonBone.Position)
+				jsonPosition := jsonBone.Position.Copy()
+				if sizingSet != nil && sizingSet.OriginalPmxRatio > 0 {
+					jsonPosition.MulScalar(sizingSet.OriginalPmxRatio)
+				}
+				offsetPosition := boneMat.Inverted().MulVec3(jsonPosition)
 
-				mlog.V("        trans: %v json: %v)", offsetPosition, jsonBone.Position)
+				mlog.V("        trans: %v json: %v)", offsetPosition, jsonPosition)
 				offset.Extend.LocalMat.Mul(offsetPosition.ToMat4())
 			}
 

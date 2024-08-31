@@ -22,6 +22,7 @@ type SizingSet struct {
 	SizingPmx   *pmx.PmxModel
 	OutputVmd   *vmd.VmdMotion
 
+	OriginalJsonPmx        *pmx.PmxModel
 	OriginalPmxRatio       float64 // 全体比率
 	OriginalPmxArmStance   float64 // 腕スタンス
 	OriginalPmxElbowStance float64 // ひじスタンス
