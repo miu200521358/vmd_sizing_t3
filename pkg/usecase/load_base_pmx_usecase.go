@@ -184,40 +184,103 @@ func resizeJsonModel(jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) {
 		resizeMotion.AppendRegisteredBoneFrame(pmx.LOWER.String(), bf)
 	}
 	{
-		// 右足
+		// 右足根元
 		bf := vmd.NewBoneFrame(0)
 		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
-			jsonModel, pmx.LEG.Right(),
-			sizingSet.OriginalPmxLegLength, sizingSet.OriginalPmxLegAngle, 0, 0)
-		resizeMotion.AppendRegisteredBoneFrame(pmx.LEG.Right(), bf)
+			jsonModel, pmx.LEG_ROOT.Right(), sizingSet.OriginalPmxLegWidth, 0, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.LEG_ROOT.Right(), bf)
+	}
+	{
+		// 左足根元
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.LEG_ROOT.Left(), sizingSet.OriginalPmxLegWidth, 0, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.LEG_ROOT.Left(), bf)
+	}
+	{
+		// 右足
+		for _, boneName := range []string{pmx.LEG.Right(), pmx.LEG_D.Right()} {
+			bf := vmd.NewBoneFrame(0)
+			bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+				jsonModel, boneName,
+				sizingSet.OriginalPmxLegLength, sizingSet.OriginalPmxLegAngle, 0, 0)
+			resizeMotion.AppendRegisteredBoneFrame(boneName, bf)
+		}
 	}
 	{
 		// 左足
-		bf := vmd.NewBoneFrame(0)
-		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
-			jsonModel, pmx.LEG.Left(),
-			sizingSet.OriginalPmxLegLength, -sizingSet.OriginalPmxLegAngle, 0, 0)
-		resizeMotion.AppendRegisteredBoneFrame(pmx.LEG.Left(), bf)
+		for _, boneName := range []string{pmx.LEG.Left(), pmx.LEG_D.Left()} {
+			bf := vmd.NewBoneFrame(0)
+			bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+				jsonModel, boneName,
+				sizingSet.OriginalPmxLegLength, sizingSet.OriginalPmxLegAngle, 0, 0)
+			resizeMotion.AppendRegisteredBoneFrame(boneName, bf)
+		}
 	}
 	{
 		// 右ひざ
-		bf := vmd.NewBoneFrame(0)
-		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
-			jsonModel, pmx.KNEE.Right(),
-			sizingSet.OriginalPmxKneeLength, sizingSet.OriginalPmxKneeAngle, 0, 0)
-		resizeMotion.AppendRegisteredBoneFrame(pmx.KNEE.Right(), bf)
+		for _, boneName := range []string{pmx.KNEE.Right(), pmx.KNEE_D.Right()} {
+			bf := vmd.NewBoneFrame(0)
+			bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+				jsonModel, boneName,
+				sizingSet.OriginalPmxKneeLength, sizingSet.OriginalPmxKneeAngle, 0, 0)
+			resizeMotion.AppendRegisteredBoneFrame(boneName, bf)
+		}
 	}
 	{
 		// 左ひざ
-		bf := vmd.NewBoneFrame(0)
-		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
-			jsonModel, pmx.KNEE.Left(),
-			sizingSet.OriginalPmxKneeLength, -sizingSet.OriginalPmxKneeAngle, 0, 0)
-		resizeMotion.AppendRegisteredBoneFrame(pmx.KNEE.Left(), bf)
+		for _, boneName := range []string{pmx.KNEE.Left(), pmx.KNEE_D.Left()} {
+			bf := vmd.NewBoneFrame(0)
+			bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+				jsonModel, boneName,
+				sizingSet.OriginalPmxKneeLength, sizingSet.OriginalPmxKneeAngle, 0, 0)
+			resizeMotion.AppendRegisteredBoneFrame(boneName, bf)
+		}
+	}
+	{
+		// 右足首
+		for _, boneName := range []string{pmx.ANKLE.Right(), pmx.ANKLE_D.Right()} {
+			bf := vmd.NewBoneFrame(0)
+			bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+				jsonModel, boneName,
+				sizingSet.OriginalPmxAnkleLength, 0, 0, 0)
+			resizeMotion.AppendRegisteredBoneFrame(boneName, bf)
+		}
+	}
+	{
+		// 左足首
+		for _, boneName := range []string{pmx.ANKLE.Left(), pmx.ANKLE_D.Left()} {
+			bf := vmd.NewBoneFrame(0)
+			bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+				jsonModel, boneName,
+				sizingSet.OriginalPmxAnkleLength, 0, 0, 0)
+			resizeMotion.AppendRegisteredBoneFrame(boneName, bf)
+		}
 	}
 
-	// リサイズモーションを適用
-	boneDeltas := deform.DeformBone(jsonModel, resizeMotion, true, 0, nil)
+	{
+		// リサイズモーションを適用
+		boneDeltas := deform.DeformBone(jsonModel, resizeMotion, false, 0, nil)
+		for _, boneDelta := range boneDeltas.Data {
+			if boneDelta == nil {
+				continue
+			}
+			jsonModel.Bones.Get(boneDelta.Bone.Index()).Position = boneDelta.FilledGlobalPosition()
+		}
+
+		heelY := (boneDeltas.Bones.GetByName(pmx.HEEL.Right()).Position.Y +
+			boneDeltas.Bones.GetByName(pmx.HEEL.Left()).Position.Y) / 2
+
+		// 体幹中心
+		{
+			bf := vmd.NewBoneFrame(0)
+			bf.Position = &mmath.MVec3{X: 0, Y: -heelY, Z: 0}
+			resizeMotion.AppendRegisteredBoneFrame(pmx.TRUNK_ROOT.String(), bf)
+		}
+	}
+
+	// リサイズモーションを再適用
+	boneDeltas := deform.DeformBone(jsonModel, resizeMotion, false, 0, nil)
 	for _, boneDelta := range boneDeltas.Data {
 		if boneDelta == nil {
 			continue
@@ -225,21 +288,46 @@ func resizeJsonModel(jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) {
 		jsonModel.Bones.Get(boneDelta.Bone.Index()).Position = boneDelta.FilledGlobalPosition()
 	}
 
+	// 足IK親
+	jsonModel.Bones.GetByName(pmx.LEG_IK_PARENT.Right()).Position =
+		boneDeltas.Bones.GetByName(pmx.ANKLE.Right()).Position.Copy()
+	jsonModel.Bones.GetByName(pmx.LEG_IK_PARENT.Right()).Position.Y = 0
+	jsonModel.Bones.GetByName(pmx.LEG_IK_PARENT.Left()).Position =
+		boneDeltas.Bones.GetByName(pmx.ANKLE.Left()).Position.Copy()
+	jsonModel.Bones.GetByName(pmx.LEG_IK_PARENT.Left()).Position.Y = 0
+
+	// 足IK
+	jsonModel.Bones.GetByName(pmx.LEG_IK.Right()).Position =
+		boneDeltas.Bones.GetByName(pmx.ANKLE.Right()).Position.Copy()
+	jsonModel.Bones.GetByName(pmx.LEG_IK.Left()).Position =
+		boneDeltas.Bones.GetByName(pmx.ANKLE.Left()).Position.Copy()
+
+	// つま先IK
+	jsonModel.Bones.GetByName(pmx.TOE_IK.Right()).Position =
+		boneDeltas.Bones.GetByName(pmx.TOE.Right()).Position.Copy()
+	jsonModel.Bones.GetByName(pmx.TOE_IK.Left()).Position =
+		boneDeltas.Bones.GetByName(pmx.TOE.Left()).Position.Copy()
+
 	jsonModel.Setup()
 }
 
 func getResizeParams(
 	jsonModel *pmx.PmxModel, boneName string, length, xPitch, yHead, zRoll float64,
 ) (*mmath.MQuaternion, *mmath.MVec3) {
-	cancelableRotation := mmath.NewMQuaternionFromDegrees(xPitch, yHead, zRoll)
+	rot := mmath.NewMQuaternionFromDegrees(xPitch, yHead, zRoll)
 
-	localMat := jsonModel.Bones.GetByName(boneName).Extend.LocalAxis.ToLocalMat()
-	localMat = localMat.Muled(cancelableRotation.ToMat4())
+	var scale *mmath.MVec3
+	if strings.Contains(boneName, "足首") {
+		localMat := jsonModel.Bones.GetByName(boneName).Extend.LocalAxis.ToLocalMat()
+		localMat = localMat.Muled(rot.ToMat4())
 
-	scales := &mmath.MVec3{X: length, Y: 1, Z: 1}
-	cancelableScale := localMat.Muled(scales.ToScaleMat4()).Muled(localMat.Inverted()).Scaling()
+		scales := &mmath.MVec3{X: length, Y: 1, Z: 1}
+		scale = localMat.Muled(scales.ToScaleMat4()).Muled(localMat.Inverted()).Scaling()
+	} else {
+		scale = &mmath.MVec3{X: length, Y: length, Z: length}
+	}
 
-	return cancelableRotation, cancelableScale
+	return rot, scale
 }
 
 func loadMannequinPmx() (*pmx.PmxModel, error) {
@@ -405,7 +493,7 @@ func addNonExistBones(model, jsonModel *pmx.PmxModel) {
 				legBoneName := fmt.Sprintf("%s足", bone.Direction())
 				jsonLegBone := jsonModel.Bones.GetByName(legBoneName)
 				newBone.Position = jsonLegBone.Position.Copy()
-			} else if slices.Contains([]string{pmx.WAIST_CENTER.String(), pmx.UPPER_ROOT.String(), pmx.LOWER_ROOT.String()}, bone.Name()) {
+			} else if slices.Contains([]string{pmx.TRUNK_ROOT.String(), pmx.UPPER_ROOT.String(), pmx.LOWER_ROOT.String()}, bone.Name()) {
 				// 体幹中心・上半身根元・下半身根元は上半身と下半身の間
 				jsonUpperBone := jsonModel.Bones.GetByName(pmx.UPPER.String())
 				jsonLowerBone := jsonModel.Bones.GetByName(pmx.LOWER.String())

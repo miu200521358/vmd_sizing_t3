@@ -30,6 +30,7 @@ type ToolState struct {
 	OriginalPmxUpper2AngleEdit    *walk.NumberEdit   // 素体上半身2角度編集
 	OriginalPmxNeckLengthEdit     *walk.NumberEdit   // 素体首長さ編集
 	OriginalPmxNeckAngleEdit      *walk.NumberEdit   // 素体首角度編集
+	OriginalPmxHeadLengthEdit     *walk.NumberEdit   // 素体頭編集
 	OriginalPmxShoulderLengthEdit *walk.NumberEdit   // 素体肩長さ
 	OriginalPmxShoulderAngleEdit  *walk.NumberEdit   // 素体肩角度編集
 	OriginalPmxArmLengthEdit      *walk.NumberEdit   // 素体腕長さ編集
@@ -40,10 +41,12 @@ type ToolState struct {
 	OriginalPmxWristAngleEdit     *walk.NumberEdit   // 素体手首角度編集
 	OriginalPmxLowerLengthEdit    *walk.NumberEdit   // 素体下半身長さ編集
 	OriginalPmxLowerAngleEdit     *walk.NumberEdit   // 素体下半身角度編集
+	OriginalPmxLegWidthEdit       *walk.NumberEdit   // 素体足横幅編集
 	OriginalPmxLegLengthEdit      *walk.NumberEdit   // 素体足長さ編集
 	OriginalPmxLegAngleEdit       *walk.NumberEdit   // 素体足角度編集
 	OriginalPmxKneeLengthEdit     *walk.NumberEdit   // 素体ひざ長さ編集
 	OriginalPmxKneeAngleEdit      *walk.NumberEdit   // 素体ひざ角度編集
+	OriginalPmxAnkleLengthEdit    *walk.NumberEdit   // 素体足首長さ編集
 	SizingTabSaveButton           *walk.PushButton   // サイジングタブ保存ボタン
 	currentPageChangedPublisher   walk.EventPublisher
 }
@@ -146,6 +149,7 @@ func (toolState *ToolState) addSizingSet() error {
 	toolState.OriginalPmxUpper2AngleEdit.SetValue(0.0)
 	toolState.OriginalPmxNeckLengthEdit.SetValue(1.0)
 	toolState.OriginalPmxNeckAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxHeadLengthEdit.SetValue(1.0)
 	toolState.OriginalPmxShoulderLengthEdit.SetValue(1.0)
 	toolState.OriginalPmxShoulderAngleEdit.SetValue(0.0)
 	toolState.OriginalPmxArmLengthEdit.SetValue(1.0)
@@ -156,10 +160,12 @@ func (toolState *ToolState) addSizingSet() error {
 	toolState.OriginalPmxWristAngleEdit.SetValue(0.0)
 	toolState.OriginalPmxLowerLengthEdit.SetValue(1.0)
 	toolState.OriginalPmxLowerAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxLegWidthEdit.SetValue(1.0)
 	toolState.OriginalPmxLegLengthEdit.SetValue(1.0)
 	toolState.OriginalPmxLegAngleEdit.SetValue(0.0)
 	toolState.OriginalPmxKneeLengthEdit.SetValue(1.0)
 	toolState.OriginalPmxKneeAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxAnkleLengthEdit.SetValue(1.0)
 
 	return nil
 }
@@ -208,6 +214,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.OriginalPmxUpper2AngleEdit.SetValue(sizingSet.OriginalPmxUpper2Angle)
 	toolState.OriginalPmxNeckLengthEdit.SetValue(sizingSet.OriginalPmxNeckLength)
 	toolState.OriginalPmxNeckAngleEdit.SetValue(sizingSet.OriginalPmxNeckAngle)
+	toolState.OriginalPmxHeadLengthEdit.SetValue(sizingSet.OriginalPmxHeadLength)
 	toolState.OriginalPmxShoulderLengthEdit.SetValue(sizingSet.OriginalPmxShoulderLength)
 	toolState.OriginalPmxShoulderAngleEdit.SetValue(sizingSet.OriginalPmxShoulderAngle)
 	toolState.OriginalPmxArmLengthEdit.SetValue(sizingSet.OriginalPmxArmLength)
@@ -218,10 +225,12 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.OriginalPmxWristAngleEdit.SetValue(sizingSet.OriginalPmxWristAngle)
 	toolState.OriginalPmxLowerLengthEdit.SetValue(sizingSet.OriginalPmxLowerLength)
 	toolState.OriginalPmxLowerAngleEdit.SetValue(sizingSet.OriginalPmxLowerAngle)
+	toolState.OriginalPmxLegWidthEdit.SetValue(sizingSet.OriginalPmxLegWidth)
 	toolState.OriginalPmxLegLengthEdit.SetValue(sizingSet.OriginalPmxLegLength)
 	toolState.OriginalPmxLegAngleEdit.SetValue(sizingSet.OriginalPmxLegAngle)
 	toolState.OriginalPmxKneeLengthEdit.SetValue(sizingSet.OriginalPmxKneeLength)
 	toolState.OriginalPmxKneeAngleEdit.SetValue(sizingSet.OriginalPmxKneeAngle)
+	toolState.OriginalPmxAnkleLengthEdit.SetValue(sizingSet.OriginalPmxAnkleLength)
 
 	return nil
 }
@@ -235,6 +244,7 @@ func (toolState *ToolState) SetOriginalPmxParameterEnabled(enabled bool) {
 	toolState.OriginalPmxUpper2AngleEdit.SetEnabled(enabled)
 	toolState.OriginalPmxNeckLengthEdit.SetEnabled(enabled)
 	toolState.OriginalPmxNeckAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxHeadLengthEdit.SetEnabled(enabled)
 	toolState.OriginalPmxShoulderLengthEdit.SetEnabled(enabled)
 	toolState.OriginalPmxShoulderAngleEdit.SetEnabled(enabled)
 	toolState.OriginalPmxArmLengthEdit.SetEnabled(enabled)
@@ -245,10 +255,12 @@ func (toolState *ToolState) SetOriginalPmxParameterEnabled(enabled bool) {
 	toolState.OriginalPmxWristAngleEdit.SetEnabled(enabled)
 	toolState.OriginalPmxLowerLengthEdit.SetEnabled(enabled)
 	toolState.OriginalPmxLowerAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxLegWidthEdit.SetEnabled(enabled)
 	toolState.OriginalPmxLegLengthEdit.SetEnabled(enabled)
 	toolState.OriginalPmxLegAngleEdit.SetEnabled(enabled)
 	toolState.OriginalPmxKneeLengthEdit.SetEnabled(enabled)
 	toolState.OriginalPmxKneeAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxAnkleLengthEdit.SetEnabled(enabled)
 }
 
 func (toolState *ToolState) OriginalPmxParameterEnabled() bool {

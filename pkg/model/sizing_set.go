@@ -30,6 +30,7 @@ type SizingSet struct {
 	OriginalPmxUpper2Angle    float64 // 上半身2角度
 	OriginalPmxNeckLength     float64 // 首長さ
 	OriginalPmxNeckAngle      float64 // 首角度
+	OriginalPmxHeadLength     float64 // 頭長さ
 	OriginalPmxShoulderLength float64 // 肩長さ
 	OriginalPmxShoulderAngle  float64 // 肩角度
 	OriginalPmxArmLength      float64 // 腕長さ
@@ -40,10 +41,12 @@ type SizingSet struct {
 	OriginalPmxWristAngle     float64 // 手首角度
 	OriginalPmxLowerLength    float64 // 下半身長さ
 	OriginalPmxLowerAngle     float64 // 下半身角度
+	OriginalPmxLegWidth       float64 // 足横幅
 	OriginalPmxLegLength      float64 // 足長さ
 	OriginalPmxLegAngle       float64 // 足角度
 	OriginalPmxKneeLength     float64 // ひざ長さ
 	OriginalPmxKneeAngle      float64 // ひざ角度
+	OriginalPmxAnkleLength    float64 // 足首長さ
 }
 
 func NewSizingSet(index int) *SizingSet {
