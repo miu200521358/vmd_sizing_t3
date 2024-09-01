@@ -47,6 +47,7 @@ func LoadOriginalPmx(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 
 	// フィットボーンモーフを作成
 	createFitMorph(model, jsonModel, fit_morph_name)
+	model.Setup()
 
 	return model, nil
 }
@@ -661,27 +662,47 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 			}
 
 			// 移動
-			{
-				parentMat := mmath.NewMMat4()
-				for _, parentIndex := range bone.Extend.ParentBoneIndexes {
-					// ルートから自分の親までをかける
-					if _, ok := offsetMats[parentIndex]; ok {
-						parentUnitMat := model.Bones.Get(parentIndex).Extend.RevertOffsetMatrix.Muled(
-							offsetMats[parentIndex])
-						parentMat = parentUnitMat.Mul(parentMat)
-					}
+			parentMat := mmath.NewMMat4()
+			for _, parentIndex := range bone.Extend.ParentBoneIndexes {
+				// ルートから自分の親までをかける
+				if _, ok := offsetMats[parentIndex]; ok {
+					parentUnitMat := model.Bones.Get(parentIndex).Extend.RevertOffsetMatrix.Muled(
+						offsetMats[parentIndex])
+					parentMat = parentUnitMat.Mul(parentMat)
 				}
-
-				unitMat := model.Bones.Get(bone.Index()).Extend.RevertOffsetMatrix.Muled(offset.LocalMat)
-				boneMat := parentMat.Muled(unitMat)
-				offsetPosition := boneMat.Inverted().MulVec3(jsonBone.Position)
-
-				mlog.V("        trans: %v json: %v)", offsetPosition, jsonBone.Position)
-				offset.LocalMat.Mul(offsetPosition.ToMat4())
 			}
+
+			unitMat := model.Bones.Get(bone.Index()).Extend.RevertOffsetMatrix.Muled(offset.LocalMat)
+			boneMat := parentMat.Muled(unitMat)
+			offsetPosition := boneMat.Inverted().MulVec3(jsonBone.Position)
+
+			mlog.V("        trans: %v json: %v)", offsetPosition, jsonBone.Position)
+			offset.LocalMat.Mul(offsetPosition.ToMat4())
+			boneMat.Mul(offsetPosition.ToMat4())
 
 			offsets = append(offsets, offset)
 			offsetMats[bone.Index()] = offset.LocalMat
+
+			jsonRigidBody := jsonModel.RigidBodies.GetByName(bone.Name())
+			if jsonRigidBody != nil {
+				rigidBody := &pmx.RigidBody{}
+				rigidBody.SetIndex(model.RigidBodies.Len())
+				rigidBody.SetName(jsonRigidBody.Name())
+				rigidBody.SetEnglishName(jsonRigidBody.EnglishName())
+				rigidBody.BoneIndex = model.Bones.GetByName(jsonRigidBody.Bone.Name()).Index()
+				rigidBody.CollisionGroup = jsonRigidBody.CollisionGroup
+				rigidBody.CollisionGroupMask = jsonRigidBody.CollisionGroupMask
+				rigidBody.CollisionGroupMaskValue = jsonRigidBody.CollisionGroupMaskValue
+				rigidBody.Size = jsonRigidBody.Size
+				rigidBody.ShapeType = jsonRigidBody.ShapeType
+				rigidBody.RigidBodyParam = jsonRigidBody.RigidBodyParam
+
+				jsonRigidBodyOffsetPosition := boneMat.Inverted().MulVec3(jsonRigidBody.Position)
+				rigidBody.Position = bone.Position.Added(jsonRigidBodyOffsetPosition)
+				rigidBody.Rotation = jsonRigidBody.Rotation
+
+				model.RigidBodies.Append(rigidBody)
+			}
 		}
 	}
 
