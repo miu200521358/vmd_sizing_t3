@@ -120,6 +120,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 			toolState.OriginalVmdPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.OriginalVmdPicker.Load(); err == nil {
+					if data == nil {
+						toolState.OutputVmdPicker.SetPath("")
+						return
+					}
+
 					// 出力パス設定
 					outputPath := mutils.CreateOutputPath(path, "sizing")
 					toolState.OutputVmdPicker.SetPath(outputPath)
@@ -158,6 +163,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 			toolState.OriginalPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.OriginalPmxPicker.Load(); err == nil {
+					if data == nil {
+						toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
+						toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = nil
+						toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = ""
+						return
+					}
+
 					model := data.(*pmx.PmxModel)
 					toolState.SetOriginalPmxParameterEnabled(false)
 
@@ -206,6 +218,14 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 			toolState.SizingPmxPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.SizingPmxPicker.Load(); err == nil {
+					if data == nil {
+						toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
+						toolState.SizingSets[toolState.CurrentIndex].SizingPmx = nil
+						toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = ""
+
+						return
+					}
+
 					model := data.(*pmx.PmxModel)
 					model.SetRandHash()
 					model.SetIndex(toolState.CurrentIndex)
