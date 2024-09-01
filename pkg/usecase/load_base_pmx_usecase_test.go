@@ -7,6 +7,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 )
 
 func TestUsecase_LoadOriginalPmx(t *testing.T) {
@@ -14,7 +15,8 @@ func TestUsecase_LoadOriginalPmx(t *testing.T) {
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/003_三日月宗近/三日月宗近 わち式 （刀ミュインナーβ）/わち式三日月宗近（刀ミュインナーβ）.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.json"
-	jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/055_鶯丸/鶯丸 さとく式 ver0.90/さとく式鶯丸ver0.90.json"
+	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/055_鶯丸/鶯丸 さとく式 ver0.90/さとく式鶯丸ver0.90.json"
+	jsonPath := "C:/MMD/vmd_sizing_t3/archive/sizing_model.json"
 
 	data, err := repository.NewPmxJsonRepository().Load(jsonPath)
 	if err != nil {
@@ -57,6 +59,28 @@ func TestUsecase_LoadOriginalPmx(t *testing.T) {
 			if !bone.Position.NearEquals(jsonModel.Bones.GetByName(bone.Name()).Position, 1e-4) {
 				t.Errorf("Expected bone %s to be near equals, got %v (%v)", bone.Name(),
 					bone.Position, jsonModel.Bones.GetByName(bone.Name()).Position)
+			}
+		}
+	}
+
+	{
+		originalModel, err := LoadOriginalPmx(jsonModel)
+		if err != nil {
+			t.Errorf("Expected error to be nil, got %q", err)
+		}
+
+		sizingSet := model.NewSizingSet(0)
+		sizingSet.OriginalPmxRatio = 1.0
+		sizingSet.OriginalPmxShoulderLength = 5.0
+		sizingSet.OriginalPmxShoulderAngle = 30.0
+		jsonModel = RemakeFitMorph(originalModel, jsonModel, sizingSet)
+
+		repository.NewPmxRepository().Save(
+			"C:/MMD/vmd_sizing_t3/test_resources/sizing_model_debug_remake.pmx", jsonModel, true)
+
+		for _, bone := range jsonModel.Bones.Data {
+			if !jsonModel.Bones.ContainsByName(bone.Name()) {
+				t.Errorf("Expected bone %s to be contained", bone.Name())
 			}
 		}
 	}

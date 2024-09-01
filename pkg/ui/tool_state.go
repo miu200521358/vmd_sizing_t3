@@ -13,21 +13,39 @@ import (
 )
 
 type ToolState struct {
-	App                         *app.MApp
-	ControlWindow               *controller.ControlWindow
-	SizingTab                   *widget.MTabPage   // ファイルタブページ
-	CurrentIndex                int                // 現在のインデックス
-	NavToolBar                  *walk.ToolBar      // サイジングNo.ナビゲーション
-	SizingSets                  []*model.SizingSet // サイジング情報セット
-	OriginalVmdPicker           *widget.FilePicker // サイジング対象モーション(Vmd/Vpd)ファイル選択
-	OriginalPmxPicker           *widget.FilePicker // モーション作成元モデル(Pmx)ファイル選択
-	SizingPmxPicker             *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
-	OutputVmdPicker             *widget.FilePicker // 出力モーション(Vmd)ファイル選択
-	OriginalPmxRatioEdit        *walk.NumberEdit   // オリジナルモデル比率編集
-	OriginalPmxArmStanceEdit    *walk.NumberEdit   // オリジナルモデル腕スタンス編集
-	OriginalPmxElbowStanceEdit  *walk.NumberEdit   // オリジナルモデルひじスタンス編集
-	SizingTabSaveButton         *walk.PushButton   // サイジングタブ保存ボタン
-	currentPageChangedPublisher walk.EventPublisher
+	App                           *app.MApp
+	ControlWindow                 *controller.ControlWindow
+	SizingTab                     *widget.MTabPage   // ファイルタブページ
+	CurrentIndex                  int                // 現在のインデックス
+	NavToolBar                    *walk.ToolBar      // サイジングNo.ナビゲーション
+	SizingSets                    []*model.SizingSet // サイジング情報セット
+	OriginalVmdPicker             *widget.FilePicker // サイジング対象モーション(Vmd/Vpd)ファイル選択
+	OriginalPmxPicker             *widget.FilePicker // モーション作成元モデル(Pmx)ファイル選択
+	SizingPmxPicker               *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
+	OutputVmdPicker               *widget.FilePicker // 出力モーション(Vmd)ファイル選択
+	OriginalPmxRatioEdit          *walk.NumberEdit   // オリジナルモデル比率編集
+	OriginalPmxUpperLengthEdit    *walk.NumberEdit   // 素体上半身長さ編集
+	OriginalPmxUpperAngleEdit     *walk.NumberEdit   // 素体上半身角度編集
+	OriginalPmxUpper2LengthEdit   *walk.NumberEdit   // 素体上半身2長さ編集
+	OriginalPmxUpper2AngleEdit    *walk.NumberEdit   // 素体上半身2角度編集
+	OriginalPmxNeckLengthEdit     *walk.NumberEdit   // 素体首長さ編集
+	OriginalPmxNeckAngleEdit      *walk.NumberEdit   // 素体首角度編集
+	OriginalPmxShoulderLengthEdit *walk.NumberEdit   // 素体肩長さ
+	OriginalPmxShoulderAngleEdit  *walk.NumberEdit   // 素体肩角度編集
+	OriginalPmxArmLengthEdit      *walk.NumberEdit   // 素体腕長さ編集
+	OriginalPmxArmAngleEdit       *walk.NumberEdit   // 素体腕角度編集
+	OriginalPmxElbowLengthEdit    *walk.NumberEdit   // 素体ひじ長さ編集
+	OriginalPmxElbowAngleEdit     *walk.NumberEdit   // 素体ひじ角度編集
+	OriginalPmxWristLengthEdit    *walk.NumberEdit   // 素体手首長さ編集
+	OriginalPmxWristAngleEdit     *walk.NumberEdit   // 素体手首角度編集
+	OriginalPmxLowerLengthEdit    *walk.NumberEdit   // 素体下半身長さ編集
+	OriginalPmxLowerAngleEdit     *walk.NumberEdit   // 素体下半身角度編集
+	OriginalPmxLegLengthEdit      *walk.NumberEdit   // 素体足長さ編集
+	OriginalPmxLegAngleEdit       *walk.NumberEdit   // 素体足角度編集
+	OriginalPmxKneeLengthEdit     *walk.NumberEdit   // 素体ひざ長さ編集
+	OriginalPmxKneeAngleEdit      *walk.NumberEdit   // 素体ひざ角度編集
+	SizingTabSaveButton           *walk.PushButton   // サイジングタブ保存ボタン
+	currentPageChangedPublisher   walk.EventPublisher
 }
 
 func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolState {
@@ -122,6 +140,26 @@ func (toolState *ToolState) addSizingSet() error {
 	toolState.OutputVmdPicker.SetPath("")
 
 	toolState.OriginalPmxRatioEdit.SetValue(1.0)
+	toolState.OriginalPmxUpperLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxUpperAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxUpper2LengthEdit.SetValue(1.0)
+	toolState.OriginalPmxUpper2AngleEdit.SetValue(0.0)
+	toolState.OriginalPmxNeckLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxNeckAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxShoulderLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxShoulderAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxArmLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxArmAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxElbowLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxElbowAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxWristLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxWristAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxLowerLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxLowerAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxLegLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxLegAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxKneeLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxKneeAngleEdit.SetValue(0.0)
 
 	return nil
 }
@@ -164,6 +202,26 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.OutputVmdPicker.SetPath(sizingSet.OutputVmdPath)
 
 	toolState.OriginalPmxRatioEdit.SetValue(sizingSet.OriginalPmxRatio)
+	toolState.OriginalPmxUpperLengthEdit.SetValue(sizingSet.OriginalPmxUpperLength)
+	toolState.OriginalPmxUpperAngleEdit.SetValue(sizingSet.OriginalPmxUpperAngle)
+	toolState.OriginalPmxUpper2LengthEdit.SetValue(sizingSet.OriginalPmxUpper2Length)
+	toolState.OriginalPmxUpper2AngleEdit.SetValue(sizingSet.OriginalPmxUpper2Angle)
+	toolState.OriginalPmxNeckLengthEdit.SetValue(sizingSet.OriginalPmxNeckLength)
+	toolState.OriginalPmxNeckAngleEdit.SetValue(sizingSet.OriginalPmxNeckAngle)
+	toolState.OriginalPmxShoulderLengthEdit.SetValue(sizingSet.OriginalPmxShoulderLength)
+	toolState.OriginalPmxShoulderAngleEdit.SetValue(sizingSet.OriginalPmxShoulderAngle)
+	toolState.OriginalPmxArmLengthEdit.SetValue(sizingSet.OriginalPmxArmLength)
+	toolState.OriginalPmxArmAngleEdit.SetValue(sizingSet.OriginalPmxArmAngle)
+	toolState.OriginalPmxElbowLengthEdit.SetValue(sizingSet.OriginalPmxElbowLength)
+	toolState.OriginalPmxElbowAngleEdit.SetValue(sizingSet.OriginalPmxElbowAngle)
+	toolState.OriginalPmxWristLengthEdit.SetValue(sizingSet.OriginalPmxWristLength)
+	toolState.OriginalPmxWristAngleEdit.SetValue(sizingSet.OriginalPmxWristAngle)
+	toolState.OriginalPmxLowerLengthEdit.SetValue(sizingSet.OriginalPmxLowerLength)
+	toolState.OriginalPmxLowerAngleEdit.SetValue(sizingSet.OriginalPmxLowerAngle)
+	toolState.OriginalPmxLegLengthEdit.SetValue(sizingSet.OriginalPmxLegLength)
+	toolState.OriginalPmxLegAngleEdit.SetValue(sizingSet.OriginalPmxLegAngle)
+	toolState.OriginalPmxKneeLengthEdit.SetValue(sizingSet.OriginalPmxKneeLength)
+	toolState.OriginalPmxKneeAngleEdit.SetValue(sizingSet.OriginalPmxKneeAngle)
 
 	return nil
 }
@@ -171,8 +229,26 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 // 素体モデルの編集パラメーターの有効/無効を設定
 func (toolState *ToolState) SetOriginalPmxParameterEnabled(enabled bool) {
 	toolState.OriginalPmxRatioEdit.SetEnabled(enabled)
-	toolState.OriginalPmxArmStanceEdit.SetEnabled(enabled)
-	toolState.OriginalPmxElbowStanceEdit.SetEnabled(enabled)
+	toolState.OriginalPmxUpperLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxUpperAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxUpper2LengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxUpper2AngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxNeckLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxNeckAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxShoulderLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxShoulderAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxArmLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxArmAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxElbowLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxElbowAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxWristLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxWristAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxLowerLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxLowerAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxLegLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxLegAngleEdit.SetEnabled(enabled)
+	toolState.OriginalPmxKneeLengthEdit.SetEnabled(enabled)
+	toolState.OriginalPmxKneeAngleEdit.SetEnabled(enabled)
 }
 
 func (toolState *ToolState) OriginalPmxParameterEnabled() bool {

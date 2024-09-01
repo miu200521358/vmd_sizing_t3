@@ -62,6 +62,12 @@ func AddFitMorph(motion *vmd.VmdMotion) *vmd.VmdMotion {
 func RemakeFitMorph(model, jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) *pmx.PmxModel {
 	model.Morphs.RemoveByName(fit_morph_name)
 
+	// 足りないボーンを追加
+	addNonExistBones(model, jsonModel)
+
+	// ボーン設定を補正
+	fixBaseBones(model, jsonModel)
+
 	// jsonモデルをリサイズ
 	resizeJsonModel(jsonModel, sizingSet)
 
@@ -75,37 +81,165 @@ func resizeJsonModel(jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) {
 	// リサイズ
 	resizeMotion := vmd.NewVmdMotion("")
 	{
+		// 全体比率
 		bf := vmd.NewBoneFrame(0)
-		bf.Scale = &mmath.MVec3{X: sizingSet.OriginalPmxRatio - 1.0,
-			Y: sizingSet.OriginalPmxRatio - 1.0, Z: sizingSet.OriginalPmxRatio - 1.0}
+		bf.Scale = &mmath.MVec3{X: sizingSet.OriginalPmxRatio,
+			Y: sizingSet.OriginalPmxRatio, Z: sizingSet.OriginalPmxRatio}
 		resizeMotion.AppendRegisteredBoneFrame(pmx.ROOT.String(), bf)
 	}
 	{
+		// 上半身
 		bf := vmd.NewBoneFrame(0)
-		bf.Rotation = mmath.NewMQuaternionFromDegrees(0, 0, sizingSet.OriginalPmxArmStance)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.UPPER.String(),
+			sizingSet.OriginalPmxUpperLength, sizingSet.OriginalPmxUpperAngle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.UPPER.String(), bf)
+	}
+	{
+		// 上半身2
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.UPPER2.String(),
+			sizingSet.OriginalPmxUpper2Length, sizingSet.OriginalPmxUpper2Angle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.UPPER2.String(), bf)
+	}
+	{
+		// 首
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.NECK.String(),
+			sizingSet.OriginalPmxNeckLength, sizingSet.OriginalPmxNeckAngle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.NECK.String(), bf)
+	}
+	{
+		// 右肩
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.SHOULDER.Right(),
+			sizingSet.OriginalPmxShoulderLength, 0, 0, sizingSet.OriginalPmxShoulderAngle)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.SHOULDER.Right(), bf)
+	}
+	{
+		// 左肩
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.SHOULDER.Left(),
+			sizingSet.OriginalPmxShoulderLength, 0, 0, -sizingSet.OriginalPmxShoulderAngle)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.SHOULDER.Left(), bf)
+	}
+	{
+		// 右腕(角度補正は子ども全てに適用)
+		bf := vmd.NewBoneFrame(0)
+		bf.Rotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.ARM.Right(),
+			sizingSet.OriginalPmxArmLength, 0, 0, sizingSet.OriginalPmxArmAngle)
 		resizeMotion.AppendRegisteredBoneFrame(pmx.ARM.Right(), bf)
 	}
 	{
+		// 左腕(角度補正は子ども全てに適用)
 		bf := vmd.NewBoneFrame(0)
-		bf.Rotation = mmath.NewMQuaternionFromDegrees(0, 0, -sizingSet.OriginalPmxArmStance)
+		bf.Rotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.ARM.Left(),
+			sizingSet.OriginalPmxArmLength, 0, 0, -sizingSet.OriginalPmxArmAngle)
 		resizeMotion.AppendRegisteredBoneFrame(pmx.ARM.Left(), bf)
 	}
 	{
+		// 右ひじ(角度補正は子ども全てに適用)
 		bf := vmd.NewBoneFrame(0)
-		bf.Rotation = mmath.NewMQuaternionFromDegrees(0, 0, sizingSet.OriginalPmxElbowStance)
+		bf.Rotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.ELBOW.Right(),
+			sizingSet.OriginalPmxElbowLength, 0, 0, sizingSet.OriginalPmxElbowAngle)
 		resizeMotion.AppendRegisteredBoneFrame(pmx.ELBOW.Right(), bf)
 	}
 	{
+		// 左ひじ(角度補正は子ども全てに適用)
 		bf := vmd.NewBoneFrame(0)
-		bf.Rotation = mmath.NewMQuaternionFromDegrees(0, 0, -sizingSet.OriginalPmxElbowStance)
+		bf.Rotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.ELBOW.Left(),
+			sizingSet.OriginalPmxElbowLength, 0, 0, -sizingSet.OriginalPmxElbowAngle)
 		resizeMotion.AppendRegisteredBoneFrame(pmx.ELBOW.Left(), bf)
+	}
+	{
+		// 右手首(角度補正は子ども全てに適用)
+		bf := vmd.NewBoneFrame(0)
+		bf.Rotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.WRIST.Right(),
+			sizingSet.OriginalPmxWristLength, 0, 0, sizingSet.OriginalPmxWristAngle)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.WRIST.Right(), bf)
+	}
+	{
+		// 左手首(角度補正は子ども全てに適用)
+		bf := vmd.NewBoneFrame(0)
+		bf.Rotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.WRIST.Left(),
+			sizingSet.OriginalPmxWristLength, 0, 0, -sizingSet.OriginalPmxWristAngle)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.WRIST.Left(), bf)
+	}
+	{
+		// 下半身
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.LOWER.String(),
+			sizingSet.OriginalPmxLowerLength, sizingSet.OriginalPmxLowerAngle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.LOWER.String(), bf)
+	}
+	{
+		// 右足
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.LEG.Right(),
+			sizingSet.OriginalPmxLegLength, sizingSet.OriginalPmxLegAngle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.LEG.Right(), bf)
+	}
+	{
+		// 左足
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.LEG.Left(),
+			sizingSet.OriginalPmxLegLength, -sizingSet.OriginalPmxLegAngle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.LEG.Left(), bf)
+	}
+	{
+		// 右ひざ
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.KNEE.Right(),
+			sizingSet.OriginalPmxKneeLength, sizingSet.OriginalPmxKneeAngle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.KNEE.Right(), bf)
+	}
+	{
+		// 左ひざ
+		bf := vmd.NewBoneFrame(0)
+		bf.CancelableRotation, bf.CancelableScale = getResizeParams(
+			jsonModel, pmx.KNEE.Left(),
+			sizingSet.OriginalPmxKneeLength, -sizingSet.OriginalPmxKneeAngle, 0, 0)
+		resizeMotion.AppendRegisteredBoneFrame(pmx.KNEE.Left(), bf)
 	}
 
 	// リサイズモーションを適用
 	boneDeltas := deform.DeformBone(jsonModel, resizeMotion, true, 0, nil)
 	for _, boneDelta := range boneDeltas.Data {
+		if boneDelta == nil {
+			continue
+		}
 		jsonModel.Bones.Get(boneDelta.Bone.Index()).Position = boneDelta.FilledGlobalPosition()
 	}
+
+	jsonModel.Setup()
+}
+
+func getResizeParams(
+	jsonModel *pmx.PmxModel, boneName string, length, xPitch, yHead, zRoll float64,
+) (*mmath.MQuaternion, *mmath.MVec3) {
+	cancelableRotation := mmath.NewMQuaternionFromDegrees(xPitch, yHead, zRoll)
+
+	localMat := jsonModel.Bones.GetByName(boneName).Extend.LocalAxis.ToLocalMat()
+	localMat = localMat.Muled(cancelableRotation.ToMat4())
+
+	scales := &mmath.MVec3{X: length, Y: 1, Z: 1}
+	cancelableScale := localMat.Muled(scales.ToScaleMat4()).Muled(localMat.Inverted()).Scaling()
+
+	return cancelableRotation, cancelableScale
 }
 
 func loadMannequinPmx() (*pmx.PmxModel, error) {
@@ -131,13 +265,13 @@ func getBaseScale(model, jsonModel *pmx.PmxModel) float64 {
 		return 1.0
 	}
 
-	// 両腕の中央を首根元する
+	// 両腕の中央を首根元とする
 	neckRootPos := model.Bones.GetByName(pmx.ARM.Left()).Position.Added(
 		model.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
 	jsonNeckRootPos := jsonModel.Bones.GetByName(pmx.ARM.Left()).Position.Added(
 		jsonModel.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
 
-	// 両足の中央を足中央する
+	// 両足の中央を足中央とする
 	legRootPos := model.Bones.GetByName(pmx.LEG.Left()).Position.Added(
 		model.Bones.GetByName(pmx.LEG.Right()).Position).MuledScalar(0.5)
 	jsonLegRootPos := jsonModel.Bones.GetByName(pmx.LEG.Left()).Position.Added(
@@ -371,6 +505,7 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 	offsetMats := make(map[int]*mmath.MMat4)
 	offsetQuats := make(map[int]*mmath.MQuaternion)
 	offsetScaleMats := make(map[int]*mmath.MMat4)
+	baseScale := getBaseScale(model, jsonModel)
 
 	for _, bone := range model.Bones.Data {
 		if jsonBone := jsonModel.Bones.GetByName(bone.Name()); jsonBone != nil {
@@ -407,8 +542,6 @@ func createFitMorph(model, jsonModel *pmx.PmxModel, fitMorphName string) {
 
 			// スケール
 			if !bone.CanFitOnlyMove() {
-				baseScale := getBaseScale(model, jsonModel)
-
 				boneScale := baseScale
 				if childBone != nil && jsonChildBone != nil {
 					boneDistance := bone.Position.Distance(childBone.Position)

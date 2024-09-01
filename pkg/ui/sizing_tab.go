@@ -174,9 +174,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 							// 元モデル調整パラメータ有効化
 							toolState.SetOriginalPmxParameterEnabled(true)
+							toolState.OriginalPmxShoulderLengthEdit.SetValue(1.0)
+							toolState.OriginalPmxShoulderAngleEdit.SetValue(0.0)
 							toolState.OriginalPmxRatioEdit.SetValue(1.0)
-							toolState.OriginalPmxArmStanceEdit.SetValue(0.0)
-							toolState.OriginalPmxElbowStanceEdit.SetValue(0.0)
+							toolState.OriginalPmxArmAngleEdit.SetValue(0.0)
+							toolState.OriginalPmxElbowAngleEdit.SetValue(0.0)
 						}
 					}
 
@@ -276,38 +278,345 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							remakeFitMorph(toolState)
 						},
 					},
-					// 腕角度
-					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正"),
-						ToolTipText: mi18n.T("元モデル素体スタンス補正説明"),
+					// 上半身
+					declarative.Label{Text: mi18n.T("元モデル素体上半身補正"),
+						ToolTipText: mi18n.T("元モデル素体上半身補正説明"),
 						OnMouseDown: func(x, y int, button walk.MouseButton) {
-							mlog.IL(mi18n.T("元モデル素体スタンス補正説明"))
+							mlog.IL(mi18n.T("元モデル素体上半身補正説明"))
 						}},
-					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正腕")},
+					declarative.Label{Text: mi18n.T("元モデル素体上半身幅")},
 					declarative.NumberEdit{
-						AssignTo:           &toolState.OriginalPmxArmStanceEdit,
-						MinValue:           -90,
-						MaxValue:           90,
-						Decimals:           1,
-						Increment:          1,
+						AssignTo:           &toolState.OriginalPmxUpperLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
 						SpinButtonsVisible: true,
 						OnValueChanged: func() {
-							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxArmStance =
-								toolState.OriginalPmxArmStanceEdit.Value()
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxUpperLength =
+								toolState.OriginalPmxUpperLengthEdit.Value()
 							remakeFitMorph(toolState)
 						},
 					},
-					// ひじ角度
-					declarative.Label{Text: mi18n.T("元モデル素体スタンス補正ひじ")},
+					declarative.Label{Text: mi18n.T("元モデル素体上半身角度")},
 					declarative.NumberEdit{
-						AssignTo:           &toolState.OriginalPmxElbowStanceEdit,
+						AssignTo:           &toolState.OriginalPmxUpperAngleEdit,
 						MinValue:           -90,
 						MaxValue:           90,
 						Decimals:           1,
 						Increment:          1,
 						SpinButtonsVisible: true,
 						OnValueChanged: func() {
-							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxElbowStance =
-								toolState.OriginalPmxElbowStanceEdit.Value()
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxUpperAngle =
+								toolState.OriginalPmxUpperAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					// 上半身2
+					declarative.Label{Text: mi18n.T("元モデル素体上半身2補正"),
+						ToolTipText: mi18n.T("元モデル素体上半身2補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体上半身2補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体上半身2幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxUpper2LengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxUpper2Length =
+								toolState.OriginalPmxUpper2LengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体上半身2角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxUpper2AngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxUpper2Angle =
+								toolState.OriginalPmxUpper2AngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					// 首
+					declarative.Label{Text: mi18n.T("元モデル素体首補正"),
+						ToolTipText: mi18n.T("元モデル素体首補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体首補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体首幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxNeckLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxNeckLength =
+								toolState.OriginalPmxNeckLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体首角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxNeckAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxNeckAngle =
+								toolState.OriginalPmxNeckAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+
+					// 肩
+					declarative.Label{Text: mi18n.T("元モデル素体肩補正"),
+						ToolTipText: mi18n.T("元モデル素体肩補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体肩補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体肩幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxShoulderLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxShoulderLength =
+								toolState.OriginalPmxShoulderLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体肩角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxShoulderAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxShoulderAngle =
+								toolState.OriginalPmxShoulderAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+
+					// 腕
+					declarative.Label{Text: mi18n.T("元モデル素体腕補正"),
+						ToolTipText: mi18n.T("元モデル素体腕補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体腕補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体腕幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxArmLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxArmLength =
+								toolState.OriginalPmxArmLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体腕角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxArmAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxArmAngle =
+								toolState.OriginalPmxArmAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					// ひじ
+					declarative.Label{Text: mi18n.T("元モデル素体ひじ補正"),
+						ToolTipText: mi18n.T("元モデル素体ひじ補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体ひじ補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体ひじ幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxElbowLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxElbowLength =
+								toolState.OriginalPmxElbowLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体ひじ角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxElbowAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxElbowAngle =
+								toolState.OriginalPmxElbowAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					// 手首
+					declarative.Label{Text: mi18n.T("元モデル素体手首補正"),
+						ToolTipText: mi18n.T("元モデル素体手首補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体手首補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体手首幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxWristLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxWristLength =
+								toolState.OriginalPmxWristLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体手首角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxWristAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxWristAngle =
+								toolState.OriginalPmxWristAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					// 下半身
+					declarative.Label{Text: mi18n.T("元モデル素体下半身補正"),
+						ToolTipText: mi18n.T("元モデル素体下半身補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体下半身補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体下半身幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxLowerLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxLowerLength =
+								toolState.OriginalPmxLowerLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体下半身角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxLowerAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxLowerAngle =
+								toolState.OriginalPmxLowerAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					// 足
+					declarative.Label{Text: mi18n.T("元モデル素体足補正"),
+						ToolTipText: mi18n.T("元モデル素体足補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体足補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体足幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxLegLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxLegLength =
+								toolState.OriginalPmxLegLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体足角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxLegAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxLegAngle =
+								toolState.OriginalPmxLegAngleEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					// ひざ
+					declarative.Label{Text: mi18n.T("元モデル素体ひざ補正"),
+						ToolTipText: mi18n.T("元モデル素体ひざ補正説明"),
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							mlog.IL(mi18n.T("元モデル素体ひざ補正説明"))
+						}},
+					declarative.Label{Text: mi18n.T("元モデル素体ひざ幅")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxKneeLengthEdit,
+						MinValue:           0.01,
+						MaxValue:           10,
+						Decimals:           2,
+						Increment:          0.01,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxKneeLength =
+								toolState.OriginalPmxKneeLengthEdit.Value()
+							remakeFitMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("元モデル素体ひざ角度")},
+					declarative.NumberEdit{
+						AssignTo:           &toolState.OriginalPmxKneeAngleEdit,
+						MinValue:           -90,
+						MaxValue:           90,
+						Decimals:           1,
+						Increment:          1,
+						SpinButtonsVisible: true,
+						OnValueChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalPmxKneeAngle =
+								toolState.OriginalPmxKneeAngleEdit.Value()
 							remakeFitMorph(toolState)
 						},
 					},
