@@ -22,4 +22,4 @@ VmdSizing_6.0.0_beta_32
 
 VmdSizing_6.0.0_beta_33
 ・全体倍率/個別調整機能追加
-
+・再生時の入力欄ON/OFF調整

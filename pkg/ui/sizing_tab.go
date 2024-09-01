@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"strings"
-
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
@@ -164,7 +162,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SetOriginalPmxParameterEnabled(false)
 
 					// jsonから読み込んだ場合、モデル定義を適用して読み込みしなおす
-					if strings.HasSuffix(strings.ToLower(toolState.OriginalPmxPicker.GetPath()), ".json") {
+					if toolState.IsOriginalJson() {
 						originalModel, err := usecase.LoadOriginalPmx(model)
 						if err != nil {
 							mlog.E(mi18n.T("素体読み込み失敗"), err)
@@ -173,12 +171,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							model = originalModel
 
 							// 元モデル調整パラメータ有効化
+							toolState.ResetOriginalPmxParameter()
 							toolState.SetOriginalPmxParameterEnabled(true)
-							toolState.OriginalPmxShoulderLengthEdit.SetValue(1.0)
-							toolState.OriginalPmxShoulderAngleEdit.SetValue(0.0)
-							toolState.OriginalPmxRatioEdit.SetValue(1.0)
-							toolState.OriginalPmxArmAngleEdit.SetValue(0.0)
-							toolState.OriginalPmxElbowAngleEdit.SetValue(0.0)
 						}
 					}
 
@@ -705,6 +699,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 		// プレイヤー
 		player := widget.NewMotionPlayer(playerComposite, controlWindow)
+		player.SetOnTriggerPlay(func(playing bool) { toolState.onPlay(playing) })
 		controlWindow.SetPlayer(player)
 
 		toolState.SizingTabSaveButton, err = walk.NewPushButton(playerComposite)

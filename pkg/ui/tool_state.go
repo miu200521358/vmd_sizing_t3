@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
@@ -142,30 +143,7 @@ func (toolState *ToolState) addSizingSet() error {
 
 	toolState.OutputVmdPicker.SetPath("")
 
-	toolState.OriginalPmxRatioEdit.SetValue(1.0)
-	toolState.OriginalPmxUpperLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxUpperAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxUpper2LengthEdit.SetValue(1.0)
-	toolState.OriginalPmxUpper2AngleEdit.SetValue(0.0)
-	toolState.OriginalPmxNeckLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxNeckAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxHeadLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxShoulderLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxShoulderAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxArmLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxArmAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxElbowLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxElbowAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxWristLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxWristAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxLowerLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxLowerAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxLegWidthEdit.SetValue(1.0)
-	toolState.OriginalPmxLegLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxLegAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxKneeLengthEdit.SetValue(1.0)
-	toolState.OriginalPmxKneeAngleEdit.SetValue(0.0)
-	toolState.OriginalPmxAnkleLengthEdit.SetValue(1.0)
+	toolState.ResetOriginalPmxParameter()
 
 	return nil
 }
@@ -235,6 +213,33 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	return nil
 }
 
+func (toolState *ToolState) ResetOriginalPmxParameter() {
+	toolState.OriginalPmxRatioEdit.SetValue(1.0)
+	toolState.OriginalPmxUpperLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxUpperAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxUpper2LengthEdit.SetValue(1.0)
+	toolState.OriginalPmxUpper2AngleEdit.SetValue(0.0)
+	toolState.OriginalPmxNeckLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxNeckAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxHeadLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxShoulderLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxShoulderAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxArmLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxArmAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxElbowLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxElbowAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxWristLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxWristAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxLowerLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxLowerAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxLegWidthEdit.SetValue(1.0)
+	toolState.OriginalPmxLegLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxLegAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxKneeLengthEdit.SetValue(1.0)
+	toolState.OriginalPmxKneeAngleEdit.SetValue(0.0)
+	toolState.OriginalPmxAnkleLengthEdit.SetValue(1.0)
+}
+
 // 素体モデルの編集パラメーターの有効/無効を設定
 func (toolState *ToolState) SetOriginalPmxParameterEnabled(enabled bool) {
 	toolState.OriginalPmxRatioEdit.SetEnabled(enabled)
@@ -265,4 +270,16 @@ func (toolState *ToolState) SetOriginalPmxParameterEnabled(enabled bool) {
 
 func (toolState *ToolState) OriginalPmxParameterEnabled() bool {
 	return toolState.OriginalPmxRatioEdit.Enabled()
+}
+
+func (toolState *ToolState) onPlay(playing bool) {
+	toolState.OriginalVmdPicker.SetEnabled(!playing)
+	toolState.OriginalPmxPicker.SetEnabled(!playing)
+	toolState.SizingPmxPicker.SetEnabled(!playing)
+	toolState.OutputVmdPicker.SetEnabled(!playing)
+	toolState.SetOriginalPmxParameterEnabled(!playing && toolState.IsOriginalJson())
+}
+
+func (toolState *ToolState) IsOriginalJson() bool {
+	return strings.HasSuffix(strings.ToLower(toolState.OriginalPmxPicker.GetPath()), ".json")
 }
