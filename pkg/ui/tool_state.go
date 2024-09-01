@@ -16,7 +16,7 @@ import (
 type ToolState struct {
 	App                           *app.MApp
 	ControlWindow                 *controller.ControlWindow
-	SizingTab                     *widget.MTabPage   // ファイルタブページ
+	SizingTab                     *widget.MTabPage   // サイジングタブページ
 	CurrentIndex                  int                // 現在のインデックス
 	NavToolBar                    *walk.ToolBar      // サイジングNo.ナビゲーション
 	SizingSets                    []*model.SizingSet // サイジング情報セット
@@ -50,6 +50,7 @@ type ToolState struct {
 	OriginalPmxAnkleLengthEdit    *walk.NumberEdit   // 素体足首長さ編集
 	SizingTabSaveButton           *walk.PushButton   // サイジングタブ保存ボタン
 	currentPageChangedPublisher   walk.EventPublisher
+	JsonSaveTab                   *widget.MTabPage // サイジングタブページ
 }
 
 func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolState {
@@ -92,6 +93,9 @@ func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolS
 			return motions
 		},
 	)
+
+	// json保存タブ
+	newJsonSaveTab(controlWindow, toolState)
 
 	return toolState
 }

@@ -687,7 +687,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 	}
 
-	// ヘッダ
+	// フッター
 	{
 		walk.NewVSeparator(toolState.SizingTab)
 
@@ -706,7 +706,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		if err != nil {
 			widget.RaiseError(err)
 		}
-		toolState.SizingTabSaveButton.SetText(mi18n.T("保存"))
+		toolState.SizingTabSaveButton.SetText(mi18n.T("サイジング結果保存"))
 		// toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
 	}
 }

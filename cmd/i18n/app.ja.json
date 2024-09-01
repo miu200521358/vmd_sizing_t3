@@ -112,8 +112,8 @@
         "translation": "サイジングセット設定読込"
     },
     {
-        "id": "保存",
-        "translation": "サイジング結果保存"
+        "id": "出力",
+        "translation": "サイジング結果出力"
     },
     {
         "id": "素体読み込み失敗",
@@ -242,5 +242,65 @@
     {
         "id": "元モデル素体足首補正説明",
         "translation": "元モデルの素体の足首を調整できます"
+    },
+    {
+        "id": "サイジング結果保存",
+        "translation": "サイジング結果保存"
+    },
+    {
+        "id": "モデルjson出力",
+        "translation": "モデルjson出力"
+    },
+    {
+        "id": "モデルjson出力説明",
+        "translation": "モデルjson出力説明"
+    },
+    {
+        "id": "json出力対象モデル",
+        "translation": "json出力対象モデル(Pmx)"
+    },
+    {
+        "id": "json出力対象モデルツールチップ",
+        "translation": "モデル定義jsonを出力したい対象モデルPmxファイルを選択してください"
+    },
+    {
+        "id": "json出力対象モデルの使い方",
+        "translation": "・モデル定義jsonを出力したい対象モデルPmxを設定できます\n・モデルを指定すると、出力ボタンが有効になります\n・モデル名欄の文字列は選択することが出来ます"
+    },
+    {
+        "id": "モデル定義json出力先",
+        "translation": "モデル定義json出力先(Json)"
+    },
+    {
+        "id": "モデル定義json出力先ツールチップ",
+        "translation": "モデル定義jsonを出力したい対象モデルPmxファイルを選択してください"
+    },
+    {
+        "id": "モデル定義json出力先の使い方",
+        "translation": "・モデル定義jsonを出力したい対象モデルPmxを設定できます\n・モデルを指定すると、出力ボタンが有効になります\n・モデル名欄の文字列は選択することが出来ます"
+    },
+    {
+        "id": "モデルjson出力説明",
+        "translation": "モデルjson出力説明"
+    },
+    {
+        "id": "モデル定義json出力",
+        "translation": "モデル定義json出力"
+    },
+    {
+        "id": "出力失敗",
+        "translation": "出力失敗"
+    },
+    {
+        "id": "出力成功",
+        "translation": "出力成功"
+    },
+        {
+        "id": "json出力成功メッセージ",
+        "translation": "モデル定義jsonの出力に成功しました\n\n{{.Path}}"
+    },
+    {
+        "id": "json出力失敗メッセージ",
+        "translation": "モデル定義jsonの出力に失敗しました\n\nエラーメッセージ: {{.Error}}"
     }
 ]
