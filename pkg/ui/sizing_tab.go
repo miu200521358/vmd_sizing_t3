@@ -141,6 +141,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					// サイジング先モデル用モーション
 					sizingMotion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
+					sizingMotion = usecase.AddSizingMorph(sizingMotion)
 					sizingMotion.SetRandHash()
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
@@ -198,8 +199,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						// モーション未設定の場合、空モーションを定義する
-						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd =
-							usecase.AddFitMorph(vmd.NewVmdMotion(""))
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+					}
+					if toolState.SizingSets[toolState.CurrentIndex].OutputVmd == nil {
+						// モーション未設定の場合、サイジングモーフ付き空モーションを定義する
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd =
+							usecase.AddSizingMorph(vmd.NewVmdMotion(""))
 					}
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
@@ -235,8 +240,14 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = model
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = model.Name()
 
+					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
+						// モーション未設定の場合、空モーションを定義する
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+					}
 					if toolState.SizingSets[toolState.CurrentIndex].OutputVmd == nil {
-						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
+						// モーション未設定の場合、サイジングモーフ付き空モーションを定義する
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd =
+							usecase.AddSizingMorph(vmd.NewVmdMotion(""))
 					}
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
@@ -251,6 +262,57 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				mi18n.T("出力モーション(Vmd)"),
 				mi18n.T("出力モーションツールチップ"),
 				mi18n.T("出力モーションの使い方"))
+		}
+
+		walk.NewVSeparator(scrollView)
+
+		// サイジングパラメーター
+		{
+			// タイトル
+			titleLabel, err := walk.NewTextLabel(scrollView)
+			if err != nil {
+				widget.RaiseError(err)
+			}
+			titleLabel.SetText(mi18n.T("サイジングパラメーター"))
+			titleLabel.SetToolTipText(mi18n.T("サイジングパラメーター説明"))
+			titleLabel.MouseDown().Attach(func(x, y int, button walk.MouseButton) {
+				mlog.IL(mi18n.T("サイジングパラメーター説明"))
+			})
+
+			composite := declarative.Composite{
+				Layout:        declarative.Grid{Columns: 2},
+				StretchFactor: 1,
+				Children: []declarative.Widget{
+					// スタンス補正
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingArmStanceCheck,
+						Text:     mi18n.T("腕スタンス補正"),
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingArmStance = toolState.SizingArmStanceCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("腕スタンス補正概要")},
+					// 位置補正
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingTranslateCheck,
+						Text:     mi18n.T("位置補正"),
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingTranslate = toolState.SizingTranslateCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+						},
+					},
+					declarative.Label{Text: mi18n.T("位置補正概要")},
+				},
+			}
+
+			if err := composite.Create(declarative.NewBuilder(scrollView)); err != nil {
+				widget.RaiseError(err)
+			}
 		}
 
 		walk.NewVSeparator(scrollView)
@@ -728,6 +790,17 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 		toolState.SizingTabSaveButton.SetText(mi18n.T("サイジング結果保存"))
 		// toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
+	}
+}
+
+func remakeSizingMorph(toolState *ToolState) {
+	for _, sizingSet := range toolState.SizingSets {
+		if sizingSet.OriginalPmx != nil && sizingSet.SizingPmx != nil {
+			// サイジングモーフ再生成
+			sizingSet.SizingPmx = usecase.CreateSizingMorph(sizingSet.OriginalPmx, sizingSet.SizingPmx, sizingSet)
+			// 強制更新用にハッシュ設定
+			sizingSet.SizingPmx.SetRandHash()
+		}
 	}
 }
 

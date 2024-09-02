@@ -24,6 +24,8 @@ type ToolState struct {
 	OriginalPmxPicker             *widget.FilePicker // モーション作成元モデル(Pmx)ファイル選択
 	SizingPmxPicker               *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker // 出力モーション(Vmd)ファイル選択
+	SizingArmStanceCheck          *walk.CheckBox     // サイジング腕スタンス補正チェックボックス
+	SizingTranslateCheck          *walk.CheckBox     // サイジング移動補正チェックボックス
 	OriginalPmxRatioEdit          *walk.NumberEdit   // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit   // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit   // 素体上半身角度編集
@@ -147,6 +149,7 @@ func (toolState *ToolState) addSizingSet() error {
 
 	toolState.OutputVmdPicker.SetPath("")
 
+	toolState.ResetSizingParameter()
 	toolState.ResetOriginalPmxParameter()
 
 	return nil
@@ -215,6 +218,11 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.OriginalPmxAnkleLengthEdit.SetValue(sizingSet.OriginalPmxAnkleLength)
 
 	return nil
+}
+
+func (toolState *ToolState) ResetSizingParameter() {
+	toolState.SizingArmStanceCheck.SetChecked(false)
+	toolState.SizingTranslateCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {

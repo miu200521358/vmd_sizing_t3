@@ -53,6 +53,10 @@ func LoadOriginalPmx(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 }
 
 func AddFitMorph(motion *vmd.VmdMotion) *vmd.VmdMotion {
+	if motion.MorphFrames != nil && motion.MorphFrames.Contains(fit_morph_name) {
+		return motion
+	}
+
 	// フィットボーンモーフを適用
 	mf := vmd.NewMorphFrame(float32(0))
 	mf.Ratio = 1.0
