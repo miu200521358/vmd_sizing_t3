@@ -26,20 +26,56 @@ func createSizingMorph(originalModel, sizingModel *pmx.PmxModel, sizingSet *mode
 
 	if sizingSet.IsSizingArmStance {
 		// スタンス補正
-		for _, boneName := range []string{pmx.ARM.Left(), pmx.ARM.Right()} {
-			bone := sizingModel.Bones.GetByName(boneName)
-			originalBone := originalModel.Bones.GetByName(boneName)
-			if bone == nil || originalBone == nil {
+		for _, boneNames := range [][]string{{pmx.ARM.Left(), pmx.ELBOW.Left(), pmx.WRIST.Left()},
+			{pmx.ARM.Right(), pmx.ELBOW.Right(), pmx.WRIST.Right()}} {
+			armBoneName := boneNames[0]
+			elbowBoneName := boneNames[1]
+			wristBoneName := boneNames[2]
+
+			// 腕
+			armBone := sizingModel.Bones.GetByName(armBoneName)
+			armOriginalBone := originalModel.Bones.GetByName(armBoneName)
+			if armBone == nil || armOriginalBone == nil {
 				continue
 			}
 
-			boneDirection := bone.Extend.ChildRelativePosition.Normalized()
-			originalBoneDirection := originalBone.Extend.ChildRelativePosition.Normalized()
-			offsetQuat := mmath.NewMQuaternionRotate(boneDirection, originalBoneDirection)
+			armBoneDirection := armBone.Extend.ChildRelativePosition.Normalized()
+			armOriginalBoneDirection := armOriginalBone.Extend.ChildRelativePosition.Normalized()
+			armOffsetQuat := mmath.NewMQuaternionRotate(armBoneDirection, armOriginalBoneDirection)
 
-			offset := pmx.NewBoneMorphOffset(bone.Index())
-			offset.Rotation = offsetQuat
-			offsets = append(offsets, offset)
+			armOffset := pmx.NewBoneMorphOffset(armBone.Index())
+			armOffset.Rotation = armOffsetQuat
+			offsets = append(offsets, armOffset)
+
+			// ひじ
+			elbowBone := sizingModel.Bones.GetByName(elbowBoneName)
+			elbowOriginalBone := originalModel.Bones.GetByName(elbowBoneName)
+			if elbowBone == nil || elbowOriginalBone == nil {
+				continue
+			}
+
+			elbowBoneDirection := elbowBone.Extend.ChildRelativePosition.Normalized()
+			elbowOriginalBoneDirection := elbowOriginalBone.Extend.ChildRelativePosition.Normalized()
+			elbowOffsetQuat := mmath.NewMQuaternionRotate(elbowBoneDirection, elbowOriginalBoneDirection)
+
+			elbowOffset := pmx.NewBoneMorphOffset(elbowBone.Index())
+			elbowOffset.Rotation = elbowOffsetQuat.Muled(armOffsetQuat.Inverted())
+			offsets = append(offsets, elbowOffset)
+
+			// 手首
+			wristBone := sizingModel.Bones.GetByName(wristBoneName)
+			wristOriginalBone := originalModel.Bones.GetByName(wristBoneName)
+			if wristBone == nil || wristOriginalBone == nil {
+				continue
+			}
+
+			wristBoneDirection := wristBone.Extend.ChildRelativePosition.Normalized()
+			wristOriginalBoneDirection := wristOriginalBone.Extend.ChildRelativePosition.Normalized()
+			wristOffsetQuat := mmath.NewMQuaternionRotate(wristBoneDirection, wristOriginalBoneDirection)
+
+			wristOffset := pmx.NewBoneMorphOffset(wristBone.Index())
+			wristOffset.Rotation = wristOffsetQuat.Muled(elbowOffsetQuat.Inverted())
+			offsets = append(offsets, wristOffset)
 		}
 	}
 
