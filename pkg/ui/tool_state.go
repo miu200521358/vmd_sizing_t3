@@ -6,9 +6,12 @@ import (
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
+	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
 	"github.com/miu200521358/mlib_go/pkg/interface/app"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 	"github.com/miu200521358/walk/pkg/walk"
 )
@@ -25,7 +28,7 @@ type ToolState struct {
 	SizingPmxPicker               *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker // 出力モーション(Vmd)ファイル選択
 	SizingArmStanceCheck          *walk.CheckBox     // サイジング腕スタンス補正チェックボックス
-	SizingTranslateCheck          *walk.CheckBox     // サイジング移動補正チェックボックス
+	SizingLegCheck                *walk.CheckBox     // サイジング足補正チェックボックス
 	OriginalPmxRatioEdit          *walk.NumberEdit   // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit   // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit   // 素体上半身角度編集
@@ -222,7 +225,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 
 func (toolState *ToolState) ResetSizingParameter() {
 	toolState.SizingArmStanceCheck.SetChecked(false)
-	toolState.SizingTranslateCheck.SetChecked(false)
+	toolState.SizingLegCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -294,4 +297,20 @@ func (toolState *ToolState) onPlay(playing bool) {
 
 func (toolState *ToolState) IsOriginalJson() bool {
 	return strings.HasSuffix(strings.ToLower(toolState.OriginalPmxPicker.GetPath()), ".json")
+}
+
+func (toolState *ToolState) onClickSizingTabOk() {
+	for i, sizingSet := range toolState.SizingSets {
+		rep := repository.NewVmdRepository()
+
+		// TODO VMDのダイエット
+
+		if err := rep.Save(sizingSet.OutputVmdPath, sizingSet.OutputVmd, false); err != nil {
+			mlog.ET(mi18n.T("出力失敗"), mi18n.T("サイジング出力失敗メッセージ",
+				map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
+		} else {
+			mlog.IT(mi18n.T("出力成功"), mi18n.T("サイジング出力成功メッセージ",
+				map[string]interface{}{"Index": i + 1, "Path": sizingSet.OutputVmdPath}))
+		}
+	}
 }

@@ -127,6 +127,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					// 出力パス設定
 					outputPath := mutils.CreateOutputPath(path, "sizing")
+					if toolState.SizingPmxPicker.GetPath() != "" {
+						// サイジング先モデルが指定されている場合、ファイル名を含める
+						_, fileName, _ := mutils.SplitPath(toolState.SizingPmxPicker.GetPath())
+						outputPath = mutils.CreateOutputPath(path, fileName)
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
+					}
 					toolState.OutputVmdPicker.SetPath(outputPath)
 
 					// 元モデル用モーション
@@ -240,6 +246,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = model
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = model.Name()
 
+					// 出力パス設定
+					if toolState.OriginalVmdPicker.GetPath() != "" {
+						// サイジング先モデルが指定されている場合、ファイル名を含める
+						_, fileName, _ := mutils.SplitPath(toolState.SizingPmxPicker.GetPath())
+						outputPath := mutils.CreateOutputPath(toolState.OriginalVmdPicker.GetPath(), fileName)
+						toolState.OutputVmdPicker.SetPath(outputPath)
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
+					}
+
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						// モーション未設定の場合、空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
@@ -297,11 +312,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.Label{Text: mi18n.T("腕スタンス補正概要")},
 					// 位置補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingTranslateCheck,
+						AssignTo: &toolState.SizingLegCheck,
 						Text:     mi18n.T("位置補正"),
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingTranslate = toolState.SizingTranslateCheck.Checked()
+								sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
 						},
@@ -789,7 +804,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			widget.RaiseError(err)
 		}
 		toolState.SizingTabSaveButton.SetText(mi18n.T("サイジング結果保存"))
-		// toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
+		toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
 	}
 }
 
@@ -797,7 +812,12 @@ func remakeSizingMorph(toolState *ToolState) {
 	for _, sizingSet := range toolState.SizingSets {
 		if sizingSet.OriginalPmx != nil && sizingSet.SizingPmx != nil {
 			// サイジングモーフ再生成
-			sizingSet.SizingPmx = usecase.CreateSizingMorph(sizingSet.OriginalPmx, sizingSet.SizingPmx, sizingSet)
+			usecase.CreateSizingMorph(sizingSet)
+			// 足補正
+			if sizingSet.IsSizingLeg {
+				usecase.SizingLeg(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
+			}
 			// 強制更新用にハッシュ設定
 			sizingSet.SizingPmx.SetRandHash()
 		}
