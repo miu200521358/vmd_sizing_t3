@@ -673,14 +673,14 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 }
 
 func slideLayer(model *pmx.PmxModel, bone *pmx.Bone) {
-	isTarget := false
+	isActive := false
 	for _, boneIndex := range model.Bones.LayerSortedIndexes {
 		if boneIndex == bone.Index() {
-			isTarget = true
+			isActive = true
 			continue
 		}
 
-		if !isTarget {
+		if !isActive {
 			continue
 		}
 
