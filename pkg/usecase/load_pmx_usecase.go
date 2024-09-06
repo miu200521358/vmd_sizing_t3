@@ -666,7 +666,7 @@ func slideLayer(model *pmx.PmxModel, bone *pmx.Bone, layer int) {
 
 	for _, effectorIndex := range bone.Extend.EffectiveBoneIndexes {
 		effectBone := model.Bones.Get(effectorIndex)
-		if effectBone.Layer > layer || (effectBone.Layer == layer && effectBone.Index() > bone.Index()) {
+		if effectBone.Layer >= layer {
 			// 付与親が後に追加されている場合、変形階層を上げる
 			effectBone.Layer = max(effectBone.Layer+1, layer)
 		} else {
