@@ -92,7 +92,8 @@ func TestUsecase_AdjustPmxForSizing(t *testing.T) {
 	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.pmx"
 	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.pmx"
 	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/055_鶯丸/鶯丸 さとく式 ver0.90/さとく式鶯丸ver0.90.pmx"
-	originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/VOCALOID/初音ミク/Tda式初音ミク・アペンドVer1.10/Tda式初音ミク・アペンド_Ver1.10.pmx"
+	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/VOCALOID/初音ミク/Tda式初音ミク・アペンドVer1.10/Tda式初音ミク・アペンド_Ver1.10.pmx"
+	originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/Vtuber/オリバー・エバンスモデル_ver1.03/オリバーエバンス.pmx"
 
 	rep := repository.NewPmxRepository()
 

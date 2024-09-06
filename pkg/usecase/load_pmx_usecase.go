@@ -413,6 +413,20 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 		// 存在するボーンの場合
 		if model.Bones.ContainsByName(baseBone.Name()) {
 			bone := model.Bones.GetByName(baseBone.Name())
+
+			if bone.CanTranslate() {
+				bone.BoneFlag |= pmx.BONE_FLAG_CAN_TRANSLATE
+			}
+			if bone.CanRotate() {
+				bone.BoneFlag |= pmx.BONE_FLAG_CAN_ROTATE
+			}
+			if bone.CanManipulate() {
+				bone.BoneFlag |= pmx.BONE_FLAG_CAN_MANIPULATE
+			}
+			if bone.IsVisible() {
+				bone.BoneFlag |= pmx.BONE_FLAG_IS_VISIBLE
+			}
+
 			if baseBone.Name() == pmx.ROOT.String() {
 				// 全ての親はそのまま
 				continue
