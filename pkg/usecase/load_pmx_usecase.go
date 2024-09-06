@@ -414,16 +414,16 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 		if model.Bones.ContainsByName(baseBone.Name()) {
 			bone := model.Bones.GetByName(baseBone.Name())
 
-			if bone.CanTranslate() {
+			if baseBone.CanTranslate() {
 				bone.BoneFlag |= pmx.BONE_FLAG_CAN_TRANSLATE
 			}
-			if bone.CanRotate() {
+			if baseBone.CanRotate() {
 				bone.BoneFlag |= pmx.BONE_FLAG_CAN_ROTATE
 			}
-			if bone.CanManipulate() {
+			if baseBone.CanManipulate() {
 				bone.BoneFlag |= pmx.BONE_FLAG_CAN_MANIPULATE
 			}
-			if bone.IsVisible() {
+			if baseBone.IsVisible() {
 				bone.BoneFlag |= pmx.BONE_FLAG_IS_VISIBLE
 			}
 
@@ -451,14 +451,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			}
 
 			bone.ParentIndex = parentBone.Index()
-			bone.Layer = max(parentBone.Layer, bone.Layer)
-			if parentBone.Layer > bone.Layer ||
-				(parentBone.Layer == bone.Layer && parentBone.Index() > baseBone.Index()) {
-				// 親の方が後に追加されている場合、変形階層を上げる
-				bone.Layer++
-				slideLayer(model, bone, bone.Layer)
-			}
-
+			slideLayer(model, bone)
 			continue
 		}
 
@@ -661,67 +654,97 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			// 親ボーンが無い場合、全ボーンを1つずらす
 			for _, activeBone := range model.Bones.Data {
 				if activeBone.ParentIndex < 0 {
-					slideLayer(model, activeBone, newBone.Layer)
+					slideLayer(model, activeBone)
 				}
 			}
 		} else {
 			// 親ボーンがある場合、親ボーンの後ろにずらす
 			parentBone := model.Bones.Get(newBone.ParentIndex)
-			slideLayer(model, parentBone, newBone.Layer)
+			for _, childIndex := range parentBone.Extend.ChildBoneIndexes {
+				childBone := model.Bones.Get(childIndex)
+				slideLayer(model, childBone)
+			}
 		}
 
 		// ボーン追加
 		model.Bones.Append(newBone)
+		model.Bones.Setup()
 	}
 }
 
-func slideLayer(model *pmx.PmxModel, bone *pmx.Bone, layer int) {
-	mlog.V("slideLayer: %s %d", bone.Name(), layer)
-
-	for _, effectorIndex := range bone.Extend.EffectiveBoneIndexes {
-		effectBone := model.Bones.Get(effectorIndex)
-		if effectBone.Layer >= layer {
-			// 付与親が後に追加されている場合、変形階層を上げる
-			effectBone.Layer = max(effectBone.Layer+1, layer)
-		} else {
-			effectBone.Layer = max(effectBone.Layer, layer)
+func slideLayer(model *pmx.PmxModel, bone *pmx.Bone) {
+	isTarget := false
+	for _, boneIndex := range model.Bones.LayerSortedIndexes {
+		if boneIndex == bone.Index() {
+			isTarget = true
+			continue
 		}
-		slideLayer(model, effectBone, effectBone.Layer)
-	}
 
-	for _, ikLinkIndex := range bone.Extend.IkLinkBoneIndexes {
-		ikLinkBone := model.Bones.Get(ikLinkIndex)
-		if ikLinkBone.Layer > layer || (ikLinkBone.Layer == layer && ikLinkBone.Index() > bone.Index()) {
-			// IKリンクボーンが後に追加されている場合、変形階層を上げる
-			ikLinkBone.Layer = max(ikLinkBone.Layer+1, layer)
-		} else {
-			ikLinkBone.Layer = max(ikLinkBone.Layer, layer)
+		if !isTarget {
+			continue
 		}
-		slideLayer(model, ikLinkBone, ikLinkBone.Layer)
-	}
 
-	for _, ikTargetIndex := range bone.Extend.IkTargetBoneIndexes {
-		ikTargetBone := model.Bones.Get(ikTargetIndex)
-		if ikTargetBone.Layer > layer || (ikTargetBone.Layer == layer && ikTargetBone.Index() > bone.Index()) {
-			// IKターゲットボーンが後に追加されている場合、変形階層を上げる
-			ikTargetBone.Layer = max(ikTargetBone.Layer+1, layer)
-		} else {
-			ikTargetBone.Layer = max(ikTargetBone.Layer, layer)
-		}
-		slideLayer(model, ikTargetBone, ikTargetBone.Layer)
-	}
+		activeBone := model.Bones.Get(boneIndex)
 
-	for _, childIndex := range bone.Extend.ChildBoneIndexes {
-		if model.Bones.Contains(childIndex) {
-			childBone := model.Bones.Get(childIndex)
-			if childBone.Layer < layer || (childBone.Layer == layer && childBone.Index() < bone.Index()) {
-				// 子ボーンが前に追加されている場合、変形階層を上げる
-				childBone.Layer = max(childBone.Layer+1, layer)
-			} else {
-				childBone.Layer = max(childBone.Layer, layer)
+		// 親ボーンより後
+		parentLayer := 0
+		if activeBone.ParentIndex >= 0 {
+			parentBone := model.Bones.Get(activeBone.ParentIndex)
+			if parentBone.Layer > activeBone.Layer ||
+				(parentBone.Layer == activeBone.Layer && parentBone.Index() > activeBone.Index()) {
+				parentLayer = parentBone.Layer + 1
 			}
-			slideLayer(model, childBone, childBone.Layer)
 		}
+
+		// 付与親より後
+		effectLayer := activeBone.Layer
+		if activeBone.IsEffectorTranslation() || activeBone.IsEffectorRotation() {
+			effectBone := model.Bones.Get(activeBone.EffectIndex)
+			effectLayer = effectBone.Layer
+			if effectBone.Layer > activeBone.Layer ||
+				(effectBone.Layer == activeBone.Layer && effectBone.Index() > activeBone.Index()) {
+				effectLayer = effectBone.Layer + 1
+			}
+			for _, ikLinkIndex := range effectBone.Extend.IkLinkBoneIndexes {
+				ikLinkBone := model.Bones.Get(ikLinkIndex)
+				effectLayer = max(ikLinkBone.Layer, effectLayer)
+				if ikLinkBone.Layer > activeBone.Layer ||
+					(ikLinkBone.Layer == activeBone.Layer && ikLinkBone.Index() > activeBone.Index()) {
+					effectLayer++
+				}
+			}
+			for _, ikTargetIndex := range effectBone.Extend.IkTargetBoneIndexes {
+				ikTargetBone := model.Bones.Get(ikTargetIndex)
+				effectLayer = max(ikTargetBone.Layer, effectLayer)
+				if ikTargetBone.Layer > activeBone.Layer ||
+					(ikTargetBone.Layer == activeBone.Layer && ikTargetBone.Index() > activeBone.Index()) {
+					effectLayer++
+				}
+			}
+		}
+
+		// IKより後
+		maxIkLayer := activeBone.Layer
+		if activeBone.IsIK() && activeBone.Ik != nil {
+			{
+				ikTargetBone := model.Bones.Get(activeBone.Ik.BoneIndex)
+				maxIkLayer = max(ikTargetBone.Layer, maxIkLayer)
+				if ikTargetBone.Layer > activeBone.Layer ||
+					(ikTargetBone.Layer == activeBone.Layer && ikTargetBone.Index() > activeBone.Index()) {
+					maxIkLayer++
+				}
+			}
+			for _, link := range activeBone.Ik.Links {
+				ikLinkBone := model.Bones.Get(link.BoneIndex)
+				maxIkLayer = max(ikLinkBone.Layer, maxIkLayer)
+				if ikLinkBone.Layer > activeBone.Layer ||
+					(ikLinkBone.Layer == activeBone.Layer && ikLinkBone.Index() > activeBone.Index()) {
+					maxIkLayer++
+				}
+			}
+		}
+
+		activeBone.Layer = max(parentLayer, effectLayer, maxIkLayer, activeBone.Layer)
 	}
 }
 
