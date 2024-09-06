@@ -174,6 +174,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
 						toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = nil
 						toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = ""
+						toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = nil
 						return
 					}
 
@@ -182,7 +183,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					// jsonから読み込んだ場合、モデル定義を適用して読み込みしなおす
 					if toolState.IsOriginalJson() {
-						originalModel, err := usecase.LoadOriginalPmx(model)
+						originalModel, err := usecase.LoadOriginalPmxByJson(model)
 						if err != nil {
 							mlog.E(mi18n.T("素体読み込み失敗"), err)
 						} else {
@@ -192,6 +193,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 元モデル調整パラメータ有効化
 							toolState.ResetOriginalPmxParameter()
 							toolState.SetOriginalPmxParameterEnabled(true)
+						}
+					} else {
+						originalModel, err := usecase.AdjustPmxForSizing(model)
+						if err != nil {
+							mlog.E(mi18n.T("素体読み込み失敗"), err)
+							return
+						} else {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = nil
+							model = originalModel
 						}
 					}
 
@@ -238,7 +248,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					model := data.(*pmx.PmxModel)
-					model.SetRandHash()
+					sizingModel, err := usecase.AdjustPmxForSizing(model)
+					if err != nil {
+						mlog.E(mi18n.T("素体読み込み失敗"), err)
+						return
+					} else {
+						model = sizingModel
+					}
 					model.SetIndex(toolState.CurrentIndex)
 
 					// サイジングモデル
@@ -809,6 +825,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 }
 
 func remakeSizingMorph(toolState *ToolState) {
+	toolState.SizingTab.SetEnabled(false)
+
 	for _, sizingSet := range toolState.SizingSets {
 		if sizingSet.OriginalPmx != nil && sizingSet.SizingPmx != nil {
 			// サイジングモーフ再生成
@@ -822,6 +840,8 @@ func remakeSizingMorph(toolState *ToolState) {
 			sizingSet.SizingPmx.SetRandHash()
 		}
 	}
+
+	toolState.SizingTab.SetEnabled(true)
 }
 
 func remakeFitMorph(toolState *ToolState) {

@@ -10,7 +10,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 )
 
-func TestUsecase_LoadOriginalPmx(t *testing.T) {
+func TestUsecase_LoadOriginalPmxByJson(t *testing.T) {
 	// Save the model
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/003_三日月宗近/三日月宗近 わち式 （刀ミュインナーβ）/わち式三日月宗近（刀ミュインナーβ）.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.json"
@@ -40,7 +40,7 @@ func TestUsecase_LoadOriginalPmx(t *testing.T) {
 	}
 
 	{
-		model, err := LoadOriginalPmx(jsonModel)
+		model, err := LoadOriginalPmxByJson(jsonModel)
 		if err != nil {
 			t.Errorf("Expected error to be nil, got %q", err)
 		}
@@ -64,7 +64,7 @@ func TestUsecase_LoadOriginalPmx(t *testing.T) {
 	}
 
 	{
-		originalModel, err := LoadOriginalPmx(jsonModel)
+		originalModel, err := LoadOriginalPmxByJson(jsonModel)
 		if err != nil {
 			t.Errorf("Expected error to be nil, got %q", err)
 		}
@@ -83,5 +83,30 @@ func TestUsecase_LoadOriginalPmx(t *testing.T) {
 				t.Errorf("Expected bone %s to be contained", bone.Name())
 			}
 		}
+	}
+}
+
+func TestUsecase_AdjustPmxForSizing(t *testing.T) {
+	// Save the model
+	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/003_三日月宗近/三日月宗近 わち式 （刀ミュインナーβ）/わち式三日月宗近（刀ミュインナーβ）.pmx"
+	originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.pmx"
+	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.pmx"
+	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/055_鶯丸/鶯丸 さとく式 ver0.90/さとく式鶯丸ver0.90.pmx"
+
+	rep := repository.NewPmxRepository()
+
+	data, err := rep.Load(originalPath)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %q", err)
+	}
+	originalModel := data.(*pmx.PmxModel)
+
+	{
+		model, err := AdjustPmxForSizing(originalModel)
+		if err != nil {
+			t.Errorf("Expected error to be nil, got %q", err)
+		}
+
+		rep.Save("C:/MMD/vmd_sizing_t3/test_resources/sizing_model_adjust.pmx", model, true)
 	}
 }

@@ -106,6 +106,18 @@ func AddSizingMorph(motion *vmd.VmdMotion) *vmd.VmdMotion {
 	return motion
 }
 
+var leg_ik_bone_names = []string{pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Left(),
+	pmx.LEG_IK.Right(), pmx.TOE_IK.Right(), pmx.TOE_IK.Left()}
+var leg_fk_bone_names = []string{
+	pmx.LEG.Left(), pmx.KNEE.Left(), pmx.HEEL.Left(), pmx.ANKLE.Left(), pmx.TOE.Left(), pmx.TOE_P.Left(),
+	pmx.TOE_C.Left(), pmx.LEG_D.Left(), pmx.KNEE_D.Left(), pmx.HEEL_D.Left(), pmx.ANKLE_D.Left(),
+	pmx.TOE_D.Left(), pmx.TOE_P_D.Left(), pmx.TOE_C_D.Left(), pmx.TOE_EX.Left(),
+	pmx.LEG.Right(), pmx.KNEE.Right(), pmx.HEEL.Right(), pmx.ANKLE.Right(), pmx.TOE.Right(), pmx.TOE_P.Right(),
+	pmx.TOE_C.Right(), pmx.LEG_D.Right(), pmx.KNEE_D.Right(), pmx.HEEL_D.Right(), pmx.ANKLE_D.Right(),
+	pmx.TOE_D.Right(), pmx.TOE_P_D.Right(), pmx.TOE_C_D.Right(), pmx.TOE_EX.Right(),
+}
+var leg_all_bone_names = append(leg_fk_bone_names, leg_ik_bone_names...)
+
 func SizingLeg(sizingSet *model.SizingSet) {
 	// 足補正
 	originalModel := sizingSet.OriginalPmx
@@ -113,7 +125,7 @@ func SizingLeg(sizingSet *model.SizingSet) {
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
-	frames := originalMotion.BoneFrames.RegisteredFrames(pmx.LEG_ALL_BONE_NAMES)
+	frames := originalMotion.BoneFrames.RegisteredFrames(leg_all_bone_names)
 
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
@@ -122,7 +134,7 @@ func SizingLeg(sizingSet *model.SizingSet) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, pmx.LEG_FK_BONE_NAMES, false)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, leg_fk_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	})
 
@@ -130,7 +142,7 @@ func SizingLeg(sizingSet *model.SizingSet) {
 	for _, vmdDeltas := range originalAllDeltas {
 		for _, boneDelta := range vmdDeltas.Bones.Data {
 			if boneDelta == nil || !sizingMotion.BoneFrames.Contains(boneDelta.Bone.Name()) ||
-				!slices.Contains(pmx.LEG_FK_BONE_NAMES, boneDelta.Bone.Name()) {
+				!slices.Contains(leg_fk_bone_names, boneDelta.Bone.Name()) {
 				continue
 			}
 
@@ -154,7 +166,7 @@ func SizingLeg(sizingSet *model.SizingSet) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, pmx.LEG_ALL_BONE_NAMES, false)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, leg_all_bone_names, false)
 		sizingAllDeltas[index] = vmdDeltas
 	})
 
@@ -162,7 +174,7 @@ func SizingLeg(sizingSet *model.SizingSet) {
 	for _, vmdDeltas := range sizingAllDeltas {
 		for _, boneDelta := range vmdDeltas.Bones.Data {
 			if boneDelta == nil || !sizingMotion.BoneFrames.Contains(boneDelta.Bone.Name()) ||
-				!slices.Contains(pmx.LEG_IK_BONE_NAMES, boneDelta.Bone.Name()) {
+				!slices.Contains(leg_ik_bone_names, boneDelta.Bone.Name()) {
 				continue
 			}
 
