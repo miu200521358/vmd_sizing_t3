@@ -29,6 +29,7 @@ type ToolState struct {
 	OutputVmdPicker               *widget.FilePicker // 出力モーション(Vmd)ファイル選択
 	SizingArmStanceCheck          *walk.CheckBox     // サイジング腕スタンス補正チェックボックス
 	SizingMoveCheck               *walk.CheckBox     // サイジング移動補正チェックボックス
+	SizingLegStanceCheck          *walk.CheckBox     // サイジング足スタンス補正チェックボックス
 	OriginalPmxRatioEdit          *walk.NumberEdit   // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit   // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit   // 素体上半身角度編集
@@ -321,4 +322,16 @@ func (toolState *ToolState) onClickSizingTabOk() {
 				map[string]interface{}{"Index": i + 1, "Path": sizingSet.OutputVmdPath}))
 		}
 	}
+
+	widget.Beep()
+}
+
+func (toolState *ToolState) ResetSizingCheck() {
+	for _, sizingSet := range toolState.SizingSets {
+		sizingSet.ResetSizingFlag()
+	}
+
+	toolState.SizingArmStanceCheck.UpdateChecked(false)
+	toolState.SizingMoveCheck.UpdateChecked(false)
+	toolState.SizingLegStanceCheck.SetChecked(false)
 }
