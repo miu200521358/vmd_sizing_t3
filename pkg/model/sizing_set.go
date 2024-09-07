@@ -23,7 +23,7 @@ type SizingSet struct {
 	OutputVmd   *vmd.VmdMotion
 
 	IsSizingArmStance bool
-	IsSizingLeg       bool
+	IsSizingMove      bool
 
 	OriginalJsonPmx           *pmx.PmxModel
 	OriginalPmxRatio          float64 // 全体比率

@@ -28,7 +28,7 @@ type ToolState struct {
 	SizingPmxPicker               *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker // 出力モーション(Vmd)ファイル選択
 	SizingArmStanceCheck          *walk.CheckBox     // サイジング腕スタンス補正チェックボックス
-	SizingLegCheck                *walk.CheckBox     // サイジング足補正チェックボックス
+	SizingMoveCheck               *walk.CheckBox     // サイジング移動補正チェックボックス
 	OriginalPmxRatioEdit          *walk.NumberEdit   // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit   // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit   // 素体上半身角度編集
@@ -225,7 +225,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 
 func (toolState *ToolState) ResetSizingParameter() {
 	toolState.SizingArmStanceCheck.SetChecked(false)
-	toolState.SizingLegCheck.SetChecked(false)
+	toolState.SizingMoveCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -253,6 +253,14 @@ func (toolState *ToolState) ResetOriginalPmxParameter() {
 	toolState.OriginalPmxKneeLengthEdit.SetValue(1.0)
 	toolState.OriginalPmxKneeAngleEdit.SetValue(0.0)
 	toolState.OriginalPmxAnkleLengthEdit.SetValue(1.0)
+}
+
+func (toolState *ToolState) SetEnabled(enabled bool) {
+	toolState.ControlWindow.SetEnabled(enabled)
+	// toolState.SizingTab.SetEnabled(enabled)
+	// toolState.NavToolBar.SetEnabled(enabled)
+	// toolState.SetOriginalPmxParameterEnabled(enabled)
+	// toolState.JsonSaveTab.SetEnabled(enabled)
 }
 
 // 素体モデルの編集パラメーターの有効/無効を設定

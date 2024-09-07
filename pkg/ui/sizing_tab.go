@@ -328,11 +328,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.Label{Text: mi18n.T("腕スタンス補正概要")},
 					// 位置補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingLegCheck,
+						AssignTo: &toolState.SizingMoveCheck,
 						Text:     mi18n.T("位置補正"),
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
+								sizingSet.IsSizingMove = toolState.SizingMoveCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
 						},
@@ -825,23 +825,26 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 }
 
 func remakeSizingMorph(toolState *ToolState) {
-	toolState.SizingTab.SetEnabled(false)
+	toolState.SetEnabled(false)
 
 	for _, sizingSet := range toolState.SizingSets {
 		if sizingSet.OriginalPmx != nil && sizingSet.SizingPmx != nil {
-			// サイジングモーフ再生成
-			usecase.CreateSizingMorph(sizingSet)
-			// 足補正
-			if sizingSet.IsSizingLeg {
-				usecase.SizingLeg(sizingSet)
-				sizingSet.OutputVmd.SetRandHash()
-			}
-			// 強制更新用にハッシュ設定
-			sizingSet.SizingPmx.SetRandHash()
+			// // サイジングモーフ再生成
+			// usecase.CreateSizingMorph(sizingSet)
+			// // 足補正
+			// if sizingSet.IsSizingLeg {
+			// 	usecase.SizingLeg(sizingSet)
+			// 	sizingSet.OutputVmd.SetRandHash()
+			// }
+			usecase.Sizing(sizingSet)
+			sizingSet.OutputVmd.SetRandHash()
+			// // 強制更新用にハッシュ設定
+			// sizingSet.SizingPmx.SetRandHash()
 		}
 	}
 
-	toolState.SizingTab.SetEnabled(true)
+	toolState.SetEnabled(true)
+	toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 }
 
 func remakeFitMorph(toolState *ToolState) {
