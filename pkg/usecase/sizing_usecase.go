@@ -10,7 +10,6 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
-	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 )
 
@@ -334,6 +333,79 @@ func SizingLegStance(sizingSet *model.SizingSet) {
 // 	sizingSet.CompletedSizingLegStance = true
 // }
 
+func createStanceQuats(originalModel, sizingModel *pmx.PmxModel) map[int][]*mmath.MMat4 {
+	stanceQuats := make(map[int][]*mmath.MMat4)
+
+	for _, direction := range []string{"左", "右"} {
+		for _, boneNames := range [][]string{
+			{"", pmx.ARM.StringFromDirection(direction)},
+			{pmx.ARM.StringFromDirection(direction), pmx.ELBOW.StringFromDirection(direction)},
+			{pmx.ELBOW.StringFromDirection(direction), pmx.WRIST.StringFromDirection(direction)},
+			{"", pmx.THUMB0.StringFromDirection(direction)},
+			{"", pmx.INDEX1.StringFromDirection(direction)},
+			{"", pmx.MIDDLE1.StringFromDirection(direction)},
+			{"", pmx.RING1.StringFromDirection(direction)},
+			{"", pmx.PINKY1.StringFromDirection(direction)},
+		} {
+			fromBoneName := boneNames[0]
+			targetBoneName := boneNames[1]
+
+			var sizingFromBone *pmx.Bone
+			if fromBoneName != "" && sizingModel.Bones.ContainsByName(fromBoneName) {
+				sizingFromBone = sizingModel.Bones.GetByName(fromBoneName)
+			}
+			var originalTargetBone, sizingTargetBone *pmx.Bone
+			if targetBoneName != "" && originalModel.Bones.ContainsByName(targetBoneName) &&
+				sizingModel.Bones.ContainsByName(targetBoneName) {
+				originalTargetBone = originalModel.Bones.GetByName(targetBoneName)
+				sizingTargetBone = sizingModel.Bones.GetByName(targetBoneName)
+			}
+
+			if originalTargetBone == nil || sizingTargetBone == nil {
+				continue
+			}
+
+			if _, ok := stanceQuats[sizingTargetBone.Index()]; !ok {
+				stanceQuats[sizingTargetBone.Index()] = make([]*mmath.MMat4, 2)
+			}
+
+			if sizingFromBone != nil {
+				if _, ok := stanceQuats[sizingFromBone.Index()]; ok {
+					stanceQuats[sizingTargetBone.Index()][0] = stanceQuats[sizingFromBone.Index()][1].Inverted()
+				} else {
+					stanceQuats[sizingTargetBone.Index()][0] = mmath.NewMMat4()
+				}
+			} else {
+				stanceQuats[sizingTargetBone.Index()][0] = mmath.NewMMat4()
+			}
+
+			// 元モデルのボーン傾き
+			originalDirection := originalTargetBone.Extend.NormalizedLocalAxisX
+			originalSlopeMat := originalDirection.ToLocalMat()
+			// サイジング先モデルのボーン傾き
+			sizingBoneDirection := sizingTargetBone.Extend.NormalizedLocalAxisX
+			sizingSlopeMat := sizingBoneDirection.ToLocalMat()
+			// 傾き補正
+			offsetQuat := sizingSlopeMat.Muled(originalSlopeMat.Inverted()).Inverted().Quaternion()
+
+			if offsetQuat.IsIdent() {
+				stanceQuats[sizingTargetBone.Index()][1] = mmath.NewMMat4()
+			} else {
+				if sizingTargetBone.IsFinger() {
+					// 指はローカルY（指の広がり）だけ参照する。そのため手首までの逆回転を無視する
+					_, yOffsetQuat, _ := offsetQuat.SeparateByAxis(sizingBoneDirection)
+					stanceQuats[sizingTargetBone.Index()][1] = yOffsetQuat.ToMat4()
+				} else {
+					_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(sizingBoneDirection)
+					stanceQuats[sizingTargetBone.Index()][1] = yzOffsetQuat.ToMat4()
+				}
+			}
+		}
+	}
+
+	return stanceQuats
+}
+
 func Sizing(sizingSet *model.SizingSet) {
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
@@ -363,49 +435,10 @@ func Sizing(sizingSet *model.SizingSet) {
 
 		scales = &mmath.MVec3{X: legLengthRatio, Y: legHeightRatio, Z: legLengthRatio}
 
-		mlog.I("legHeightRatio: %.5f", legLengthRatio)
+		// mlog.I("legHeightRatio: %.5f", legLengthRatio)
 	}
 
-	stanceQuat := make(map[int]*mmath.MQuaternion)
-
-	// 腕スタンス補正
-	if sizingSet.IsSizingArmStance {
-		for _, boneNames := range [][]string{{pmx.ARM.Left(), pmx.ELBOW.Left(), pmx.WRIST.Left()},
-			{pmx.ARM.Right(), pmx.ELBOW.Right(), pmx.WRIST.Right()}} {
-			armBoneName := boneNames[0]
-			elbowBoneName := boneNames[1]
-			wristBoneName := boneNames[2]
-
-			// 腕
-			armBone := sizingModel.Bones.GetByName(armBoneName)
-			armOriginalBone := originalModel.Bones.GetByName(armBoneName)
-			if armBone != nil && armOriginalBone != nil {
-				armBoneDirection := armBone.Extend.ChildRelativePosition.Normalized()
-				armOriginalBoneDirection := armOriginalBone.Extend.ChildRelativePosition.Normalized()
-				stanceQuat[armBone.Index()] = mmath.NewMQuaternionRotate(armBoneDirection, armOriginalBoneDirection)
-			}
-
-			// ひじ
-			elbowBone := sizingModel.Bones.GetByName(elbowBoneName)
-			elbowOriginalBone := originalModel.Bones.GetByName(elbowBoneName)
-			if elbowBone != nil && elbowOriginalBone != nil {
-				elbowBoneDirection := elbowBone.Extend.ChildRelativePosition.Normalized()
-				elbowOriginalBoneDirection := elbowOriginalBone.Extend.ChildRelativePosition.Normalized()
-				elbowOffsetQuat := mmath.NewMQuaternionRotate(elbowBoneDirection, elbowOriginalBoneDirection)
-				stanceQuat[elbowBone.Index()] = elbowOffsetQuat.Muled(stanceQuat[armBone.Index()].Inverted())
-			}
-
-			// 手首
-			wristBone := sizingModel.Bones.GetByName(wristBoneName)
-			wristOriginalBone := originalModel.Bones.GetByName(wristBoneName)
-			if wristBone != nil && wristOriginalBone != nil {
-				wristBoneDirection := wristBone.Extend.ChildRelativePosition.Normalized()
-				wristOriginalBoneDirection := wristOriginalBone.Extend.ChildRelativePosition.Normalized()
-				wristOffsetQuat := mmath.NewMQuaternionRotate(wristBoneDirection, wristOriginalBoneDirection)
-				stanceQuat[wristBone.Index()] = wristOffsetQuat.Muled(stanceQuat[elbowBone.Index()].Inverted())
-			}
-		}
-	}
+	stanceQuats := createStanceQuats(originalModel, sizingModel)
 
 	var wg sync.WaitGroup
 	for _, boneName := range originalMotion.BoneFrames.Names() {
@@ -429,9 +462,13 @@ func Sizing(sizingSet *model.SizingSet) {
 				// 回転補正
 				bone := sizingModel.Bones.GetByName(boneName)
 				if bone != nil {
-					if _, ok := stanceQuat[bone.Index()]; ok {
-						sizingBf.Rotation = originalBf.Rotation.Muled(stanceQuat[bone.Index()])
+					if _, ok := stanceQuats[bone.Index()]; ok {
+						sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(originalBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
 						sizingBfs.Update(sizingBf)
+						// } else if bone.IsTwist() {
+						// 	// 捩系は軸に合わせて回転を修正する
+						// 	sizingBf.Rotation = originalBf.Rotation.ToFixedAxisRotation(bone.Extend.NormalizedFixedAxis)
+						// 	sizingBfs.Update(sizingBf)
 					}
 				}
 			}
