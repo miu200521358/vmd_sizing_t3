@@ -451,7 +451,6 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			}
 
 			bone.ParentIndex = parentBone.Index()
-			slideLayer(model, bone)
 			continue
 		}
 
@@ -468,12 +467,10 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			} else {
 				newBone.ParentIndex = model.Bones.GetByName(pmx.ROOT.String()).Index()
 			}
-			newBone.Layer = 0
 		} else {
 			baseParentBone := baseModel.Bones.Get(baseBone.ParentIndex)
 			parentBone := model.Bones.GetByName(baseParentBone.Name())
 			newBone.ParentIndex = parentBone.Index()
-			newBone.Layer = parentBone.Layer
 			newBone.IsSystem = true
 
 			// 親からの相対位置から比率で求める
@@ -630,16 +627,18 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			}
 		}
 
+		afterIndex := newBone.ParentIndex
+
 		// 付与親がある場合、付与親のINDEXを変更
 		if (baseBone.IsEffectorTranslation() || baseBone.IsEffectorRotation()) && baseBone.EffectIndex >= 0 {
 			effectBone := model.Bones.GetByName(baseModel.Bones.Get(baseBone.EffectIndex).Name())
 			newBone.EffectIndex = effectBone.Index()
 			newBone.EffectFactor = baseBone.EffectFactor
-			if effectBone.Index() > newBone.Index() {
-				// 付与親が後に追加されている場合、変形階層を上げる
-				newBone.Layer = max(effectBone.Layer+1, newBone.Layer)
-			} else {
-				newBone.Layer = max(effectBone.Layer, newBone.Layer)
+
+			parentLayerIndex := slices.Index(model.Bones.LayerSortedIndexes, newBone.ParentIndex)
+			effectLayerIndex := slices.Index(model.Bones.LayerSortedIndexes, effectBone.Index())
+			if parentLayerIndex < effectLayerIndex {
+				afterIndex = effectBone.Index()
 			}
 		}
 
@@ -650,101 +649,8 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			newBone.TailPosition = baseBone.Extend.ChildRelativePosition.Copy()
 		}
 
-		if newBone.ParentIndex < 0 {
-			// 親ボーンが無い場合、全ボーンを1つずらす
-			for _, activeBone := range model.Bones.Data {
-				if activeBone.ParentIndex < 0 {
-					slideLayer(model, activeBone)
-				}
-			}
-		} else {
-			// 親ボーンがある場合、親ボーンの後ろにずらす
-			parentBone := model.Bones.Get(newBone.ParentIndex)
-			for _, childIndex := range parentBone.Extend.ChildBoneIndexes {
-				childBone := model.Bones.Get(childIndex)
-				slideLayer(model, childBone)
-			}
-		}
-
 		// ボーン追加
-		model.Bones.Append(newBone)
-		model.Bones.Setup()
-	}
-}
-
-func slideLayer(model *pmx.PmxModel, bone *pmx.Bone) {
-	isActive := false
-	for _, boneIndex := range model.Bones.LayerSortedIndexes {
-		if boneIndex == bone.Index() {
-			isActive = true
-			continue
-		}
-
-		if !isActive {
-			continue
-		}
-
-		activeBone := model.Bones.Get(boneIndex)
-
-		// 親ボーンより後
-		parentLayer := 0
-		if activeBone.ParentIndex >= 0 {
-			parentBone := model.Bones.Get(activeBone.ParentIndex)
-			if parentBone.Layer > activeBone.Layer ||
-				(parentBone.Layer == activeBone.Layer && parentBone.Index() > activeBone.Index()) {
-				parentLayer = parentBone.Layer + 1
-			}
-		}
-
-		// 付与親より後
-		effectLayer := activeBone.Layer
-		if activeBone.IsEffectorTranslation() || activeBone.IsEffectorRotation() {
-			effectBone := model.Bones.Get(activeBone.EffectIndex)
-			effectLayer = effectBone.Layer
-			if effectBone.Layer > activeBone.Layer ||
-				(effectBone.Layer == activeBone.Layer && effectBone.Index() > activeBone.Index()) {
-				effectLayer = effectBone.Layer + 1
-			}
-			for _, ikLinkIndex := range effectBone.Extend.IkLinkBoneIndexes {
-				ikLinkBone := model.Bones.Get(ikLinkIndex)
-				effectLayer = max(ikLinkBone.Layer, effectLayer)
-				if ikLinkBone.Layer > activeBone.Layer ||
-					(ikLinkBone.Layer == activeBone.Layer && ikLinkBone.Index() > activeBone.Index()) {
-					effectLayer++
-				}
-			}
-			for _, ikTargetIndex := range effectBone.Extend.IkTargetBoneIndexes {
-				ikTargetBone := model.Bones.Get(ikTargetIndex)
-				effectLayer = max(ikTargetBone.Layer, effectLayer)
-				if ikTargetBone.Layer > activeBone.Layer ||
-					(ikTargetBone.Layer == activeBone.Layer && ikTargetBone.Index() > activeBone.Index()) {
-					effectLayer++
-				}
-			}
-		}
-
-		// IKより後
-		maxIkLayer := activeBone.Layer
-		if activeBone.IsIK() && activeBone.Ik != nil {
-			{
-				ikTargetBone := model.Bones.Get(activeBone.Ik.BoneIndex)
-				maxIkLayer = max(ikTargetBone.Layer, maxIkLayer)
-				if ikTargetBone.Layer > activeBone.Layer ||
-					(ikTargetBone.Layer == activeBone.Layer && ikTargetBone.Index() > activeBone.Index()) {
-					maxIkLayer++
-				}
-			}
-			for _, link := range activeBone.Ik.Links {
-				ikLinkBone := model.Bones.Get(link.BoneIndex)
-				maxIkLayer = max(ikLinkBone.Layer, maxIkLayer)
-				if ikLinkBone.Layer > activeBone.Layer ||
-					(ikLinkBone.Layer == activeBone.Layer && ikLinkBone.Index() > activeBone.Index()) {
-					maxIkLayer++
-				}
-			}
-		}
-
-		activeBone.Layer = max(parentLayer, effectLayer, maxIkLayer, activeBone.Layer)
+		model.Bones.Insert(newBone, afterIndex)
 	}
 }
 

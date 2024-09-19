@@ -5,6 +5,7 @@ import (
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
+	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
 	"github.com/miu200521358/mlib_go/pkg/mutils"
@@ -314,54 +315,52 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			})
 
 			composite := declarative.Composite{
-				Layout:        declarative.Grid{Columns: 2},
-				StretchFactor: 1,
+				Layout: declarative.Grid{Columns: 3, Alignment: declarative.AlignHNearVCenter},
 				Children: []declarative.Widget{
 					// 腕スタンス補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingArmStanceCheck,
-						Text:     mi18n.T("腕スタンス補正"),
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
 								sizingSet.IsSizingArmStance = toolState.SizingArmStanceCheck.Checked()
-								sizingSet.CompletedSizingArmStance = false
 							}
 							remakeSizingMorph(toolState)
 						},
+						StretchFactor: 1,
 					},
-					declarative.Label{Text: mi18n.T("腕スタンス補正概要")},
+					declarative.Label{Text: mi18n.T("腕スタンス補正"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("腕スタンス補正概要"), StretchFactor: 30},
 					// 移動補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingMoveCheck,
-						Text:     mi18n.T("移動補正"),
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
 								sizingSet.IsSizingMove = toolState.SizingMoveCheck.Checked()
-								sizingSet.CompletedSizingMove = false
 							}
 							remakeSizingMorph(toolState)
 						},
+						StretchFactor: 1,
 					},
-					declarative.Label{Text: mi18n.T("移動補正概要")},
+					declarative.Label{Text: mi18n.T("移動補正"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("移動補正概要"), StretchFactor: 30},
 					// 足スタンス補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLegStanceCheck,
-						Text:     mi18n.T("足スタンス補正"),
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
 								if toolState.SizingLegStanceCheck.Checked() {
 									// 足スタンス補正は移動を必須とする
 									sizingSet.IsSizingMove = true
-									sizingSet.CompletedSizingMove = false
 									toolState.SizingMoveCheck.UpdateChecked(true)
 								}
 								sizingSet.IsSizingLegStance = toolState.SizingLegStanceCheck.Checked()
-								sizingSet.CompletedSizingLegStance = false
 							}
 							remakeSizingMorph(toolState)
 						},
+						StretchFactor: 1,
 					},
-					declarative.Label{Text: mi18n.T("足スタンス補正概要")},
+					declarative.Label{Text: mi18n.T("足スタンス補正"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("足スタンス補正概要"), StretchFactor: 30},
 				},
 			}
 
@@ -854,10 +853,25 @@ func remakeSizingMorph(toolState *ToolState) {
 	var wg sync.WaitGroup
 	for _, sizingSet := range toolState.SizingSets {
 		if sizingSet.OriginalPmx != nil && sizingSet.SizingPmx != nil &&
-			sizingSet.OriginalVmd != nil && sizingSet.OutputVmd != nil {
+			sizingSet.OriginalVmd != nil {
 			wg.Add(1)
 			go func(sizingSet *model.SizingSet) {
 				defer wg.Done()
+				if (!sizingSet.IsSizingMove && sizingSet.CompletedSizingMove) ||
+					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
+					(!sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) {
+					// チェックを外したら読み直し
+					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
+					if err != nil {
+						mlog.E(mi18n.T("読み込み失敗"), err)
+						return
+					}
+					sizingSet.OutputVmd = sizingMotion.(*vmd.VmdMotion)
+
+					sizingSet.CompletedSizingMove = false
+					sizingSet.CompletedSizingArmStance = false
+					sizingSet.CompletedSizingLegStance = false
+				}
 				usecase.Sizing(sizingSet)
 				usecase.SizingLegStance(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
