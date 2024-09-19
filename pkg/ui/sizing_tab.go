@@ -361,6 +361,19 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					},
 					declarative.Label{Text: mi18n.T("足スタンス補正"), StretchFactor: 10},
 					declarative.Label{Text: mi18n.T("足スタンス補正概要"), StretchFactor: 30},
+					// 指スタンス補正
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingFingerStanceCheck,
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingFingerStance = toolState.SizingFingerStanceCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+						},
+						StretchFactor: 1,
+					},
+					declarative.Label{Text: mi18n.T("指スタンス補正"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("指スタンス補正概要"), StretchFactor: 30},
 				},
 			}
 
@@ -859,7 +872,8 @@ func remakeSizingMorph(toolState *ToolState) {
 				defer wg.Done()
 				if (!sizingSet.IsSizingMove && sizingSet.CompletedSizingMove) ||
 					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
-					(!sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) {
+					(!sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) ||
+					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
@@ -871,6 +885,7 @@ func remakeSizingMorph(toolState *ToolState) {
 					sizingSet.CompletedSizingMove = false
 					sizingSet.CompletedSizingArmStance = false
 					sizingSet.CompletedSizingLegStance = false
+					sizingSet.CompletedSizingFingerStance = false
 				}
 				usecase.Sizing(sizingSet)
 				usecase.SizingLegStance(sizingSet)

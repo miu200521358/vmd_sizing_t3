@@ -22,13 +22,15 @@ type SizingSet struct {
 	SizingPmx   *pmx.PmxModel
 	OutputVmd   *vmd.VmdMotion
 
-	IsSizingMove      bool
-	IsSizingLegStance bool
-	IsSizingArmStance bool
+	IsSizingMove         bool
+	IsSizingLegStance    bool
+	IsSizingArmStance    bool
+	IsSizingFingerStance bool
 
-	CompletedSizingMove      bool
-	CompletedSizingLegStance bool
-	CompletedSizingArmStance bool
+	CompletedSizingMove         bool
+	CompletedSizingLegStance    bool
+	CompletedSizingArmStance    bool
+	CompletedSizingFingerStance bool
 
 	OriginalJsonPmx           *pmx.PmxModel
 	OriginalPmxRatio          float64 // 全体比率
@@ -67,8 +69,10 @@ func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.IsSizingMove = false
 	sizingSet.IsSizingLegStance = false
 	sizingSet.IsSizingArmStance = false
+	sizingSet.IsSizingFingerStance = false
 
 	sizingSet.CompletedSizingMove = false
 	sizingSet.CompletedSizingLegStance = false
 	sizingSet.CompletedSizingArmStance = false
+	sizingSet.CompletedSizingFingerStance = false
 }

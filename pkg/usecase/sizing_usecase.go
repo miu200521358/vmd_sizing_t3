@@ -333,20 +333,52 @@ func SizingLegStance(sizingSet *model.SizingSet) {
 // 	sizingSet.CompletedSizingLegStance = true
 // }
 
-func createStanceQuats(originalModel, sizingModel *pmx.PmxModel) map[int][]*mmath.MMat4 {
+func createStanceQuats(originalModel, sizingModel *pmx.PmxModel, isArmStance, isFingerStance bool) map[int][]*mmath.MMat4 {
 	stanceQuats := make(map[int][]*mmath.MMat4)
 
 	for _, direction := range []string{"左", "右"} {
-		for _, boneNames := range [][]string{
-			{"", pmx.ARM.StringFromDirection(direction)},
-			{pmx.ARM.StringFromDirection(direction), pmx.ELBOW.StringFromDirection(direction)},
-			{pmx.ELBOW.StringFromDirection(direction), pmx.WRIST.StringFromDirection(direction)},
-			{"", pmx.THUMB0.StringFromDirection(direction)},
-			{"", pmx.INDEX1.StringFromDirection(direction)},
-			{"", pmx.MIDDLE1.StringFromDirection(direction)},
-			{"", pmx.RING1.StringFromDirection(direction)},
-			{"", pmx.PINKY1.StringFromDirection(direction)},
-		} {
+		stanceBoneNames := make([][]string, 0)
+
+		if isArmStance {
+			// 腕スタンス補正対象
+			stanceBoneNames = append(stanceBoneNames, []string{"", pmx.ARM.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.ARM.StringFromDirection(direction), pmx.ELBOW.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.ELBOW.StringFromDirection(direction), pmx.WRIST.StringFromDirection(direction)})
+		}
+
+		if isFingerStance {
+			// 指スタンス補正対象
+			stanceBoneNames = append(stanceBoneNames, []string{
+				pmx.WRIST.StringFromDirection(direction), pmx.THUMB1.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.THUMB1.StringFromDirection(direction), pmx.THUMB2.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames, []string{
+				pmx.WRIST.StringFromDirection(direction), pmx.INDEX1.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.INDEX1.StringFromDirection(direction), pmx.INDEX2.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.INDEX2.StringFromDirection(direction), pmx.INDEX3.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames, []string{
+				pmx.WRIST.StringFromDirection(direction), pmx.MIDDLE1.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.MIDDLE1.StringFromDirection(direction), pmx.MIDDLE2.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.MIDDLE2.StringFromDirection(direction), pmx.MIDDLE3.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames, []string{
+				pmx.WRIST.StringFromDirection(direction), pmx.RING1.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.RING1.StringFromDirection(direction), pmx.RING2.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.RING2.StringFromDirection(direction), pmx.RING3.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames, []string{
+				pmx.WRIST.StringFromDirection(direction), pmx.PINKY1.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames,
+				[]string{pmx.PINKY1.StringFromDirection(direction), pmx.PINKY2.StringFromDirection(direction)})
+		}
+
+		for _, boneNames := range stanceBoneNames {
 			fromBoneName := boneNames[0]
 			targetBoneName := boneNames[1]
 
@@ -391,14 +423,14 @@ func createStanceQuats(originalModel, sizingModel *pmx.PmxModel) map[int][]*mmat
 			if offsetQuat.IsIdent() {
 				stanceQuats[sizingTargetBone.Index()][1] = mmath.NewMMat4()
 			} else {
-				if sizingTargetBone.IsFinger() {
-					// 指はローカルY（指の広がり）だけ参照する。そのため手首までの逆回転を無視する
-					_, yOffsetQuat, _ := offsetQuat.SeparateByAxis(sizingBoneDirection)
-					stanceQuats[sizingTargetBone.Index()][1] = yOffsetQuat.ToMat4()
-				} else {
-					_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(sizingBoneDirection)
-					stanceQuats[sizingTargetBone.Index()][1] = yzOffsetQuat.ToMat4()
-				}
+				// if sizingTargetBone.IsFinger() {
+				// 	// 指はローカルY（指の広がり）だけ参照する。そのため手首までの逆回転を無視する
+				// 	_, yOffsetQuat, _ := offsetQuat.SeparateByAxis(sizingBoneDirection)
+				// 	stanceQuats[sizingTargetBone.Index()][1] = yOffsetQuat.ToMat4()
+				// } else {
+				_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(sizingBoneDirection)
+				stanceQuats[sizingTargetBone.Index()][1] = yzOffsetQuat.ToMat4()
+				// }
 			}
 		}
 	}
@@ -438,7 +470,7 @@ func Sizing(sizingSet *model.SizingSet) {
 		// mlog.I("legHeightRatio: %.5f", legLengthRatio)
 	}
 
-	stanceQuats := createStanceQuats(originalModel, sizingModel)
+	stanceQuats := createStanceQuats(originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
 
 	var wg sync.WaitGroup
 	for _, boneName := range originalMotion.BoneFrames.Names() {
@@ -479,4 +511,5 @@ func Sizing(sizingSet *model.SizingSet) {
 
 	sizingSet.CompletedSizingMove = true
 	sizingSet.CompletedSizingArmStance = true
+	sizingSet.CompletedSizingFingerStance = true
 }
