@@ -228,6 +228,8 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 func (toolState *ToolState) ResetSizingParameter() {
 	toolState.SizingArmStanceCheck.SetChecked(false)
 	toolState.SizingMoveCheck.SetChecked(false)
+	toolState.SizingLegStanceCheck.SetChecked(false)
+	toolState.SizingFingerStanceCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -335,4 +337,5 @@ func (toolState *ToolState) ResetSizingCheck() {
 	toolState.SizingArmStanceCheck.UpdateChecked(false)
 	toolState.SizingMoveCheck.UpdateChecked(false)
 	toolState.SizingLegStanceCheck.SetChecked(false)
+	toolState.SizingFingerStanceCheck.SetChecked(false)
 }
