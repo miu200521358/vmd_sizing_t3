@@ -3,6 +3,7 @@ package usecase
 import (
 	"embed"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -656,45 +657,116 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 		nonExistBoneNames = append(nonExistBoneNames, newBone.Name())
 	}
 
+	var allBoneVertices map[int][]*pmx.Vertex
+
 	// ウェイト調整が必要なボーンを追加した場合
 	if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) ||
 		slices.Contains(nonExistBoneNames, pmx.LEG_D.String()) {
 		// 頂点をボーンINDEX別に纏める
-		allBoneVertices := model.Vertices.GetMapByBoneIndex(0.0)
+		allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
+	}
 
-		if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) {
-			upperBone := model.Bones.GetByName(pmx.UPPER.String())
-			upper2Bone := model.Bones.GetByName(pmx.UPPER2.String())
-			overlapY := (upper2Bone.Position.Y - upperBone.Position.Y) * 0.3
+	// D系の置き換え
+	for _, boneNames := range [][]string{
+		{pmx.LEG.Right(), pmx.LEG_D.Right()},
+		{pmx.KNEE.Right(), pmx.KNEE_D.Right()},
+		{pmx.ANKLE.Right(), pmx.ANKLE_D.Right()},
+		{pmx.LEG.Left(), pmx.LEG_D.Left()},
+		{pmx.KNEE.Left(), pmx.KNEE_D.Left()},
+		{pmx.ANKLE.Left(), pmx.ANKLE_D.Left()},
+	} {
+		if !slices.Contains(nonExistBoneNames, boneNames[1]) {
+			continue
+		}
+		fkBone := model.Bones.GetByName(boneNames[0])
+		dBone := model.Bones.GetByName(boneNames[1])
 
-			for _, vertex := range allBoneVertices[upperBone.Index()] {
-				switch vertex.Deform.(type) {
-				case *pmx.Sdef:
-					continue
-				}
+		for _, vertex := range allBoneVertices[fkBone.Index()] {
+			deformIndex := vertex.Deform.Index(fkBone.Index())
+			if deformIndex < 0 {
+				continue
+			}
+			vertex.Deform.AllIndexes()[deformIndex] = dBone.Index()
+		}
+	}
 
-				vertexRatio := 1.0
-				if vertex.Position.Y < upperBone.Position.Y {
-					continue
-				} else if vertex.Position.Y < upper2Bone.Position.Y+overlapY {
-					vertexRatio = (vertex.Position.Y - overlapY - upperBone.Position.Y) /
-						(upper2Bone.Position.Y + overlapY*2 - upperBone.Position.Y)
-				}
-				vertex.Deform.Add(upper2Bone.Index(), upperBone.Index(), vertexRatio)
+	for _, boneNames := range [][]string{
+		{pmx.ANKLE.Right(), pmx.TOE_EX.Right(), pmx.TOE.Right(), pmx.ANKLE_D.Right()},
+		{pmx.ANKLE.Left(), pmx.TOE_EX.Left(), pmx.TOE.Left(), pmx.ANKLE_D.Left()},
+	} {
+		if !slices.Contains(nonExistBoneNames, boneNames[1]) {
+			continue
+		}
 
-				switch len(vertex.Deform.AllIndexes()) {
-				case 1:
-					vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
-				case 2:
-					vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
-						vertex.Deform.AllWeights()[0])
-				case 4:
-					vertex.Deform = pmx.NewBdef4(
-						vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
-						vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
-						vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
-						vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
-				}
+		ankleBone := model.Bones.GetByName(boneNames[0])
+		toeExBone := model.Bones.GetByName(boneNames[1])
+		toeBone := model.Bones.GetByName(boneNames[2])
+		ankleDBone := model.Bones.GetByName(boneNames[3])
+		overlap := (toeBone.Position.Z - toeExBone.Position.Z) * 0.3
+
+		for _, vertex := range allBoneVertices[ankleBone.Index()] {
+			switch vertex.Deform.(type) {
+			case *pmx.Sdef:
+				continue
+			}
+
+			vertexRatio := 1.0
+			if vertex.Position.Z > toeExBone.Position.Z-overlap {
+				continue
+			} else if vertex.Position.Z > toeExBone.Position.Z+overlap {
+				vertexRatio = (math.Abs(toeBone.Position.Z-toeExBone.Position.Z) - math.Abs(overlap)) /
+					(math.Abs(toeBone.Position.Z-toeExBone.Position.Z) + math.Abs(overlap*2))
+			}
+			vertex.Deform.Add(toeExBone.Index(), ankleDBone.Index(), vertexRatio)
+
+			switch len(vertex.Deform.AllIndexes()) {
+			case 1:
+				vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
+			case 2:
+				vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllWeights()[0])
+			case 4:
+				vertex.Deform = pmx.NewBdef4(
+					vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
+					vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
+					vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
+			}
+		}
+	}
+
+	if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) {
+		upperBone := model.Bones.GetByName(pmx.UPPER.String())
+		upper2Bone := model.Bones.GetByName(pmx.UPPER2.String())
+		overlap := (upper2Bone.Position.Y - upperBone.Position.Y) * 0.3
+
+		for _, vertex := range allBoneVertices[upperBone.Index()] {
+			switch vertex.Deform.(type) {
+			case *pmx.Sdef:
+				continue
+			}
+
+			vertexRatio := 1.0
+			if vertex.Position.Y < upperBone.Position.Y+overlap {
+				continue
+			} else if vertex.Position.Y < upper2Bone.Position.Y+overlap {
+				vertexRatio = (vertex.Position.Y - overlap - upperBone.Position.Y) /
+					(upper2Bone.Position.Y + overlap*2 - upperBone.Position.Y)
+			}
+			vertex.Deform.Add(upper2Bone.Index(), upperBone.Index(), vertexRatio)
+
+			switch len(vertex.Deform.AllIndexes()) {
+			case 1:
+				vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
+			case 2:
+				vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllWeights()[0])
+			case 4:
+				vertex.Deform = pmx.NewBdef4(
+					vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
+					vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
+					vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
 			}
 		}
 	}

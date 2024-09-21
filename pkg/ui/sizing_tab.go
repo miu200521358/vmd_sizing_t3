@@ -317,6 +317,19 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			composite := declarative.Composite{
 				Layout: declarative.Grid{Columns: 3, Alignment: declarative.AlignHNearVCenter},
 				Children: []declarative.Widget{
+					// 移動位置合わせ
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingMoveCheck,
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingMove = toolState.SizingMoveCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+						},
+						StretchFactor: 1,
+					},
+					declarative.Label{Text: mi18n.T("移動位置合わせ"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("移動位置合わせ概要"), StretchFactor: 30},
 					// 腕角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingArmStanceCheck,
@@ -330,19 +343,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					},
 					declarative.Label{Text: mi18n.T("腕角度合わせ"), StretchFactor: 10},
 					declarative.Label{Text: mi18n.T("腕角度合わせ概要"), StretchFactor: 30},
-					// 移動補正
-					declarative.CheckBox{
-						AssignTo: &toolState.SizingMoveCheck,
-						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingMove = toolState.SizingMoveCheck.Checked()
-							}
-							remakeSizingMorph(toolState)
-						},
-						StretchFactor: 1,
-					},
-					declarative.Label{Text: mi18n.T("移動補正"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("移動補正概要"), StretchFactor: 30},
 					// 足角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLegStanceCheck,
