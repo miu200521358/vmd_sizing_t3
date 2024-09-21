@@ -219,121 +219,9 @@ func SizingLegStance(sizingSet *model.SizingSet) {
 	}
 }
 
-// // 足スタンス補正
-// func SizingLegStance2(sizingSet *model.SizingSet) {
-// 	if !sizingSet.IsSizingLegStance || (sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) {
-// 		return
-// 	}
-
-// 	// 足補正
-// 	originalModel := sizingSet.OriginalPmx
-// 	originalMotion := sizingSet.OriginalVmd
-// 	sizingModel := sizingSet.SizingPmx
-// 	sizingMotion := sizingSet.OutputVmd
-
-// 	frames := originalMotion.BoneFrames.RegisteredFrames(leg_all_bone_names)
-
-// 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
-
-// 	// 元モデルのデフォーム(IK ON)
-// 	miter.IterParallelByList(frames, 100, func(data, index int) {
-// 		frame := float32(data)
-// 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
-// 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-// 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, leg_fk_bone_names, false)
-// 		originalAllDeltas[index] = vmdDeltas
-// 	})
-
-// 	// サイジング先にFKを焼き込み
-// 	for _, vmdDeltas := range originalAllDeltas {
-// 		for _, boneDelta := range vmdDeltas.Bones.Data {
-// 			if boneDelta == nil || !sizingMotion.BoneFrames.Contains(boneDelta.Bone.Name()) ||
-// 				!slices.Contains(leg_fk_bone_names, boneDelta.Bone.Name()) {
-// 				continue
-// 			}
-
-// 			originalBf := originalMotion.BoneFrames.Get(boneDelta.Bone.Name()).Get(boneDelta.Frame)
-
-// 			// 最終的な足FKを焼き込み
-// 			bf := vmd.NewBoneFrame(boneDelta.Frame)
-// 			bf.Rotation = boneDelta.FilledFrameRotation()
-
-// 			if originalBf.Position != nil {
-// 				bf.Position = originalBf.Position.Copy()
-// 			}
-
-// 			if originalBf.Curves != nil {
-// 				bf.Curves = originalBf.Curves.Copy()
-// 			}
-
-// 			sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
-// 		}
-// 	}
-
-// 	sizingAllDeltas := make([]*delta.VmdDeltas, len(frames))
-
-// 	// サイジングモデルのデフォーム(IK OFF)
-// 	miter.IterParallelByList(frames, 100, func(data, index int) {
-// 		frame := float32(data)
-// 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-// 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-// 		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, leg_all_bone_names, false)
-// 		sizingAllDeltas[index] = vmdDeltas
-// 	})
-
-// 	// サイジング先にIK結果を焼き込み
-// 	for i, vmdDeltas := range sizingAllDeltas {
-// 		for _, boneDelta := range vmdDeltas.Bones.Data {
-// 			if boneDelta == nil || !sizingMotion.BoneFrames.Contains(boneDelta.Bone.Name()) {
-// 				continue
-// 			}
-
-// 			originalBf := originalMotion.BoneFrames.Get(boneDelta.Bone.Name()).Get(boneDelta.Frame)
-
-// 			if slices.Contains(leg_ik_bone_names, boneDelta.Bone.Name()) {
-// 				direction := string([]rune(boneDelta.Bone.Name())[0])
-// 				targetDelta := vmdDeltas.Bones.Get(boneDelta.Bone.Ik.BoneIndex)
-// 				parentDelta := vmdDeltas.Bones.Get(boneDelta.Bone.ParentIndex)
-
-// 				// 最終的な足IKを焼き込み
-// 				bf := vmd.NewBoneFrame(boneDelta.Frame)
-// 				// mlog.I("[%s:%.0f](%s): %v <- %v", boneDelta.Bone.Name(), boneDelta.Frame,
-// 				// 	targetDelta.Bone.Name(), targetDelta.GlobalPosition, boneDelta.GlobalPosition)
-
-// 				bf.Position = targetDelta.FilledGlobalPosition().Subed(boneDelta.Bone.Position).Subed(
-// 					parentDelta.FilledTotalPosition())
-// 				if mmath.NearEquals(originalBf.Position.Y, 0, 1e-2) {
-// 					// 足首のY座標が0の場合、0にする
-// 					bf.Position.Y = 0
-// 				}
-
-// 				// 足首の回転(足底の傾き)
-// 				originalHeelDelta := originalAllDeltas[i].Bones.GetByName(pmx.HEEL_D.StringFromDirection(direction))
-// 				originalToeDelta := originalAllDeltas[i].Bones.GetByName(pmx.TOE_D.StringFromDirection(direction))
-// 				originalSoleDirection := originalToeDelta.FilledGlobalPosition().Subed(
-// 					originalHeelDelta.FilledGlobalPosition()).Normalized()
-
-// 				sizingHeelDelta := sizingAllDeltas[i].Bones.GetByName(pmx.HEEL_D.StringFromDirection(direction))
-// 				sizingToeDelta := sizingAllDeltas[i].Bones.GetByName(pmx.TOE_D.StringFromDirection(direction))
-// 				sizingSoleDirection := sizingToeDelta.FilledGlobalPosition().Subed(
-// 					sizingHeelDelta.FilledGlobalPosition()).Normalized()
-// 				soleOffsetQuat := mmath.NewMQuaternionRotate(sizingSoleDirection, originalSoleDirection)
-
-// 				bf.Rotation = soleOffsetQuat.Muled(boneDelta.FilledFrameRotation())
-
-// 				if originalBf.Curves != nil {
-// 					bf.Curves = originalBf.Curves.Copy()
-// 				}
-
-// 				sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
-// 			}
-// 		}
-// 	}
-
-// 	sizingSet.CompletedSizingLegStance = true
-// }
-
-func createStanceQuats(originalModel, sizingModel *pmx.PmxModel, isArmStance, isFingerStance bool) map[int][]*mmath.MMat4 {
+func createStanceQuats(
+	originalModel, sizingModel *pmx.PmxModel, isArmStance, isFingerStance bool,
+) map[int][]*mmath.MMat4 {
 	stanceQuats := make(map[int][]*mmath.MMat4)
 
 	for _, direction := range []string{"左", "右"} {
@@ -423,14 +311,8 @@ func createStanceQuats(originalModel, sizingModel *pmx.PmxModel, isArmStance, is
 			if offsetQuat.IsIdent() {
 				stanceQuats[sizingTargetBone.Index()][1] = mmath.NewMMat4()
 			} else {
-				// if sizingTargetBone.IsFinger() {
-				// 	// 指はローカルY（指の広がり）だけ参照する。そのため手首までの逆回転を無視する
-				// 	_, yOffsetQuat, _ := offsetQuat.SeparateByAxis(sizingBoneDirection)
-				// 	stanceQuats[sizingTargetBone.Index()][1] = yOffsetQuat.ToMat4()
-				// } else {
 				_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(sizingBoneDirection)
 				stanceQuats[sizingTargetBone.Index()][1] = yzOffsetQuat.ToMat4()
-				// }
 			}
 		}
 	}
@@ -497,10 +379,10 @@ func Sizing(sizingSet *model.SizingSet) {
 					if _, ok := stanceQuats[bone.Index()]; ok {
 						sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(originalBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
 						sizingBfs.Update(sizingBf)
-						// } else if bone.IsTwist() {
-						// 	// 捩系は軸に合わせて回転を修正する
-						// 	sizingBf.Rotation = originalBf.Rotation.ToFixedAxisRotation(bone.Extend.NormalizedFixedAxis)
-						// 	sizingBfs.Update(sizingBf)
+					} else if bone.IsTwist() {
+						// 捩系は軸に合わせて回転を修正する
+						sizingBf.Rotation = originalBf.Rotation.ToFixedAxisRotation(bone.Extend.NormalizedFixedAxis)
+						sizingBfs.Update(sizingBf)
 					}
 				}
 			}

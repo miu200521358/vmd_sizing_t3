@@ -317,7 +317,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			composite := declarative.Composite{
 				Layout: declarative.Grid{Columns: 3, Alignment: declarative.AlignHNearVCenter},
 				Children: []declarative.Widget{
-					// 腕スタンス補正
+					// 腕角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingArmStanceCheck,
 						OnCheckedChanged: func() {
@@ -328,8 +328,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						StretchFactor: 1,
 					},
-					declarative.Label{Text: mi18n.T("腕スタンス補正"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("腕スタンス補正概要"), StretchFactor: 30},
+					declarative.Label{Text: mi18n.T("腕角度合わせ"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("腕角度合わせ概要"), StretchFactor: 30},
 					// 移動補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingMoveCheck,
@@ -343,13 +343,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					},
 					declarative.Label{Text: mi18n.T("移動補正"), StretchFactor: 10},
 					declarative.Label{Text: mi18n.T("移動補正概要"), StretchFactor: 30},
-					// 足スタンス補正
+					// 足角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLegStanceCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
 								if toolState.SizingLegStanceCheck.Checked() {
-									// 足スタンス補正は移動を必須とする
+									// 足角度合わせは移動を必須とする
 									sizingSet.IsSizingMove = true
 									toolState.SizingMoveCheck.UpdateChecked(true)
 								}
@@ -359,9 +359,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						StretchFactor: 1,
 					},
-					declarative.Label{Text: mi18n.T("足スタンス補正"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("足スタンス補正概要"), StretchFactor: 30},
-					// 指スタンス補正
+					declarative.Label{Text: mi18n.T("足角度合わせ"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("足角度合わせ概要"), StretchFactor: 30},
+					// 指角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingFingerStanceCheck,
 						OnCheckedChanged: func() {
@@ -372,8 +372,21 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						StretchFactor: 1,
 					},
-					declarative.Label{Text: mi18n.T("指スタンス補正"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("指スタンス補正概要"), StretchFactor: 30},
+					declarative.Label{Text: mi18n.T("指角度合わせ"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("指角度合わせ概要"), StretchFactor: 30},
+					// 上半身角度合わせ
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingUpperStanceCheck,
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingUpperStance = toolState.SizingUpperStanceCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+						},
+						StretchFactor: 1,
+					},
+					declarative.Label{Text: mi18n.T("上半身角度合わせ"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("上半身角度合わせ概要"), StretchFactor: 30},
 				},
 			}
 
@@ -873,7 +886,8 @@ func remakeSizingMorph(toolState *ToolState) {
 				if (!sizingSet.IsSizingMove && sizingSet.CompletedSizingMove) ||
 					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
 					(!sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) ||
-					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) {
+					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) ||
+					(!sizingSet.IsSizingUpperStance && sizingSet.CompletedSizingUpperStance) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
@@ -886,6 +900,7 @@ func remakeSizingMorph(toolState *ToolState) {
 					sizingSet.CompletedSizingArmStance = false
 					sizingSet.CompletedSizingLegStance = false
 					sizingSet.CompletedSizingFingerStance = false
+					sizingSet.CompletedSizingUpperStance = false
 				}
 				usecase.Sizing(sizingSet)
 				usecase.SizingLegStance(sizingSet)

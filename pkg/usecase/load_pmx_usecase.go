@@ -395,13 +395,14 @@ func getBaseScale(model, jsonModel *pmx.PmxModel) float64 {
 	return upperRatio
 }
 
-// model にあって、 jsonModel にないボーンを追加する
+// baseModel にあって、 model にないボーンを追加する
 func addNonExistBones(baseModel, model *pmx.PmxModel) {
 	if !model.Bones.ContainsByName(pmx.ARM.Left()) || !model.Bones.ContainsByName(pmx.ARM.Right()) {
 		return
 	}
 
 	ratio := getBaseScale(baseModel, model)
+	nonExistBoneNames := make([]string, 0)
 
 	for _, baseBoneIndex := range baseModel.Bones.LayerSortedIndexes {
 		baseBone := baseModel.Bones.Get(baseBoneIndex)
@@ -488,11 +489,12 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 
 				// 上半身の長さを上半身と首根元の距離で求める
 				baseUpperLength := baseUpperBone.Position.Distance(baseNeckRootBone.Position)
-				upperLength := upperBone.Position.Distance(neckRootPosition)
-				upperRatio := baseUpperLength / upperLength
+				baseUpper2Length := baseUpper2Bone.Position.Distance(baseUpperBone.Position)
+				upperRatio := baseUpper2Length / baseUpperLength
 
-				upper2Offset := baseUpper2Bone.Position.Subed(baseUpperBone.Position).MuledScalar(upperRatio)
-				newBone.Position = upperBone.Position.Added(upper2Offset)
+				newBone.Position = upperBone.Position.Added(
+					neckRootPosition.Subed(upperBone.Position).MuledScalar(upperRatio))
+				upperBone.TailIndex = newBone.Index()
 			} else if strings.Contains(baseBone.Name(), "腕捩") {
 				// 腕捩の場合、腕とひじの間に置く
 				baseArmBone := baseModel.Bones.GetByName(
@@ -651,6 +653,50 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 
 		// ボーン追加
 		model.Bones.Insert(newBone, afterIndex)
+		nonExistBoneNames = append(nonExistBoneNames, newBone.Name())
+	}
+
+	// ウェイト調整が必要なボーンを追加した場合
+	if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) ||
+		slices.Contains(nonExistBoneNames, pmx.LEG_D.String()) {
+		// 頂点をボーンINDEX別に纏める
+		allBoneVertices := model.Vertices.GetMapByBoneIndex(0.0)
+
+		if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) {
+			upperBone := model.Bones.GetByName(pmx.UPPER.String())
+			upper2Bone := model.Bones.GetByName(pmx.UPPER2.String())
+			overlapY := (upper2Bone.Position.Y - upperBone.Position.Y) * 0.3
+
+			for _, vertex := range allBoneVertices[upperBone.Index()] {
+				switch vertex.Deform.(type) {
+				case *pmx.Sdef:
+					continue
+				}
+
+				vertexRatio := 1.0
+				if vertex.Position.Y < upperBone.Position.Y {
+					continue
+				} else if vertex.Position.Y < upper2Bone.Position.Y+overlapY {
+					vertexRatio = (vertex.Position.Y - overlapY - upperBone.Position.Y) /
+						(upper2Bone.Position.Y + overlapY*2 - upperBone.Position.Y)
+				}
+				vertex.Deform.Add(upper2Bone.Index(), upperBone.Index(), vertexRatio)
+
+				switch len(vertex.Deform.AllIndexes()) {
+				case 1:
+					vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
+				case 2:
+					vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+						vertex.Deform.AllWeights()[0])
+				case 4:
+					vertex.Deform = pmx.NewBdef4(
+						vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+						vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
+						vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
+						vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
+				}
+			}
+		}
 	}
 }
 
