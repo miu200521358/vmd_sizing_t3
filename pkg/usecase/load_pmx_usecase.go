@@ -547,7 +547,9 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 
 				wristBone := model.Bones.GetByName(baseWristBone.Name())
 				thumbBone := model.Bones.GetByName(baseThumbBone.Name())
-				newBone.Position = wristBone.Position.Lerp(thumbBone.Position, thumbRatio)
+				newBone.Position = wristBone.Position.Lerp(thumbBone.Position, min(0.8, thumbRatio*2))
+				newBone.TailIndex = thumbBone.Index()
+				newBone.BoneFlag |= pmx.BONE_FLAG_TAIL_IS_BONE
 			} else if slices.Contains([]string{pmx.LEG_CENTER.String(), pmx.LEG_ROOT.Left(), pmx.LEG_ROOT.Right()}, baseBone.Name()) {
 				// 足中心は足の中心
 				newBone.Position = model.Bones.GetByName(pmx.LEG.Left()).Position.Added(
@@ -645,25 +647,48 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			}
 		}
 
-		// 表示先は位置に変更
-		if baseBone.IsTailBone() {
-			// BONE_FLAG_TAIL_IS_BONE を削除
-			newBone.BoneFlag = newBone.BoneFlag &^ pmx.BONE_FLAG_TAIL_IS_BONE
-			newBone.TailPosition = baseBone.Extend.ChildRelativePosition.Copy()
-		}
+		// // 表示先は位置に変更
+		// if baseBone.IsTailBone() {
+		// 	// BONE_FLAG_TAIL_IS_BONE を削除
+		// 	newBone.BoneFlag = newBone.BoneFlag &^ pmx.BONE_FLAG_TAIL_IS_BONE
+		// 	newBone.TailPosition = baseBone.Extend.ChildRelativePosition.Copy()
+		// }
 
 		// ボーン追加
 		model.Bones.Insert(newBone, afterIndex)
 		nonExistBoneNames = append(nonExistBoneNames, newBone.Name())
 	}
 
+	// ウェイト調整
+	fixDeformWeights(model, nonExistBoneNames)
+}
+
+func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 	var allBoneVertices map[int][]*pmx.Vertex
 
 	// ウェイト調整が必要なボーンを追加した場合
 	if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) ||
-		slices.Contains(nonExistBoneNames, pmx.LEG_D.String()) {
+		slices.Contains(nonExistBoneNames, pmx.LEG_D.Right()) ||
+		slices.Contains(nonExistBoneNames, pmx.KNEE_D.Right()) ||
+		slices.Contains(nonExistBoneNames, pmx.ANKLE_D.Right()) ||
+		slices.Contains(nonExistBoneNames, pmx.LEG_D.Left()) ||
+		slices.Contains(nonExistBoneNames, pmx.KNEE_D.Left()) ||
+		slices.Contains(nonExistBoneNames, pmx.ANKLE_D.Left()) ||
+		slices.Contains(nonExistBoneNames, pmx.TOE_EX.Right()) ||
+		slices.Contains(nonExistBoneNames, pmx.TOE_EX.Left()) ||
+		slices.Contains(nonExistBoneNames, pmx.THUMB0.Right()) ||
+		slices.Contains(nonExistBoneNames, pmx.THUMB0.Left()) ||
+		slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right()) ||
+		slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left()) ||
+		slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right()) ||
+		slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left()) {
 		// 頂点をボーンINDEX別に纏める
 		allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
+	}
+
+	if allBoneVertices == nil {
+		// ウェイト調整が不要な場合、終了
+		return
 	}
 
 	// D系の置き換え
@@ -690,6 +715,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 		}
 	}
 
+	// 足先EXの置き換え
 	for _, boneNames := range [][]string{
 		{pmx.ANKLE.Right(), pmx.TOE_EX.Right(), pmx.TOE.Right(), pmx.ANKLE_D.Right()},
 		{pmx.ANKLE.Left(), pmx.TOE_EX.Left(), pmx.TOE.Left(), pmx.ANKLE_D.Left()},
@@ -735,6 +761,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 		}
 	}
 
+	// 上半身2の置き換え
 	if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) {
 		upperBone := model.Bones.GetByName(pmx.UPPER.String())
 		upper2Bone := model.Bones.GetByName(pmx.UPPER2.String())
@@ -754,6 +781,61 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 					(upper2Bone.Position.Y + overlap*2 - upperBone.Position.Y)
 			}
 			vertex.Deform.Add(upper2Bone.Index(), upperBone.Index(), vertexRatio)
+
+			switch len(vertex.Deform.AllIndexes()) {
+			case 1:
+				vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
+			case 2:
+				vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllWeights()[0])
+			case 4:
+				vertex.Deform = pmx.NewBdef4(
+					vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
+					vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
+					vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
+			}
+		}
+	}
+
+	// 親指0の置き換え
+
+	for _, boneNames := range [][]string{
+		{pmx.WRIST.Right(), pmx.THUMB0.Right(), pmx.THUMB1.Right(), pmx.INDEX1.Right()},
+		{pmx.WRIST.Left(), pmx.THUMB0.Left(), pmx.THUMB1.Left(), pmx.INDEX1.Left()},
+	} {
+		if !slices.Contains(nonExistBoneNames, boneNames[1]) {
+			continue
+		}
+
+		wristBone := model.Bones.GetByName(boneNames[0])
+		thumb0Bone := model.Bones.GetByName(boneNames[1])
+		thumb1Bone := model.Bones.GetByName(boneNames[2])
+		index1Bone := model.Bones.GetByName(boneNames[3])
+		overlap := thumb1Bone.Position.Distance(wristBone.Position) * 0.5
+
+		for _, vertex := range allBoneVertices[wristBone.Index()] {
+			switch vertex.Deform.(type) {
+			case *pmx.Sdef:
+				continue
+			}
+
+			// 手首から指0へのベクトルと頂点位置の直交地点
+			thumb0Orthogonal := mmath.IntersectLinePoint(wristBone.Position, thumb0Bone.Position, vertex.Position)
+
+			vertexRatio := 1.0
+			if vertex.Position.Z < (index1Bone.Position.Z+thumb0Bone.Position.Z)/2 &&
+				vertex.Position.Distance(thumb0Bone.Position) < vertex.Position.Distance(index1Bone.Position) &&
+				(vertex.Position.Distance(thumb0Bone.Position) < vertex.Position.Distance(thumb1Bone.Position) ||
+					vertex.Position.Distance(thumb0Bone.Position) < vertex.Position.Distance(wristBone.Position)) &&
+				(vertex.Position.Distance(thumb0Bone.Position) < overlap ||
+					vertex.Position.Z < thumb0Bone.Position.Z) {
+				vertexRatio = (thumb0Orthogonal.Distance(thumb0Bone.Position) + overlap) /
+					(wristBone.Position.Distance(thumb0Bone.Position))
+			} else {
+				continue
+			}
+			vertex.Deform.Add(thumb0Bone.Index(), wristBone.Index(), vertexRatio)
 
 			switch len(vertex.Deform.AllIndexes()) {
 			case 1:

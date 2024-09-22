@@ -89,8 +89,8 @@ func TestUsecase_LoadOriginalPmxByJson(t *testing.T) {
 func TestUsecase_AdjustPmxForSizing(t *testing.T) {
 	// Save the model
 	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/003_三日月宗近/三日月宗近 わち式 （刀ミュインナーβ）/わち式三日月宗近（刀ミュインナーβ）.pmx"
-	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.pmx"
-	originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/ゲーム/アイドルマスター/SDTYSシーズン3(Dモデル改変) あおうさぎ（P）/SDロイヤルスターレットまつり.pmx"
+	originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.pmx"
+	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/ゲーム/アイドルマスター/SDTYSシーズン3(Dモデル改変) あおうさぎ（P）/SDロイヤルスターレットまつり.pmx"
 	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.pmx"
 	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/055_鶯丸/鶯丸 さとく式 ver0.90/さとく式鶯丸ver0.90.pmx"
 	// originalPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/VOCALOID/初音ミク/Tda式初音ミク・アペンドVer1.10/Tda式初音ミク・アペンド_Ver1.10.pmx"
