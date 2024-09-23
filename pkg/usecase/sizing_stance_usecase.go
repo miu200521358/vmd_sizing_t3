@@ -111,6 +111,48 @@ func createStanceQuats(
 	return stanceQuats
 }
 
+func getMoveScale(sizingSet *model.SizingSet) *mmath.MVec3 {
+	originalModel := sizingSet.OriginalPmx
+	sizingModel := sizingSet.SizingPmx
+
+	if sizingModel.Bones.GetByName(pmx.LEG.Left()) == nil ||
+		sizingModel.Bones.GetByName(pmx.KNEE.Left()) == nil ||
+		sizingModel.Bones.GetByName(pmx.ANKLE.Left()) == nil ||
+		sizingModel.Bones.GetByName(pmx.LEG_IK.Left()) == nil ||
+		originalModel.Bones.GetByName(pmx.LEG.Left()) == nil ||
+		originalModel.Bones.GetByName(pmx.KNEE.Left()) == nil ||
+		originalModel.Bones.GetByName(pmx.ANKLE.Left()) == nil ||
+		originalModel.Bones.GetByName(pmx.LEG_IK.Left()) == nil {
+
+		if sizingModel.Bones.GetByName(pmx.NECK.String()) != nil &&
+			originalModel.Bones.GetByName(pmx.NECK.String()) != nil {
+			// 首までの長さ比率
+			neckLengthRatio := sizingModel.Bones.GetByName(pmx.NECK.String()).Position.Y /
+				originalModel.Bones.GetByName(pmx.NECK.String()).Position.Y
+			return &mmath.MVec3{X: neckLengthRatio, Y: neckLengthRatio, Z: neckLengthRatio}
+		}
+	} else {
+		// 足の長さ比率(XZ)
+		legLengthRatio := (sizingModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
+			sizingModel.Bones.GetByName(pmx.KNEE.Left()).Position) +
+			sizingModel.Bones.GetByName(pmx.KNEE.Left()).Position.Distance(
+				sizingModel.Bones.GetByName(pmx.ANKLE.Left()).Position)) /
+			(originalModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
+				originalModel.Bones.GetByName(pmx.KNEE.Left()).Position) +
+				originalModel.Bones.GetByName(pmx.KNEE.Left()).Position.Distance(
+					originalModel.Bones.GetByName(pmx.ANKLE.Left()).Position))
+		// 足の長さ比率(Y)
+		legHeightRatio := sizingModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
+			sizingModel.Bones.GetByName(pmx.LEG_IK.Left()).Position) /
+			originalModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
+				originalModel.Bones.GetByName(pmx.LEG_IK.Left()).Position)
+
+		return &mmath.MVec3{X: legLengthRatio, Y: legHeightRatio, Z: legLengthRatio}
+	}
+
+	return mmath.MVec3One
+}
+
 func SizingStance(sizingSet *model.SizingSet) {
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
@@ -124,44 +166,7 @@ func SizingStance(sizingSet *model.SizingSet) {
 
 	var scales *mmath.MVec3
 	if sizingSet.IsSizingMove {
-		if sizingModel.Bones.GetByName(pmx.LEG.Left()) == nil ||
-			sizingModel.Bones.GetByName(pmx.KNEE.Left()) == nil ||
-			sizingModel.Bones.GetByName(pmx.ANKLE.Left()) == nil ||
-			sizingModel.Bones.GetByName(pmx.LEG_IK.Left()) == nil ||
-			originalModel.Bones.GetByName(pmx.LEG.Left()) == nil ||
-			originalModel.Bones.GetByName(pmx.KNEE.Left()) == nil ||
-			originalModel.Bones.GetByName(pmx.ANKLE.Left()) == nil ||
-			originalModel.Bones.GetByName(pmx.LEG_IK.Left()) == nil {
-
-			if sizingModel.Bones.GetByName(pmx.UPPER.String()) == nil ||
-				originalModel.Bones.GetByName(pmx.UPPER.String()) == nil {
-				scales = mmath.MVec3One
-			} else {
-				// 足が無い場合、上半身までの長さで比較する
-				// 上半身の長さ比率
-				upperBodyLengthRatio := sizingModel.Bones.GetByName(pmx.UPPER.String()).Position.Y /
-					originalModel.Bones.GetByName(pmx.UPPER.String()).Position.Y
-				scales = &mmath.MVec3{X: upperBodyLengthRatio, Y: upperBodyLengthRatio, Z: upperBodyLengthRatio}
-			}
-		} else {
-			// 足の長さ比率(XZ)
-			legLengthRatio := (sizingModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
-				sizingModel.Bones.GetByName(pmx.KNEE.Left()).Position) +
-				sizingModel.Bones.GetByName(pmx.KNEE.Left()).Position.Distance(
-					sizingModel.Bones.GetByName(pmx.ANKLE.Left()).Position)) /
-				(originalModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
-					originalModel.Bones.GetByName(pmx.KNEE.Left()).Position) +
-					originalModel.Bones.GetByName(pmx.KNEE.Left()).Position.Distance(
-						originalModel.Bones.GetByName(pmx.ANKLE.Left()).Position))
-			// 足の長さ比率(Y)
-			legHeightRatio := sizingModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
-				sizingModel.Bones.GetByName(pmx.LEG_IK.Left()).Position) /
-				originalModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
-					originalModel.Bones.GetByName(pmx.LEG_IK.Left()).Position)
-
-			scales = &mmath.MVec3{X: legLengthRatio, Y: legHeightRatio, Z: legLengthRatio}
-		}
-		// mlog.I("legHeightRatio: %.5f", legLengthRatio)
+		scales = getMoveScale(sizingSet)
 	}
 
 	stanceQuats := createStanceQuats(originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
