@@ -16,6 +16,7 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	if !sizingSet.IsSizingWholeStance || (sizingSet.IsSizingWholeStance && sizingSet.CompletedSizingWholeStance) {
 		return
 	}
+	// TODO　必須ボーンチェック
 
 	// 足補正
 	originalModel := sizingSet.OriginalPmx
@@ -67,37 +68,72 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		sizingOffDeltas[index] = vmdDeltas
 	})
 
-	// サイジング先にIK結果を焼き込み
-	for i, vmdDeltas := range sizingOffDeltas {
-		// 右足IKを動かさなかった場合のセンターと左足IKの位置を調整
-		originalDeltas := originalAllDeltas[i]
-		originalRightAnklePosition := originalDeltas.Bones.Get(originalModel.Bones.GetByName(pmx.LEG_IK.Right()).Ik.BoneIndex).FilledGlobalPosition()
-		sizingRightAnklePosition := vmdDeltas.Bones.Get(sizingModel.Bones.GetByName(pmx.LEG_IK.Right()).Ik.BoneIndex).FilledGlobalPosition()
-		rightAnkleDiff := sizingRightAnklePosition.Subed(originalRightAnklePosition)
+	// 右足IKを動かさなかった場合のセンターと左足IKの位置を調整
+	for _, vmdDeltas := range sizingOffDeltas {
+		// 右足首から見た右足ボーンの相対位置を取得
+		rightLegIkBone := sizingModel.Bones.GetByName(pmx.LEG_IK.Right())
+		rightLegIkBoneDelta := vmdDeltas.Bones.Get(rightLegIkBone.Index())
 
-		{
-			boneName := pmx.LEG_IK.Right()
-			boneDelta := vmdDeltas.Bones.GetByName(boneName)
-			originalBf := originalMotion.BoneFrames.Get(boneName).Get(boneDelta.Frame)
-			sizingBf := sizingMotion.BoneFrames.Get(boneName).Get(boneDelta.Frame)
-			sizingBf.Position = originalBf.Position.Added(rightAnkleDiff)
-			sizingMotion.InsertRegisteredBoneFrame(boneName, sizingBf)
-		}
-		{
-			boneName := pmx.LEG_IK.Left()
-			boneDelta := vmdDeltas.Bones.GetByName(boneName)
-			originalBf := originalMotion.BoneFrames.Get(boneName).Get(boneDelta.Frame)
-			sizingBf := sizingMotion.BoneFrames.Get(boneName).Get(boneDelta.Frame)
-			sizingBf.Position = originalBf.Position.Added(rightAnkleDiff)
-			sizingMotion.InsertRegisteredBoneFrame(boneName, sizingBf)
-		}
-		{
-			boneName := pmx.CENTER.String()
-			boneDelta := vmdDeltas.Bones.GetByName(boneName)
-			originalBf := originalMotion.BoneFrames.Get(boneName).Get(boneDelta.Frame)
-			sizingBf := sizingMotion.BoneFrames.Get(boneName).Get(boneDelta.Frame)
-			sizingBf.Position = originalBf.Position.Added(rightAnkleDiff)
-			sizingMotion.InsertRegisteredBoneFrame(boneName, sizingBf)
-		}
+		rightLegBone := sizingModel.Bones.GetByName(pmx.LEG.Right())
+		rightLegBoneDelta := vmdDeltas.Bones.Get(rightLegBone.Index())
+
+		rightAnkleBone := sizingModel.Bones.Get(sizingModel.Bones.GetByName(pmx.LEG_IK.Right()).Ik.BoneIndex)
+		rightAnkleBoneDelta := vmdDeltas.Bones.Get(rightAnkleBone.Index())
+
+		rightLegFkLocalPosition := rightAnkleBoneDelta.FilledGlobalPosition().Subed(
+			rightLegBoneDelta.FilledGlobalPosition())
+		rightLegIkLocalPosition := rightLegIkBoneDelta.FilledGlobalPosition().Subed(
+			rightLegBoneDelta.FilledGlobalPosition())
+		rightLegDiff := rightLegIkLocalPosition.Subed(rightLegFkLocalPosition)
+
+		// センター補正
+		centerBone := sizingModel.Bones.GetByName(pmx.CENTER.String())
+		centerBoneDelta := vmdDeltas.Bones.Get(centerBone.Index())
+
+		originalCenterBf := originalMotion.BoneFrames.Get(centerBone.Name()).Get(centerBoneDelta.Frame)
+		sizingCenterBf := sizingMotion.BoneFrames.Get(centerBone.Name()).Get(centerBoneDelta.Frame)
+		sizingCenterBf.Position = originalCenterBf.Position.Added(rightLegDiff)
+		sizingMotion.InsertRegisteredBoneFrame(centerBone.Name(), sizingCenterBf)
+
+		leftLegIkBone := sizingModel.Bones.GetByName(pmx.LEG_IK.Left())
+		originalLeftBf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(centerBoneDelta.Frame)
+		sizingLeftBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(centerBoneDelta.Frame)
+		sizingLeftBf.Position = originalLeftBf.Position.Added(rightLegDiff)
+		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), sizingLeftBf)
+	}
+
+	sizingCenterDeltas := make([]*delta.VmdDeltas, len(frames))
+
+	// サイジング先モデルのデフォーム(IK OFF+センター補正済み)
+	miter.IterParallelByList(frames, 500, func(data, index int) {
+		frame := float32(data)
+		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
+		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, leg_all_bone_names, false)
+		sizingCenterDeltas[index] = vmdDeltas
+	})
+
+	// 右足IKを動かさなかった場合の左足首の位置を調整
+	for _, vmdDeltas := range sizingOffDeltas {
+		// 左足首から見た左足ボーンの相対位置を取得
+		leftLegIkBone := sizingModel.Bones.GetByName(pmx.LEG_IK.Left())
+		leftLegIkBoneDelta := vmdDeltas.Bones.Get(leftLegIkBone.Index())
+
+		leftLegBone := sizingModel.Bones.GetByName(pmx.LEG.Left())
+		leftLegBoneDelta := vmdDeltas.Bones.Get(leftLegBone.Index())
+
+		leftAnkleBone := sizingModel.Bones.Get(sizingModel.Bones.GetByName(pmx.LEG_IK.Left()).Ik.BoneIndex)
+		leftAnkleBoneDelta := vmdDeltas.Bones.Get(leftAnkleBone.Index())
+
+		leftLegFkLocalPosition := leftLegBoneDelta.FilledGlobalPosition().Subed(
+			leftLegIkBoneDelta.FilledGlobalPosition())
+		leftLegIkLocalPosition := leftLegBoneDelta.FilledGlobalPosition().Subed(
+			leftAnkleBoneDelta.FilledGlobalPosition())
+		leftLegDiff := leftLegIkLocalPosition.Subed(leftLegFkLocalPosition)
+
+		// 左足IK補正
+		sizingBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(leftLegIkBoneDelta.Frame)
+		sizingBf.Position = sizingBf.Position.Subed(leftLegDiff)
+		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), sizingBf)
 	}
 }

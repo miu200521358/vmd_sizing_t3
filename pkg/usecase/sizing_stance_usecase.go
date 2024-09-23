@@ -120,6 +120,7 @@ func SizingStance(sizingSet *model.SizingSet) {
 	if originalModel == nil || sizingModel == nil || originalMotion == nil || sizingMotion == nil {
 		return
 	}
+	// TODO　必須ボーンチェック
 
 	var scales *mmath.MVec3
 	if sizingSet.IsSizingMove {

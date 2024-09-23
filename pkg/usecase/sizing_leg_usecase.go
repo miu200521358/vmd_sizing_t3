@@ -44,6 +44,7 @@ func SizingLegStance(sizingSet *model.SizingSet) {
 	if !sizingSet.IsSizingLegStance || (sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) {
 		return
 	}
+	// TODO　必須ボーンチェック
 
 	// 足補正
 	originalModel := sizingSet.OriginalPmx

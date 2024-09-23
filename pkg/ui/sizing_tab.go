@@ -51,7 +51,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		if err != nil {
 			widget.RaiseError(err)
 		}
-		addButton.SetMinMaxSize(walk.Size{Width: 130, Height: 30}, walk.Size{Width: 130, Height: 30})
+		addButton.SetMinMaxSize(walk.Size{Width: 130, Height: 20}, walk.Size{Width: 130, Height: 20})
 		addButton.SetText(mi18n.T("サイジングセット追加"))
 		addButton.Clicked().Attach(func() {
 			toolState.addSizingSet()
@@ -62,7 +62,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		if err != nil {
 			widget.RaiseError(err)
 		}
-		deleteButton.SetMinMaxSize(walk.Size{Width: 130, Height: 30}, walk.Size{Width: 130, Height: 30})
+		deleteButton.SetMinMaxSize(walk.Size{Width: 130, Height: 20}, walk.Size{Width: 130, Height: 20})
 		deleteButton.SetText(mi18n.T("サイジングセット全削除"))
 		deleteButton.Clicked().Attach(func() {
 			toolState.resetSizingSet()
@@ -73,7 +73,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		if err != nil {
 			widget.RaiseError(err)
 		}
-		loadButton.SetMinMaxSize(walk.Size{Width: 130, Height: 30}, walk.Size{Width: 130, Height: 30})
+		loadButton.SetMinMaxSize(walk.Size{Width: 130, Height: 20}, walk.Size{Width: 130, Height: 20})
 		loadButton.SetText(mi18n.T("サイジングセット設定読込"))
 	}
 
@@ -315,7 +315,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			})
 
 			composite := declarative.Composite{
-				Layout: declarative.Grid{Columns: 3, Alignment: declarative.AlignHNearVCenter},
+				// Background: declarative.SolidColorBrush{Color: walk.RGB(255, 255, 255)},
+				Layout: declarative.Grid{Columns: 3},
 				Children: []declarative.Widget{
 					// 移動位置合わせ
 					declarative.CheckBox{
@@ -326,10 +327,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							}
 							remakeSizingMorph(toolState)
 						},
-						StretchFactor: 1,
+						MinSize: declarative.Size{Width: 30, Height: 20},
+						MaxSize: declarative.Size{Width: 30, Height: 20},
 					},
-					declarative.Label{Text: mi18n.T("移動位置合わせ"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("移動位置合わせ概要"), StretchFactor: 30},
+					declarative.Label{
+						Text: mi18n.T("移動位置合わせ"),
+					},
+					declarative.Label{Text: mi18n.T("移動位置合わせ概要")},
 					// 腕角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingArmStanceCheck,
@@ -339,10 +343,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							}
 							remakeSizingMorph(toolState)
 						},
-						StretchFactor: 1,
+						MinSize: declarative.Size{Width: 30, Height: 20},
+						MaxSize: declarative.Size{Width: 30, Height: 20},
 					},
-					declarative.Label{Text: mi18n.T("腕角度合わせ"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("腕角度合わせ概要"), StretchFactor: 30},
+					declarative.Label{Text: mi18n.T("腕角度合わせ")},
+					declarative.Label{Text: mi18n.T("腕角度合わせ概要")},
 					// 足角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLegStanceCheck,
@@ -357,10 +362,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							}
 							remakeSizingMorph(toolState)
 						},
-						StretchFactor: 1,
+						MinSize: declarative.Size{Width: 30, Height: 20},
+						MaxSize: declarative.Size{Width: 30, Height: 20},
 					},
-					declarative.Label{Text: mi18n.T("足角度合わせ"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("足角度合わせ概要"), StretchFactor: 30},
+					declarative.Label{Text: mi18n.T("足角度合わせ")},
+					declarative.Label{Text: mi18n.T("足角度合わせ概要")},
 					// 指角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingFingerStanceCheck,
@@ -370,23 +376,33 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							}
 							remakeSizingMorph(toolState)
 						},
-						StretchFactor: 1,
+						MinSize: declarative.Size{Width: 30, Height: 20},
+						MaxSize: declarative.Size{Width: 30, Height: 20},
 					},
-					declarative.Label{Text: mi18n.T("指角度合わせ"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("指角度合わせ概要"), StretchFactor: 30},
+					declarative.Label{Text: mi18n.T("指角度合わせ")},
+					declarative.Label{Text: mi18n.T("指角度合わせ概要")},
 					// 全身位置角度合わせ
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingWholeStanceCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
+								if toolState.SizingWholeStanceCheck.Checked() {
+									// 全身位置合わせは移動系補正を行わない
+									sizingSet.IsSizingMove = false
+									toolState.SizingMoveCheck.UpdateChecked(false)
+									sizingSet.IsSizingLegStance = false
+									toolState.SizingLegStanceCheck.UpdateChecked(false)
+								}
 								sizingSet.IsSizingWholeStance = toolState.SizingWholeStanceCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
 						},
-						StretchFactor: 1,
+						MinSize: declarative.Size{Width: 30, Height: 20},
+						MaxSize: declarative.Size{Width: 30, Height: 20},
 					},
-					declarative.Label{Text: mi18n.T("全身位置角度合わせ"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("全身位置角度合わせ概要"), StretchFactor: 30},
+					declarative.Label{Text: mi18n.T("全身位置角度合わせ")},
+					declarative.Label{Text: mi18n.T("全身位置角度合わせ概要")},
+					// declarative.HSpacer{ColumnSpan: 3, MinSize: declarative.Size{Width: 500, Height: 1}},
 				},
 			}
 
