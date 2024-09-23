@@ -51,9 +51,7 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	// サイジング先にFKを焼き込み
 	for _, vmdDeltas := range originalAllDeltas {
 		for _, boneDelta := range vmdDeltas.Bones.Data {
-			if boneDelta == nil || !boneDelta.Bone.IsLegFK() ||
-				!((boneDelta.Bone.Direction() == "左" && mmath.Contains(leftFrames, int(boneDelta.Frame))) ||
-					(boneDelta.Bone.Direction() == "右" && mmath.Contains(rightFrames, int(boneDelta.Frame)))) {
+			if boneDelta == nil || !boneDelta.Bone.IsLegFK() {
 				continue
 			}
 
