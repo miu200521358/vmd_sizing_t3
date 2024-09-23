@@ -12,6 +12,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 )
 
+var trunk_bone_names = []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String()}
 var leg_direction_bone_names = [][]string{
 	{pmx.LEG.Left(), pmx.KNEE.Left(), pmx.HEEL.Left(), pmx.ANKLE.Left(), pmx.TOE.Left(), pmx.TOE_P.Left(),
 		pmx.TOE_C.Left(), pmx.LEG_D.Left(), pmx.KNEE_D.Left(), pmx.HEEL_D.Left(), pmx.ANKLE_D.Left(),
@@ -54,9 +55,19 @@ func SizingLegStance(sizingSet *model.SizingSet) {
 
 	leftFrames := originalMotion.BoneFrames.RegisteredFrames(leg_direction_bone_names[0])
 	rightFrames := originalMotion.BoneFrames.RegisteredFrames(leg_direction_bone_names[1])
-	frames := append(leftFrames, rightFrames...)
+	trunkFrames := originalMotion.BoneFrames.RegisteredFrames(trunk_bone_names)
+	m := make(map[int]struct{})
+	frames := make([]int, 0, len(leftFrames)+len(rightFrames)+len(trunkFrames))
+	for _, fs := range [][]int{leftFrames, rightFrames, trunkFrames} {
+		for _, f := range fs {
+			if _, ok := m[f]; ok {
+				continue
+			}
+			m[f] = struct{}{}
+			frames = append(frames, f)
+		}
+	}
 	mmath.SortInts(frames)
-	frames = slices.Compact(frames)
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	// 元モデルのデフォーム(IK ON)
