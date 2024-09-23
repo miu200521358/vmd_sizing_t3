@@ -31,7 +31,7 @@ type ToolState struct {
 	SizingMoveCheck               *walk.CheckBox     // サイジング移動補正チェックボックス
 	SizingLegStanceCheck          *walk.CheckBox     // サイジング足スタンス補正チェックボックス
 	SizingFingerStanceCheck       *walk.CheckBox     // サイジング指スタンス補正チェックボックス
-	SizingUpperStanceCheck        *walk.CheckBox     // サイジング上半身スタンス補正チェックボックス
+	SizingWholeStanceCheck        *walk.CheckBox     // サイジング上半身スタンス補正チェックボックス
 	OriginalPmxRatioEdit          *walk.NumberEdit   // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit   // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit   // 素体上半身角度編集
@@ -231,7 +231,7 @@ func (toolState *ToolState) ResetSizingParameter() {
 	toolState.SizingMoveCheck.SetChecked(false)
 	toolState.SizingLegStanceCheck.SetChecked(false)
 	toolState.SizingFingerStanceCheck.SetChecked(false)
-	toolState.SizingUpperStanceCheck.SetChecked(false)
+	toolState.SizingWholeStanceCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -340,5 +340,5 @@ func (toolState *ToolState) ResetSizingCheck() {
 	toolState.SizingMoveCheck.UpdateChecked(false)
 	toolState.SizingLegStanceCheck.SetChecked(false)
 	toolState.SizingFingerStanceCheck.SetChecked(false)
-	toolState.SizingUpperStanceCheck.SetChecked(false)
+	toolState.SizingWholeStanceCheck.SetChecked(false)
 }

@@ -374,19 +374,19 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					},
 					declarative.Label{Text: mi18n.T("指角度合わせ"), StretchFactor: 10},
 					declarative.Label{Text: mi18n.T("指角度合わせ概要"), StretchFactor: 30},
-					// 上半身角度合わせ
+					// 全身位置角度合わせ
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingUpperStanceCheck,
+						AssignTo: &toolState.SizingWholeStanceCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingUpperStance = toolState.SizingUpperStanceCheck.Checked()
+								sizingSet.IsSizingWholeStance = toolState.SizingWholeStanceCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
 						},
 						StretchFactor: 1,
 					},
-					declarative.Label{Text: mi18n.T("上半身角度合わせ"), StretchFactor: 10},
-					declarative.Label{Text: mi18n.T("上半身角度合わせ概要"), StretchFactor: 30},
+					declarative.Label{Text: mi18n.T("全身位置角度合わせ"), StretchFactor: 10},
+					declarative.Label{Text: mi18n.T("全身位置角度合わせ概要"), StretchFactor: 30},
 				},
 			}
 
@@ -887,7 +887,7 @@ func remakeSizingMorph(toolState *ToolState) {
 					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
 					(!sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) ||
 					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) ||
-					(!sizingSet.IsSizingUpperStance && sizingSet.CompletedSizingUpperStance) {
+					(!sizingSet.IsSizingWholeStance && sizingSet.CompletedSizingWholeStance) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
@@ -900,10 +900,11 @@ func remakeSizingMorph(toolState *ToolState) {
 					sizingSet.CompletedSizingArmStance = false
 					sizingSet.CompletedSizingLegStance = false
 					sizingSet.CompletedSizingFingerStance = false
-					sizingSet.CompletedSizingUpperStance = false
+					sizingSet.CompletedSizingWholeStance = false
 				}
-				usecase.Sizing(sizingSet)
+				usecase.SizingStance(sizingSet)
 				usecase.SizingLegStance(sizingSet)
+				usecase.SizingWholeStance(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 			}(sizingSet)
 		}
