@@ -473,7 +473,6 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 			baseParentBone := baseModel.Bones.Get(baseBone.ParentIndex)
 			parentBone := model.Bones.GetByName(baseParentBone.Name())
 			newBone.ParentIndex = parentBone.Index()
-			newBone.IsSystem = true
 
 			// 親からの相対位置から比率で求める
 			newBone.Position = parentBone.Position.Added(baseBone.Extend.ParentRelativePosition.MuledScalar(ratio))
@@ -490,12 +489,13 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 
 				// 上半身の長さを上半身と首根元の距離で求める
 				baseUpperLength := baseUpperBone.Position.Distance(baseNeckRootBone.Position)
-				baseUpper2Length := baseUpper2Bone.Position.Distance(baseUpperBone.Position)
+				baseUpper2Length := baseUpper2Bone.Position.Distance(baseUpperBone.Position) * 1.5
 				upperRatio := baseUpper2Length / baseUpperLength
 
 				newBone.Position = upperBone.Position.Added(
 					neckRootPosition.Subed(upperBone.Position).MuledScalar(upperRatio))
 				upperBone.TailIndex = newBone.Index()
+				upperBone.BoneFlag |= pmx.BONE_FLAG_TAIL_IS_BONE
 			} else if strings.Contains(baseBone.Name(), "腕捩") {
 				// 腕捩の場合、腕とひじの間に置く
 				baseArmBone := baseModel.Bones.GetByName(
@@ -519,7 +519,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 					strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(
 						baseBone.Name(), "手捩1", "手首"), "手捩2", "手首"), "手捩3", "手首"), "手捩", "手首"))
 
-				twistRatio := baseBone.Position.Subed(baseWristBone.Position).Length() / baseElbowBone.Position.Subed(baseWristBone.Position).Length()
+				twistRatio := baseBone.Position.Subed(baseElbowBone.Position).Length() / baseWristBone.Position.Subed(baseElbowBone.Position).Length()
 
 				elbowBone := model.Bones.GetByName(baseElbowBone.Name())
 				wristBone := model.Bones.GetByName(baseWristBone.Name())
@@ -539,6 +539,13 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				// 首根元・肩根元は首根元の位置
 				newBone.Position = model.Bones.GetByName(pmx.ARM.Left()).Position.Added(
 					model.Bones.GetByName(pmx.ARM.Right()).Position).MuledScalar(0.5)
+				if baseBone.Name() == pmx.NECK_ROOT.String() {
+					// 首根元の場合、上半身2ボーンの表示先として設定
+					upper2Bone := model.Bones.GetByName(pmx.UPPER2.String())
+					upper2Bone.TailIndex = newBone.Index()
+					upper2Bone.BoneFlag |= pmx.BONE_FLAG_TAIL_IS_BONE
+				}
+				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.THUMB0.Left(), pmx.THUMB0.Right()}, baseBone.Name()) {
 				// 親指０は手首と親指１の間
 				baseWristBone := baseModel.Bones.GetByName(strings.ReplaceAll(baseBone.Name(), "親指０", "手首"))
@@ -554,6 +561,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				// 足中心は足の中心
 				newBone.Position = model.Bones.GetByName(pmx.LEG.Left()).Position.Added(
 					model.Bones.GetByName(pmx.LEG.Right()).Position).MuledScalar(0.5)
+				newBone.IsSystem = true
 			} else if strings.Contains(baseBone.Name(), "腰キャンセル") {
 				// 腰キャンセルは足と同じ位置
 				baseLegBoneName := fmt.Sprintf("%s足", baseBone.Direction())
@@ -564,6 +572,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				upperBone := model.Bones.GetByName(pmx.UPPER.String())
 				lowerBone := model.Bones.GetByName(pmx.LOWER.String())
 				newBone.Position = upperBone.Position.Lerp(lowerBone.Position, 0.5)
+				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}, baseBone.Name()) {
 				// 足IK親 は 足IKのYを0にした位置
 				baseLegIkBone := baseModel.Bones.GetByName(strings.ReplaceAll(baseBone.Name(), "足IK親", "足ＩＫ"))
@@ -601,6 +610,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				ankleBone := model.Bones.GetByName(baseAnkleBone.Name())
 				newBone.Position.X = ankleBone.Position.X
 				newBone.Position.Y = 0
+				newBone.IsSystem = true
 			} else if strings.Contains(baseBone.Name(), "指先") {
 				// 指先ボーンは親ボーンの相対表示先位置
 				baseParentBoneName := baseBone.ConfigParentBoneNames()[0]
@@ -608,6 +618,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				if parentBone != nil {
 					newBone.Position = parentBone.Position.Added(parentBone.Extend.ChildRelativePosition)
 				}
+				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.TOE.Left(), pmx.TOE.Right(), pmx.TOE_D.Left(), pmx.TOE_D.Right()}, baseBone.Name()) {
 				// つま先ボーンはつま先IKの位置と同じ
 				toeIkBoneName := fmt.Sprintf("%sつま先ＩＫ", baseBone.Direction())
@@ -615,6 +626,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				if toeIkBone != nil {
 					newBone.Position = toeIkBone.Position.Copy()
 				}
+				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.TOE_C_D.Left(), pmx.TOE_C_D.Right()}, baseBone.Name()) {
 				// つま先子Dはつま先子の位置
 				toeCBoneName := fmt.Sprintf("%sつま先子", baseBone.Direction())
@@ -622,6 +634,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				if toeCBone != nil {
 					newBone.Position = toeCBone.Position.Copy()
 				}
+				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.TOE_P_D.Left(), pmx.TOE_P_D.Right()}, baseBone.Name()) {
 				// つま先親Dはつま先親の位置
 				toePBoneName := fmt.Sprintf("%sつま先親", baseBone.Direction())
@@ -629,6 +642,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel) {
 				if toePBone != nil {
 					newBone.Position = toePBone.Position.Copy()
 				}
+				newBone.IsSystem = true
 			}
 		}
 
@@ -799,7 +813,6 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 	}
 
 	// 親指0の置き換え
-
 	for _, boneNames := range [][]string{
 		{pmx.WRIST.Right(), pmx.THUMB0.Right(), pmx.THUMB1.Right(), pmx.INDEX1.Right()},
 		{pmx.WRIST.Left(), pmx.THUMB0.Left(), pmx.THUMB1.Left(), pmx.INDEX1.Left()},
@@ -836,6 +849,74 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 				continue
 			}
 			vertex.Deform.Add(thumb0Bone.Index(), wristBone.Index(), vertexRatio)
+
+			switch len(vertex.Deform.AllIndexes()) {
+			case 1:
+				vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
+			case 2:
+				vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllWeights()[0])
+			case 4:
+				vertex.Deform = pmx.NewBdef4(
+					vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+					vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
+					vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
+					vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
+			}
+		}
+	}
+
+	// 捩の置き換え
+	for _, boneNames := range [][]string{
+		{pmx.ARM.Right(), pmx.ARM_TWIST.Right(), pmx.ARM_TWIST1.Right(), pmx.ARM_TWIST2.Right(), pmx.ARM_TWIST3.Right(), pmx.ELBOW.Right()},
+		{pmx.ARM.Left(), pmx.ARM_TWIST.Left(), pmx.ARM_TWIST1.Left(), pmx.ARM_TWIST2.Left(), pmx.ARM_TWIST3.Left(), pmx.ELBOW.Left()},
+		{pmx.ELBOW.Right(), pmx.WRIST_TWIST.Right(), pmx.WRIST_TWIST1.Right(), pmx.WRIST_TWIST2.Right(), pmx.WRIST_TWIST3.Right(), pmx.WRIST.Right()},
+		{pmx.ELBOW.Left(), pmx.WRIST_TWIST.Left(), pmx.WRIST_TWIST1.Left(), pmx.WRIST_TWIST2.Left(), pmx.WRIST_TWIST3.Left(), pmx.WRIST.Left()},
+	} {
+		if !slices.Contains(nonExistBoneNames, boneNames[1]) {
+			continue
+		}
+
+		parentBone := model.Bones.GetByName(boneNames[0])
+		twistBone := model.Bones.GetByName(boneNames[1])
+		twist1Bone := model.Bones.GetByName(boneNames[2])
+		twist2Bone := model.Bones.GetByName(boneNames[3])
+		twist3Bone := model.Bones.GetByName(boneNames[4])
+		childBone := model.Bones.GetByName(boneNames[5])
+
+		for _, vertex := range allBoneVertices[parentBone.Index()] {
+			switch vertex.Deform.(type) {
+			case *pmx.Sdef:
+				continue
+			}
+
+			parentDistance := parentBone.Position.Distance(vertex.Position)
+			twist1Distance := twist1Bone.Position.Distance(vertex.Position)
+			twist2Distance := twist2Bone.Position.Distance(vertex.Position)
+			twist3Distance := twist3Bone.Position.Distance(vertex.Position)
+			childDistance := childBone.Position.Distance(vertex.Position)
+
+			nearestIndex := mmath.ArgSort(mmath.Float64Slice{parentDistance, twist1Distance, twist2Distance, twist3Distance, childDistance})[0]
+			// ひじに最も近い頂点は捩りに割り当てる
+			nearestBone := []*pmx.Bone{parentBone, twist1Bone, twist2Bone, twist3Bone, twistBone}[nearestIndex]
+			nearestPositionBone := []*pmx.Bone{parentBone, twist1Bone, twist2Bone, twist3Bone, childBone}[nearestIndex]
+			nearestParentBone := []*pmx.Bone{parentBone, parentBone, twist1Bone, twist2Bone, twist3Bone}[nearestIndex]
+			nearestChildBone := []*pmx.Bone{twist1Bone, twist2Bone, twist3Bone, childBone, childBone}[nearestIndex]
+
+			// 腕ベクトルと頂点位置の直交地点
+			twistOrthogonal := mmath.IntersectLinePoint(parentBone.Position, childBone.Position, vertex.Position)
+
+			rangeDistance := nearestParentBone.Position.Distance(nearestChildBone.Position)
+			nearestDistance := nearestPositionBone.Position.Distance(twistOrthogonal)
+			vertexRatio := (rangeDistance - nearestDistance) / rangeDistance
+			vertex.Deform.Add(nearestBone.Index(), parentBone.Index(), vertexRatio)
+
+			// 腕とかの残りを親に割り当てる
+			parentDeformIndex := vertex.Deform.Index(parentBone.Index())
+			if parentDeformIndex >= 0 {
+				vertex.Deform.AllIndexes()[parentDeformIndex] = nearestParentBone.Index()
+				vertex.Deform.Normalize(true)
+			}
 
 			switch len(vertex.Deform.AllIndexes()) {
 			case 1:
