@@ -443,10 +443,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) {
 				parentBone = model.Bones.GetByName(baseParentName)
 			}
 
-			if parentBone == nil {
-				// 親が存在しない場合、ROOTを親にする
-				bone.ParentIndex = -1
-			} else {
+			if parentBone != nil {
 				bone.ParentIndex = parentBone.Index()
 			}
 
@@ -864,33 +861,35 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 		ankleDBone := model.Bones.GetByName(boneNames[3])
 		overlap := (toeBone.Position.Z - toeExBone.Position.Z) * 0.3
 
-		for _, vertex := range allBoneVertices[ankleBone.Index()] {
-			switch vertex.Deform.(type) {
-			case *pmx.Sdef:
-				continue
-			}
+		for _, aBone := range []*pmx.Bone{ankleBone, ankleDBone} {
+			for _, vertex := range allBoneVertices[aBone.Index()] {
+				switch vertex.Deform.(type) {
+				case *pmx.Sdef:
+					continue
+				}
 
-			vertexRatio := 1.0
-			if vertex.Position.Z > toeExBone.Position.Z-overlap {
-				continue
-			} else if vertex.Position.Z > toeExBone.Position.Z+overlap {
-				vertexRatio = (math.Abs(toeBone.Position.Z-toeExBone.Position.Z) - math.Abs(overlap)) /
-					(math.Abs(toeBone.Position.Z-toeExBone.Position.Z) + math.Abs(overlap*2))
-			}
-			vertex.Deform.Add(toeExBone.Index(), ankleDBone.Index(), vertexRatio)
+				vertexRatio := 1.0
+				if vertex.Position.Z > toeExBone.Position.Z-overlap {
+					continue
+				} else if vertex.Position.Z > toeExBone.Position.Z+overlap {
+					vertexRatio = (math.Abs(toeBone.Position.Z-toeExBone.Position.Z) - math.Abs(overlap)) /
+						(math.Abs(toeBone.Position.Z-toeExBone.Position.Z) + math.Abs(overlap*2))
+				}
+				vertex.Deform.Add(toeExBone.Index(), ankleDBone.Index(), vertexRatio)
 
-			switch len(vertex.Deform.AllIndexes()) {
-			case 1:
-				vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
-			case 2:
-				vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
-					vertex.Deform.AllWeights()[0])
-			case 4:
-				vertex.Deform = pmx.NewBdef4(
-					vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
-					vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
-					vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
-					vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
+				switch len(vertex.Deform.AllIndexes()) {
+				case 1:
+					vertex.Deform = pmx.NewBdef1(vertex.Deform.AllIndexes()[0])
+				case 2:
+					vertex.Deform = pmx.NewBdef2(vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+						vertex.Deform.AllWeights()[0])
+				case 4:
+					vertex.Deform = pmx.NewBdef4(
+						vertex.Deform.AllIndexes()[0], vertex.Deform.AllIndexes()[1],
+						vertex.Deform.AllIndexes()[2], vertex.Deform.AllIndexes()[3],
+						vertex.Deform.AllWeights()[0], vertex.Deform.AllWeights()[1],
+						vertex.Deform.AllWeights()[2], vertex.Deform.AllWeights()[3])
+				}
 			}
 		}
 	}
