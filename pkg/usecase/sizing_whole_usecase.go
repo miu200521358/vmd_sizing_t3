@@ -6,6 +6,8 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 )
 
@@ -51,6 +53,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
+	mlog.I(mi18n.T("全身位置角度合わせ01", map[string]interface{}{"No": sizingSet.Index + 1}))
+
 	// 元モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
@@ -59,6 +63,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, leg_all_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	})
+
+	mlog.I(mi18n.T("全身位置角度合わせ02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// サイジング先にFKを焼き込み
 	for _, vmdDeltas := range originalAllDeltas {
@@ -79,6 +85,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	centerPositions := make([]*mmath.MVec3, len(frames))
 	groovePositions := make([]*mmath.MVec3, len(frames))
 	rightLegIkPositions := make([]*mmath.MVec3, len(frames))
+
+	mlog.I(mi18n.T("全身位置角度合わせ03", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// サイジング先モデルのデフォーム(IK OFF)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
@@ -111,6 +119,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		rightLegIkPositions[index] = rightLegIkBf.Position
 	})
 
+	mlog.I(mi18n.T("全身位置角度合わせ04", map[string]interface{}{"No": sizingSet.Index + 1}))
+
 	// 補正を登録
 	for i, vmdDeltas := range sizingOffDeltas {
 		rightLegBoneDelta := vmdDeltas.Bones.Get(rightLegBone.Index())
@@ -126,6 +136,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 
 	sizingCenterDeltas := make([]*delta.VmdDeltas, len(frames))
 	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
+
+	mlog.I(mi18n.T("全身位置角度合わせ05", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// サイジング先モデルのデフォーム(IK OFF+センター補正済み)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
@@ -150,6 +162,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		leftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
 		leftLegIkPositions[index] = leftLegIkBf.Position.Subed(leftLegDiff)
 	})
+
+	mlog.I(mi18n.T("全身位置角度合わせ06", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	offsetXZs := make(map[float32]*mmath.MVec3)
 	offsetYs := make(map[float32]*mmath.MVec3)
@@ -180,6 +194,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		offsetXZs[frame] = &mmath.MVec3{X: x, Y: 0, Z: z}
 		offsetYs[frame] = &mmath.MVec3{X: 0, Y: y, Z: 0}
 	}
+
+	mlog.I(mi18n.T("全身位置角度合わせ07", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
