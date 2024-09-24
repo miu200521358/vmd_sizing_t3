@@ -196,10 +196,10 @@ func SizingStance(sizingSet *model.SizingSet) {
 					if _, ok := stanceQuats[bone.Index()]; ok {
 						sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(originalBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
 						sizingBfs.Update(sizingBf)
-					} else if bone.IsTwist() {
-						// 捩系は軸に合わせて回転を修正する
-						sizingBf.Rotation = originalBf.Rotation.ToFixedAxisRotation(bone.Extend.NormalizedFixedAxis)
-						sizingBfs.Update(sizingBf)
+						// } else if bone.IsTwist() {
+						// 	// 捩系は軸に合わせて回転を修正する
+						// 	sizingBf.Rotation = originalBf.Rotation.ToFixedAxisRotation(bone.Extend.NormalizedFixedAxis)
+						// 	sizingBfs.Update(sizingBf)
 					}
 				}
 			}

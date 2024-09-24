@@ -16,6 +16,8 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	}
 	// TODO　必須ボーンチェック
 
+	scales := getMoveScale(sizingSet)
+
 	// 足補正
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
@@ -36,31 +38,16 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	trunkFrames := originalMotion.BoneFrames.RegisteredFrames(trunk_bone_names)
 	m := make(map[int]struct{})
 	frames := make([]int, 0, len(leftFrames)+len(rightFrames)+len(trunkFrames))
-	leftZeroFrames := make([]float32, 0, len(leftFrames)+len(rightFrames)+len(trunkFrames))
-	rightZeroFrames := make([]float32, 0, len(leftFrames)+len(rightFrames)+len(trunkFrames))
 	for _, fs := range [][]int{leftFrames, rightFrames, trunkFrames} {
 		for _, f := range fs {
 			if _, ok := m[f]; ok {
 				continue
 			}
-
-			frame := float32(f)
-			leftLegIkBf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
-			if mmath.NearEquals(leftLegIkBf.Position.Y, 0, 1e-3) {
-				leftZeroFrames = append(leftZeroFrames, frame)
-			}
-			rightLegIkBf := originalMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
-			if mmath.NearEquals(rightLegIkBf.Position.Y, 0, 1e-3) {
-				rightZeroFrames = append(rightZeroFrames, frame)
-			}
-
 			m[f] = struct{}{}
 			frames = append(frames, f)
 		}
 	}
 	mmath.SortInts(frames)
-	mmath.SortFloat32s(leftZeroFrames)
-	mmath.SortFloat32s(rightZeroFrames)
 
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
@@ -89,12 +76,9 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	}
 
 	sizingOffDeltas := make([]*delta.VmdDeltas, len(frames))
-	rightLegDiffs := make([]*mmath.MVec3, len(frames))
-
 	centerPositions := make([]*mmath.MVec3, len(frames))
 	groovePositions := make([]*mmath.MVec3, len(frames))
 	rightLegIkPositions := make([]*mmath.MVec3, len(frames))
-	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
 
 	// サイジング先モデルのデフォーム(IK OFF)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
@@ -117,8 +101,6 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 
 		// 右足IKを動かさなかった場合のセンターと左足IKの位置を調整する用の値を保持
 		// （この時点でキーフレに追加すると動きが変わる）
-		rightLegDiffs[index] = rightLegDiff
-
 		centerBf := sizingMotion.BoneFrames.Get(centerBone.Name()).Get(frame)
 		centerPositions[index] = centerBf.Position.Added(&mmath.MVec3{X: rightLegDiff.X, Y: 0, Z: rightLegDiff.Z})
 
@@ -127,12 +109,9 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 
 		rightLegIkBf := sizingMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
 		rightLegIkPositions[index] = rightLegIkBf.Position
-
-		leftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
-		leftLegIkPositions[index] = leftLegIkBf.Position.Added(rightLegDiff)
 	})
 
-	// 補正を登録(ここで参照すると結果がズレる)
+	// 補正を登録
 	for i, vmdDeltas := range sizingOffDeltas {
 		rightLegBoneDelta := vmdDeltas.Bones.Get(rightLegBone.Index())
 
@@ -143,13 +122,10 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		sizingGrooveBf := sizingMotion.BoneFrames.Get(grooveBone.Name()).Get(rightLegBoneDelta.Frame)
 		sizingGrooveBf.Position = groovePositions[i]
 		sizingMotion.InsertRegisteredBoneFrame(grooveBone.Name(), sizingGrooveBf)
-
-		sizingLeftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(rightLegBoneDelta.Frame)
-		sizingLeftLegIkBf.Position = leftLegIkPositions[i]
-		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), sizingLeftLegIkBf)
 	}
 
 	sizingCenterDeltas := make([]*delta.VmdDeltas, len(frames))
+	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
 
 	// サイジング先モデルのデフォーム(IK OFF+センター補正済み)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
@@ -176,79 +152,76 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	})
 
 	// 右足IKを動かさなかった場合の左足首の位置を調整
+	sizingLeftFootLength := sizingModel.Bones.GetByName(pmx.HEEL.Left()).Position.Distance(
+		sizingModel.Bones.GetByName(pmx.TOE.Left()).Position)
+	originalLeftFootLength := originalModel.Bones.GetByName(pmx.HEEL.Left()).Position.Distance(
+		originalModel.Bones.GetByName(pmx.TOE.Left()).Position)
+	leftFootRatio := sizingLeftFootLength / originalLeftFootLength
+	sizingRightFootLength := sizingModel.Bones.GetByName(pmx.HEEL.Right()).Position.Distance(
+		sizingModel.Bones.GetByName(pmx.TOE.Right()).Position)
+	originalRightFootLength := originalModel.Bones.GetByName(pmx.HEEL.Right()).Position.Distance(
+		originalModel.Bones.GetByName(pmx.TOE.Right()).Position)
+	rightFootRatio := sizingRightFootLength / originalRightFootLength
+
+	offsetXZs := make(map[float32]*mmath.MVec3)
+	offsetYs := make(map[float32]*mmath.MVec3)
+
+	// 左足の結果を登録＆センターのオフセットを保持
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
 		leftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
 		leftLegIkBf.Position = leftLegIkPositions[i]
 		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), leftLegIkBf)
-	}
 
-	leftAdjustYs := make(map[float32]float64)
-	for i, iFrame := range leftZeroFrames {
-		if i == 0 {
-			continue
+		originalLeftLegIkBf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
+		originalRightLegIkBf := originalMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
+
+		y := 0.0
+		if originalLeftLegIkBf.Position.Y < originalRightLegIkBf.Position.Y {
+			y = originalLeftLegIkBf.Position.Y*leftFootRatio - leftLegIkPositions[i].Y
+		} else {
+			y = originalRightLegIkBf.Position.Y*rightFootRatio - rightLegIkPositions[i].Y
 		}
-		frame := float32(iFrame)
-		prevFrame := float32(leftZeroFrames[i-1])
 
-		leftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
-		leftLegIkY := 0 - leftLegIkBf.Position.Y
+		originalCenterBf := originalMotion.BoneFrames.Get(centerBone.Name()).Get(frame)
+		scaledCenter := originalCenterBf.Position.Muled(scales)
 
-		prevLeftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(prevFrame)
-		prevLeftLegIkY := 0 - prevLeftLegIkBf.Position.Y
+		x := scaledCenter.X - centerPositions[i].X
+		z := scaledCenter.Z - centerPositions[i].Z
 
-		// Y=0の間を線形補間
-		for f := prevFrame; f <= frame; f++ {
-			y := mmath.LerpFloat(prevLeftLegIkY, leftLegIkY, float64(f-prevFrame)/float64(frame-prevFrame))
-			leftAdjustYs[f] = y
-		}
-	}
-
-	rightAdjustYs := make(map[float32]float64)
-	for i, iFrame := range rightZeroFrames {
-		if i == 0 {
-			continue
-		}
-		frame := float32(iFrame)
-		prevFrame := float32(rightZeroFrames[i-1])
-
-		rightLegIkBf := sizingMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
-		rightLegIkY := 0 - rightLegIkBf.Position.Y
-
-		prevRightLegIkBf := sizingMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(prevFrame)
-		prevRightLegIkY := 0 - prevRightLegIkBf.Position.Y
-
-		// Y=0の間を線形補間
-		for f := prevFrame; f <= frame; f++ {
-			y := mmath.LerpFloat(prevRightLegIkY, rightLegIkY, float64(f-prevFrame)/float64(frame-prevFrame))
-			rightAdjustYs[f] = y
-		}
+		offsetXZs[frame] = &mmath.MVec3{X: x, Y: 0, Z: z}
+		offsetYs[frame] = &mmath.MVec3{X: 0, Y: y, Z: 0}
 	}
 
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
-		ly := 0.0
-		if y, ok := leftAdjustYs[frame]; ok {
-			ly = y
+		offsetPos := mmath.NewMVec3()
+
+		if offsetXZ, ok := offsetXZs[frame]; ok {
+			centerBf := sizingMotion.BoneFrames.Get(centerBone.Name()).Get(frame)
+			centerBf.Position = centerPositions[i].Added(offsetXZ)
+			sizingMotion.InsertRegisteredBoneFrame(centerBone.Name(), centerBf)
+
+			offsetPos.Add(offsetXZ)
 		}
 
-		ry := 0.0
-		if y, ok := rightAdjustYs[frame]; ok {
-			ry = y
-		}
+		if offsetY, ok := offsetYs[frame]; ok {
+			grooveBf := sizingMotion.BoneFrames.Get(grooveBone.Name()).Get(frame)
+			grooveBf.Position = groovePositions[i].Added(offsetY)
+			sizingMotion.InsertRegisteredBoneFrame(grooveBone.Name(), grooveBf)
 
-		grooveBf := sizingMotion.BoneFrames.Get(grooveBone.Name()).Get(frame)
-		grooveBf.Position = groovePositions[i].Added(&mmath.MVec3{X: 0, Y: ly + ry, Z: 0})
-		sizingMotion.InsertRegisteredBoneFrame(grooveBone.Name(), grooveBf)
+			offsetPos.Add(offsetY)
+		}
 
 		rightLegIkBf := sizingMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
-		rightLegIkBf.Position = rightLegIkPositions[i].Added(&mmath.MVec3{X: 0, Y: ly + ry, Z: 0})
+		rightLegIkBf.Position = rightLegIkPositions[i].Added(offsetPos)
 		sizingMotion.InsertRegisteredBoneFrame(rightLegIkBone.Name(), rightLegIkBf)
 
 		leftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
-		leftLegIkBf.Position = leftLegIkPositions[i].Added(&mmath.MVec3{X: 0, Y: ly + ry, Z: 0})
+		leftLegIkBf.Position = leftLegIkPositions[i].Added(offsetPos)
 		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), leftLegIkBf)
+
 	}
 }
