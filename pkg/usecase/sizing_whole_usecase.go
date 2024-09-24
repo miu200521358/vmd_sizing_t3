@@ -151,18 +151,6 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		leftLegIkPositions[index] = leftLegIkBf.Position.Subed(leftLegDiff)
 	})
 
-	// 右足IKを動かさなかった場合の左足首の位置を調整
-	sizingLeftFootLength := sizingModel.Bones.GetByName(pmx.HEEL.Left()).Position.Distance(
-		sizingModel.Bones.GetByName(pmx.TOE.Left()).Position)
-	originalLeftFootLength := originalModel.Bones.GetByName(pmx.HEEL.Left()).Position.Distance(
-		originalModel.Bones.GetByName(pmx.TOE.Left()).Position)
-	leftFootRatio := sizingLeftFootLength / originalLeftFootLength
-	sizingRightFootLength := sizingModel.Bones.GetByName(pmx.HEEL.Right()).Position.Distance(
-		sizingModel.Bones.GetByName(pmx.TOE.Right()).Position)
-	originalRightFootLength := originalModel.Bones.GetByName(pmx.HEEL.Right()).Position.Distance(
-		originalModel.Bones.GetByName(pmx.TOE.Right()).Position)
-	rightFootRatio := sizingRightFootLength / originalRightFootLength
-
 	offsetXZs := make(map[float32]*mmath.MVec3)
 	offsetYs := make(map[float32]*mmath.MVec3)
 
@@ -175,13 +163,12 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), leftLegIkBf)
 
 		originalLeftLegIkBf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
-		originalRightLegIkBf := originalMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
+		scaledLeftLegIk := originalLeftLegIkBf.Position.Muled(scales)
 
-		y := 0.0
-		if originalLeftLegIkBf.Position.Y < originalRightLegIkBf.Position.Y {
-			y = originalLeftLegIkBf.Position.Y*leftFootRatio - leftLegIkPositions[i].Y
-		} else {
-			y = originalRightLegIkBf.Position.Y*rightFootRatio - rightLegIkPositions[i].Y
+		// 右足首基準で求めたので、左足首基準で補正
+		y := scaledLeftLegIk.Y - leftLegIkPositions[i].Y
+		if rightLegIkPositions[i].Y+y < 0 {
+			y += -(rightLegIkPositions[i].Y + y)
 		}
 
 		originalCenterBf := originalMotion.BoneFrames.Get(centerBone.Name()).Get(frame)
@@ -222,6 +209,5 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		leftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
 		leftLegIkBf.Position = leftLegIkPositions[i].Added(offsetPos)
 		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), leftLegIkBf)
-
 	}
 }
