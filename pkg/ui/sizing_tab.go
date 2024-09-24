@@ -3,6 +3,7 @@ package ui
 import (
 	"sync"
 
+	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
@@ -918,9 +919,15 @@ func remakeSizingMorph(toolState *ToolState) {
 					sizingSet.CompletedSizingFingerStance = false
 					sizingSet.CompletedSizingWholeStance = false
 				}
-				usecase.SizingStance(sizingSet)
+
+				var scales *mmath.MVec3
+				if sizingSet.IsSizingMove || sizingSet.IsSizingWholeStance {
+					scales = usecase.GetMoveScale(sizingSet)
+				}
+
+				usecase.SizingStance(sizingSet, scales)
 				usecase.SizingLegStance(sizingSet)
-				usecase.SizingWholeStance(sizingSet)
+				usecase.SizingWholeStance(sizingSet, scales)
 				sizingSet.OutputVmd.SetRandHash()
 			}(sizingSet)
 		}

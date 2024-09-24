@@ -12,7 +12,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
 )
 
-var trunk_bone_names = []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String()}
+var trunk_bone_names = []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER.String()}
 var leg_direction_bone_names = [][]string{
 	{pmx.LEG.Left(), pmx.KNEE.Left(), pmx.HEEL.Left(), pmx.ANKLE.Left(), pmx.TOE.Left(), pmx.TOE_P.Left(),
 		pmx.TOE_C.Left(), pmx.LEG_D.Left(), pmx.KNEE_D.Left(), pmx.HEEL_D.Left(), pmx.ANKLE_D.Left(),

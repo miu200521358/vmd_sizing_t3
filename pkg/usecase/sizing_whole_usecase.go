@@ -12,22 +12,104 @@ import (
 )
 
 // 全身位置角度合わせ
-func SizingWholeStance(sizingSet *model.SizingSet) {
+func SizingWholeStance(sizingSet *model.SizingSet, scales *mmath.MVec3) {
 	if !sizingSet.IsSizingWholeStance || (sizingSet.IsSizingWholeStance && sizingSet.CompletedSizingWholeStance) {
 		return
 	}
-	// TODO　必須ボーンチェック
 
-	scales := getMoveScale(sizingSet)
+	if !isValidWholeStance(sizingSet) {
+		return
+	}
 
+	// 下半身・足補正
+	sizingWholeLowerLegStance(sizingSet, scales)
+}
+
+func isValidWholeStance(sizingSet *model.SizingSet) bool {
+	originalModel := sizingSet.OriginalPmx
+	sizingModel := sizingSet.SizingPmx
+
+	// センター、グルーブ、下半身、右足IK、左足IKが存在するか
+
+	if !originalModel.Bones.ContainsByName(pmx.CENTER.String()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.CENTER.String()}))
+		return false
+	}
+
+	if !originalModel.Bones.ContainsByName(pmx.GROOVE.String()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.GROOVE.String()}))
+		return false
+	}
+
+	if !originalModel.Bones.ContainsByName(pmx.LOWER.String()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.LOWER.String()}))
+		return false
+	}
+
+	if !originalModel.Bones.ContainsByName(pmx.LEG_IK.Right()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.LEG_IK.Right()}))
+		return false
+	}
+
+	if !originalModel.Bones.ContainsByName(pmx.LEG_IK.Left()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.LEG_IK.Left()}))
+		return false
+	}
+
+	if !sizingModel.Bones.ContainsByName(pmx.CENTER.String()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("サイジング先モデル"), "BoneName": pmx.CENTER.String()}))
+		return false
+	}
+
+	if !sizingModel.Bones.ContainsByName(pmx.GROOVE.String()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("サイジング先モデル"), "BoneName": pmx.GROOVE.String()}))
+		return false
+	}
+
+	if !sizingModel.Bones.ContainsByName(pmx.LOWER.String()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("サイジング先モデル"), "BoneName": pmx.LOWER.String()}))
+		return false
+	}
+
+	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK.Right()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("サイジング先モデル"), "BoneName": pmx.LEG_IK.Right()}))
+		return false
+	}
+
+	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK.Left()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全身位置角度合わせボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("サイジング先モデル"), "BoneName": pmx.LEG_IK.Left()}))
+		return false
+	}
+
+	return true
+}
+
+func sizingWholeLowerLegStance(sizingSet *model.SizingSet, scales *mmath.MVec3) {
 	// 足補正
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
+	originalLegCenterBone := originalModel.Bones.GetByName(pmx.LEG_CENTER.String())
+	originalLowerBone := originalModel.Bones.GetByName(pmx.LOWER.String())
+	// originalLeftBone := originalModel.Bones.GetByName(pmx.LEG.Left())
+	// originalRightBone := originalModel.Bones.GetByName(pmx.LEG.Right())
+
 	centerBone := sizingModel.Bones.GetByName(pmx.CENTER.String())
 	grooveBone := sizingModel.Bones.GetByName(pmx.GROOVE.String())
+	lowerBone := sizingModel.Bones.GetByName(pmx.LOWER.String())
+	legCenterBone := sizingModel.Bones.GetByName(pmx.LEG_CENTER.String())
 	rightLegIkBone := sizingModel.Bones.GetByName(pmx.LEG_IK.Right())
 	rightLegBone := sizingModel.Bones.GetByName(pmx.LEG.Right())
 	rightAnkleBone := sizingModel.Bones.Get(sizingModel.Bones.GetByName(pmx.LEG_IK.Right()).Ik.BoneIndex)
@@ -85,6 +167,9 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 	centerPositions := make([]*mmath.MVec3, len(frames))
 	groovePositions := make([]*mmath.MVec3, len(frames))
 	rightLegIkPositions := make([]*mmath.MVec3, len(frames))
+	// lowerRotations := make([]*mmath.MQuaternion, len(frames))
+	// rightLegRotations := make([]*mmath.MQuaternion, len(frames))
+	// leftLegRotations := make([]*mmath.MQuaternion, len(frames))
 
 	mlog.I(mi18n.T("全身位置角度合わせ03", map[string]interface{}{"No": sizingSet.Index + 1}))
 
@@ -97,23 +182,67 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		sizingOffDeltas[index] = vmdDeltas
 
 		// 右足首から見た右足ボーンの相対位置を取得
-		rightLegIkBoneDelta := vmdDeltas.Bones.Get(rightLegIkBone.Index())
-		rightLegBoneDelta := vmdDeltas.Bones.Get(rightLegBone.Index())
-		rightAnkleBoneDelta := vmdDeltas.Bones.Get(rightAnkleBone.Index())
+		rightLegIkDelta := vmdDeltas.Bones.Get(rightLegIkBone.Index())
+		rightLegDelta := vmdDeltas.Bones.Get(rightLegBone.Index())
+		rightAnkleDelta := vmdDeltas.Bones.Get(rightAnkleBone.Index())
 
-		rightLegFkLocalPosition := rightAnkleBoneDelta.FilledGlobalPosition().Subed(
-			rightLegBoneDelta.FilledGlobalPosition())
-		rightLegIkLocalPosition := rightLegIkBoneDelta.FilledGlobalPosition().Subed(
-			rightLegBoneDelta.FilledGlobalPosition())
+		rightLegFkLocalPosition := rightAnkleDelta.FilledGlobalPosition().Subed(
+			rightLegDelta.FilledGlobalPosition())
+		rightLegIkLocalPosition := rightLegIkDelta.FilledGlobalPosition().Subed(
+			rightLegDelta.FilledGlobalPosition())
 		rightLegDiff := rightLegIkLocalPosition.Subed(rightLegFkLocalPosition)
+
+		// 足中心から見た下半身ボーンの相対位置を取得
+		originalLegCenterDelta := originalAllDeltas[index].Bones.Get(originalLegCenterBone.Index())
+		originalLowerDelta := originalAllDeltas[index].Bones.Get(originalLowerBone.Index())
+		originalLegCenterLocalPosition := originalLegCenterDelta.FilledGlobalMatrix().Inverted().MulVec3(
+			originalLowerDelta.FilledGlobalPosition())
+
+		// サイジング先の足中心から、オリジナルの下半身位置を加算した時の結果
+		legCenterDelta := vmdDeltas.Bones.Get(legCenterBone.Index())
+		lowerDelta := vmdDeltas.Bones.Get(lowerBone.Index())
+		sizingLowerGlobalPosition := lowerDelta.FilledGlobalPosition()
+		sizingFixLowerGlobalPosition := legCenterDelta.FilledGlobalMatrix().MulVec3(originalLegCenterLocalPosition)
+
+		// originalLeftLegDelta := originalAllDeltas[index].Bones.Get(originalLeftBone.Index())
+		// originalRightLegDelta := originalAllDeltas[index].Bones.Get(originalRightBone.Index())
+		// originalLegUp := originalLeftLegDelta.FilledGlobalPosition().Subed(
+		// 	originalRightLegDelta.FilledGlobalPosition())
+		// originalLegDirection := originalLegCenterDelta.FilledGlobalPosition().Subed(
+		// 	originalLowerDelta.FilledGlobalPosition())
+		// originalLegSlope := mmath.NewMQuaternionFromDirection(
+		// 	originalLegDirection.Normalized(), originalLegUp.Normalized())
+
+		// sizingLeftLegDelta := vmdDeltas.Bones.Get(leftLegBone.Index())
+		// sizingRightLegDelta := vmdDeltas.Bones.Get(rightLegBone.Index())
+		// sizingLegUp := sizingLeftLegDelta.FilledGlobalPosition().Subed(
+		// 	sizingRightLegDelta.FilledGlobalPosition())
+		// sizingLegDirection := legCenterDelta.FilledGlobalPosition().Subed(
+		// 	lowerDelta.FilledGlobalPosition())
+		// sizingLegSlope := mmath.NewMQuaternionFromDirection(
+		// 	sizingLegDirection.Normalized(), sizingLegUp.Normalized())
+
+		// // 下半身の向きを元モデルと同じにする
+		// lowerBf := sizingMotion.BoneFrames.Get(lowerBone.Name()).Get(frame)
+		// lowerOffsetRotation := originalLegSlope.Muled(sizingLegSlope.Inverted())
+		// lowerRotations[index] = lowerOffsetRotation.Muled(lowerBf.Rotation)
+		lowerDiff := sizingLowerGlobalPosition.Subed(sizingFixLowerGlobalPosition)
+
+		// rightLegBf := sizingMotion.BoneFrames.Get(rightLegBone.Name()).Get(frame)
+		// rightLegRotations[index] = lowerOffsetRotation.Muled(rightLegBf.Rotation)
+
+		// leftLegBf := sizingMotion.BoneFrames.Get(leftLegBone.Name()).Get(frame)
+		// leftLegRotations[index] = lowerOffsetRotation.Muled(leftLegBf.Rotation)
 
 		// 右足IKを動かさなかった場合のセンターと左足IKの位置を調整する用の値を保持
 		// （この時点でキーフレに追加すると動きが変わる）
 		centerBf := sizingMotion.BoneFrames.Get(centerBone.Name()).Get(frame)
-		centerPositions[index] = centerBf.Position.Added(&mmath.MVec3{X: rightLegDiff.X, Y: 0, Z: rightLegDiff.Z})
+		centerPositions[index] = centerBf.Position.Added(
+			&mmath.MVec3{X: rightLegDiff.X + lowerDiff.X, Y: 0, Z: rightLegDiff.Z + lowerDiff.Z})
 
 		grooveBf := sizingMotion.BoneFrames.Get(grooveBone.Name()).Get(frame)
-		groovePositions[index] = grooveBf.Position.Added(&mmath.MVec3{X: 0, Y: rightLegDiff.Y, Z: 0})
+		groovePositions[index] = grooveBf.Position.Added(
+			&mmath.MVec3{X: 0, Y: rightLegDiff.Y + lowerDiff.Y, Z: 0})
 
 		rightLegIkBf := sizingMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
 		rightLegIkPositions[index] = rightLegIkBf.Position
@@ -132,6 +261,18 @@ func SizingWholeStance(sizingSet *model.SizingSet) {
 		sizingGrooveBf := sizingMotion.BoneFrames.Get(grooveBone.Name()).Get(rightLegBoneDelta.Frame)
 		sizingGrooveBf.Position = groovePositions[i]
 		sizingMotion.InsertRegisteredBoneFrame(grooveBone.Name(), sizingGrooveBf)
+
+		// sizingLowerBf := sizingMotion.BoneFrames.Get(lowerBone.Name()).Get(rightLegBoneDelta.Frame)
+		// sizingLowerBf.Rotation = lowerRotations[i]
+		// sizingMotion.InsertRegisteredBoneFrame(lowerBone.Name(), sizingLowerBf)
+
+		// sizingRightLegBf := sizingMotion.BoneFrames.Get(rightLegBone.Name()).Get(rightLegBoneDelta.Frame)
+		// sizingRightLegBf.Rotation = rightLegRotations[i]
+		// sizingMotion.InsertRegisteredBoneFrame(rightLegBone.Name(), sizingRightLegBf)
+
+		// sizingLeftLegBf := sizingMotion.BoneFrames.Get(leftLegBone.Name()).Get(rightLegBoneDelta.Frame)
+		// sizingLeftLegBf.Rotation = leftLegRotations[i]
+		// sizingMotion.InsertRegisteredBoneFrame(leftLegBone.Name(), sizingLeftLegBf)
 	}
 
 	sizingCenterDeltas := make([]*delta.VmdDeltas, len(frames))

@@ -111,9 +111,11 @@ func createStanceQuats(
 	return stanceQuats
 }
 
-func getMoveScale(sizingSet *model.SizingSet) *mmath.MVec3 {
+func GetMoveScale(sizingSet *model.SizingSet) *mmath.MVec3 {
 	originalModel := sizingSet.OriginalPmx
 	sizingModel := sizingSet.SizingPmx
+
+	// TODO 複数人いるときのスケール
 
 	if sizingModel.Bones.GetByName(pmx.LEG.Left()) == nil ||
 		sizingModel.Bones.GetByName(pmx.KNEE.Left()) == nil ||
@@ -153,7 +155,7 @@ func getMoveScale(sizingSet *model.SizingSet) *mmath.MVec3 {
 	return mmath.MVec3One
 }
 
-func SizingStance(sizingSet *model.SizingSet) {
+func SizingStance(sizingSet *model.SizingSet, scales *mmath.MVec3) {
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
 	sizingModel := sizingSet.SizingPmx
@@ -163,11 +165,6 @@ func SizingStance(sizingSet *model.SizingSet) {
 		return
 	}
 	// TODO　必須ボーンチェック
-
-	var scales *mmath.MVec3
-	if sizingSet.IsSizingMove {
-		scales = getMoveScale(sizingSet)
-	}
 
 	stanceQuats := createStanceQuats(originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
 
