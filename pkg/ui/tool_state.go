@@ -28,6 +28,7 @@ type ToolState struct {
 	SizingPmxPicker               *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
 	OutputPmxPicker               *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
+	SizingAllCheck                *walk.CheckBox      // 全体チェック
 	SizingLegCheck                *walk.CheckBox      // 足チェック
 	SizingLowerCheck              *walk.CheckBox      // 下半身チェック
 	SizingUpperCheck              *walk.CheckBox      // 上半身チェック
@@ -156,6 +157,7 @@ func (toolState *ToolState) addSizingSet() error {
 	toolState.SizingPmxPicker.SetName("")
 
 	toolState.OutputVmdPicker.SetPath("")
+	toolState.OutputPmxPicker.SetPath("")
 
 	toolState.ResetSizingParameter()
 	toolState.ResetOriginalPmxParameter()
@@ -199,6 +201,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.SizingPmxPicker.SetName(sizingSet.SizingPmxName)
 
 	toolState.OutputVmdPicker.SetPath(sizingSet.OutputVmdPath)
+	toolState.OutputPmxPicker.SetPath(sizingSet.OutputPmxPath)
 
 	toolState.OriginalPmxRatioEdit.SetValue(sizingSet.OriginalPmxRatio)
 	toolState.OriginalPmxUpperLengthEdit.SetValue(sizingSet.OriginalPmxUpperLength)
@@ -229,10 +232,12 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 }
 
 func (toolState *ToolState) ResetSizingParameter() {
-	toolState.SizingArmCheck.SetChecked(false)
 	toolState.SizingLegCheck.SetChecked(false)
-	toolState.SizingFingerCheck.SetChecked(false)
 	toolState.SizingLowerCheck.SetChecked(false)
+	toolState.SizingUpperCheck.SetChecked(false)
+	toolState.SizingShoulderCheck.SetChecked(false)
+	toolState.SizingArmCheck.SetChecked(false)
+	toolState.SizingFingerCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -307,6 +312,7 @@ func (toolState *ToolState) onPlay(playing bool) {
 	toolState.OriginalPmxPicker.SetEnabled(!playing)
 	toolState.SizingPmxPicker.SetEnabled(!playing)
 	toolState.OutputVmdPicker.SetEnabled(!playing)
+	toolState.OutputPmxPicker.SetEnabled(!playing)
 	toolState.SetOriginalPmxParameterEnabled(!playing && toolState.IsOriginalJson())
 }
 
@@ -347,8 +353,11 @@ func (toolState *ToolState) ResetSizingCheck() {
 		sizingSet.ResetSizingFlag()
 	}
 
-	toolState.SizingArmCheck.UpdateChecked(false)
 	toolState.SizingLegCheck.SetChecked(false)
-	toolState.SizingFingerCheck.SetChecked(false)
 	toolState.SizingLowerCheck.SetChecked(false)
+	toolState.SizingUpperCheck.SetChecked(false)
+	toolState.SizingShoulderCheck.SetChecked(false)
+	toolState.SizingArmCheck.SetChecked(false)
+	toolState.SizingArmCheck.UpdateChecked(false)
+	toolState.SizingFingerCheck.SetChecked(false)
 }

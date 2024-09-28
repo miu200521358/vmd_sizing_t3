@@ -248,7 +248,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					model := data.(*pmx.PmxModel)
-					sizingModel, nonExistBoneNames, err := usecase.AdjustPmxForSizing(model)
+					sizingModel, _, err := usecase.AdjustPmxForSizing(model)
 					if err != nil {
 						mlog.E(mi18n.T("素体読み込み失敗"), err)
 						return
@@ -261,30 +261,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = sizingModel.Name()
 					toolState.ResetSizingCheck()
 
-					isAdd := false
-					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd != nil {
-						for _, boneName := range nonExistBoneNames {
-							if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd.BoneFrames.Contains(boneName) {
-								isAdd = true
-								break
-							}
-						}
-					}
-
 					// 出力モデル
-					if isAdd {
-						mlog.IT(mi18n.T("先モデルボーン追加"), mi18n.T("先モデルボーン追加説明"))
+					sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
+					toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
+					toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
+						mutils.CreateOutputPath(path, "sizing")
 
-						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
-							mutils.CreateOutputPath(path, "sizing")
-
-						toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
-					} else {
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = nil
-						toolState.OutputPmxPicker.SetPath("")
-					}
+					toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
 
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						// モーション未設定の場合、空モーションを定義する
@@ -342,21 +325,30 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				Children: []declarative.Widget{
 					// 全補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingLegCheck,
+						AssignTo: &toolState.SizingAllCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
-								sizingSet.IsSizingLower = toolState.SizingLegCheck.Checked()
-								sizingSet.IsSizingArm = toolState.SizingLegCheck.Checked()
-								sizingSet.IsSizingFinger = toolState.SizingLegCheck.Checked()
+								sizingSet.IsSizingLeg = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingLower = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingUpper = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingShoulder = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingArm = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingFinger = toolState.SizingAllCheck.Checked()
+
+								toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+								toolState.SizingLowerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+								toolState.SizingUpperCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+								toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+								toolState.SizingArmCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+								toolState.SizingFingerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							}
-							remakeSizingMorph(toolState)
+							retakeSizing(toolState)
 
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 80, Height: 20},
-						MaxSize: declarative.Size{Width: 80, Height: 20},
+						MinSize: declarative.Size{Width: 100, Height: 20},
+						MaxSize: declarative.Size{Width: 100, Height: 20},
 						Text:    mi18n.T("全補正"),
 					},
 					declarative.Label{Text: mi18n.T("全補正概要"), ColumnSpan: 3},
@@ -367,13 +359,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							for _, sizingSet := range toolState.SizingSets {
 								sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
 							}
-							remakeSizingMorph(toolState)
-
+							retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 80, Height: 20},
-						MaxSize: declarative.Size{Width: 80, Height: 20},
+						MinSize: declarative.Size{Width: 100, Height: 20},
+						MaxSize: declarative.Size{Width: 100, Height: 20},
 						Text:    mi18n.T("足補正"),
 					},
 					declarative.Label{Text: mi18n.T("足補正概要")},
@@ -388,12 +379,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								}
 								sizingSet.IsSizingLower = toolState.SizingLowerCheck.Checked()
 							}
-							remakeSizingMorph(toolState)
+							retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 80, Height: 20},
-						MaxSize: declarative.Size{Width: 80, Height: 20},
+						MinSize: declarative.Size{Width: 100, Height: 20},
+						MaxSize: declarative.Size{Width: 100, Height: 20},
 						Text:    mi18n.T("下半身補正"),
 					},
 					declarative.Label{Text: mi18n.T("下半身補正概要")},
@@ -402,17 +393,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						AssignTo: &toolState.SizingUpperCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								if toolState.SizingUpperCheck.Checked() {
-									sizingSet.IsSizingLeg = true
-									toolState.SizingLegCheck.UpdateChecked(true)
-								}
 								sizingSet.IsSizingUpper = toolState.SizingUpperCheck.Checked()
 							}
-							remakeSizingMorph(toolState)
+							retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						Text: mi18n.T("上半身補正"),
+						MinSize: declarative.Size{Width: 100, Height: 20},
+						MaxSize: declarative.Size{Width: 100, Height: 20},
+						Text:    mi18n.T("上半身補正"),
 					},
 					declarative.Label{Text: mi18n.T("上半身補正概要")},
 					// 肩補正
@@ -422,11 +411,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							for _, sizingSet := range toolState.SizingSets {
 								sizingSet.IsSizingShoulder = toolState.SizingShoulderCheck.Checked()
 							}
-							remakeSizingMorph(toolState)
+							retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						Text: mi18n.T("肩補正"),
+						MinSize: declarative.Size{Width: 100, Height: 20},
+						MaxSize: declarative.Size{Width: 100, Height: 20},
+						Text:    mi18n.T("肩補正"),
 					},
 					declarative.Label{Text: mi18n.T("肩補正概要")},
 					// 腕補正
@@ -435,16 +426,18 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
 								if toolState.SizingArmCheck.Checked() {
-									sizingSet.IsSizingLeg = true
-									toolState.SizingLegCheck.UpdateChecked(true)
+									sizingSet.IsSizingUpper = true
+									toolState.SizingUpperCheck.UpdateChecked(true)
 								}
 								sizingSet.IsSizingArm = toolState.SizingArmCheck.Checked()
 							}
-							remakeSizingMorph(toolState)
+							retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						Text: mi18n.T("腕補正"),
+						MinSize: declarative.Size{Width: 100, Height: 20},
+						MaxSize: declarative.Size{Width: 100, Height: 20},
+						Text:    mi18n.T("腕補正"),
 					},
 					declarative.Label{Text: mi18n.T("腕補正概要")},
 					// 指補正
@@ -454,11 +447,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							for _, sizingSet := range toolState.SizingSets {
 								sizingSet.IsSizingFinger = toolState.SizingFingerCheck.Checked()
 							}
-							remakeSizingMorph(toolState)
+							retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						Text: mi18n.T("指補正"),
+						MinSize: declarative.Size{Width: 100, Height: 20},
+						MaxSize: declarative.Size{Width: 100, Height: 20},
+						Text:    mi18n.T("指補正"),
 					},
 					declarative.Label{Text: mi18n.T("指補正概要")},
 				},
@@ -947,7 +942,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	}
 }
 
-func remakeSizingMorph(toolState *ToolState) {
+func retakeSizing(toolState *ToolState) {
 	toolState.SetEnabled(false)
 
 	allScales := usecase.GenerateSizingScales(toolState.SizingSets)
@@ -961,6 +956,8 @@ func remakeSizingMorph(toolState *ToolState) {
 				defer wg.Done()
 				if (!sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) ||
 					(!sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) ||
+					(!sizingSet.IsSizingUpper && sizingSet.CompletedSizingUpper) ||
+					(!sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) ||
 					(!sizingSet.IsSizingArm && sizingSet.CompletedSizingArm) ||
 					(!sizingSet.IsSizingFinger && sizingSet.CompletedSizingFinger) {
 					// チェックを外したら読み直し
@@ -971,14 +968,17 @@ func remakeSizingMorph(toolState *ToolState) {
 					}
 					sizingSet.OutputVmd = sizingMotion.(*vmd.VmdMotion)
 
-					sizingSet.CompletedSizingArm = false
 					sizingSet.CompletedSizingLeg = false
-					sizingSet.CompletedSizingFinger = false
 					sizingSet.CompletedSizingLower = false
+					sizingSet.CompletedSizingUpper = false
+					sizingSet.CompletedSizingShoulder = false
+					sizingSet.CompletedSizingArm = false
+					sizingSet.CompletedSizingFinger = false
 				}
 
 				frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				usecase.SizingLower(sizingSet, frames, originalAllDeltas)
+				usecase.SizingUpper(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 			}(sizingSet)
 		}

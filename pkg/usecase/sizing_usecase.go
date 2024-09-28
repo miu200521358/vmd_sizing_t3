@@ -6,7 +6,11 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-var trunk_bone_names = []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER.String(), pmx.LEG_CENTER.String()}
+var trunk_upper_bone_names = []string{
+	pmx.TRUNK_ROOT.String(), pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String()}
+var trunk_lower_bone_names = []string{
+	pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER_ROOT.String(),
+	pmx.LOWER.String(), pmx.LEG_CENTER.String()}
 var leg_direction_bone_names = [][]string{
 	{pmx.LEG.Left(), pmx.KNEE.Left(), pmx.HEEL.Left(), pmx.ANKLE.Left(), pmx.TOE.Left(), pmx.TOE_P.Left(),
 		pmx.TOE_C.Left(), pmx.LEG_D.Left(), pmx.KNEE_D.Left(), pmx.HEEL_D.Left(), pmx.ANKLE_D.Left(),
@@ -18,7 +22,9 @@ var leg_direction_bone_names = [][]string{
 		pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Right(), pmx.TOE_IK.Right()},
 }
 var leg_all_direction_bone_names = append(leg_direction_bone_names[0], leg_direction_bone_names[1]...)
-var leg_all_bone_names = append(trunk_bone_names, leg_all_direction_bone_names...)
+var leg_all_bone_names = append(trunk_lower_bone_names, leg_all_direction_bone_names...)
+
+// var leg_root_bone_names = append(trunk_lower_bone_names, []string{pmx.LEG.Left(), pmx.LEG.Right()}...)
 
 func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
 	scales := make([]*mmath.MVec3, len(sizingSets))
@@ -29,6 +35,12 @@ func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
 	for i, sizingSet := range sizingSets {
 		originalModel := sizingSet.OriginalPmx
 		sizingModel := sizingSet.SizingPmx
+
+		if originalModel == nil || sizingModel == nil {
+			scales[i] = &mmath.MVec3{X: 1.0, Y: 1.0, Z: 1.0}
+			meanXZScale += 1.0
+			continue
+		}
 
 		if sizingModel.Bones.GetByName(pmx.LEG.Left()) == nil ||
 			sizingModel.Bones.GetByName(pmx.KNEE.Left()) == nil ||
