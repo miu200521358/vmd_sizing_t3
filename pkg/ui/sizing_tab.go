@@ -192,7 +192,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SetOriginalPmxParameterEnabled(true)
 						}
 					} else {
-						originalModel, err := usecase.AdjustPmxForSizing(model)
+						originalModel, _, err := usecase.AdjustPmxForSizing(model)
 						if err != nil {
 							mlog.E(mi18n.T("素体読み込み失敗"), err)
 							return
@@ -248,20 +248,43 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					model := data.(*pmx.PmxModel)
-					sizingModel, err := usecase.AdjustPmxForSizing(model)
+					sizingModel, nonExistBoneNames, err := usecase.AdjustPmxForSizing(model)
 					if err != nil {
 						mlog.E(mi18n.T("素体読み込み失敗"), err)
 						return
-					} else {
-						model = sizingModel
 					}
-					model.SetIndex(toolState.CurrentIndex)
+					sizingModel.SetIndex(toolState.CurrentIndex)
 
 					// サイジングモデル
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
-					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = model
-					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = model.Name()
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = sizingModel
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = sizingModel.Name()
 					toolState.ResetSizingCheck()
+
+					isAdd := false
+					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd != nil {
+						for _, boneName := range nonExistBoneNames {
+							if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd.BoneFrames.Contains(boneName) {
+								isAdd = true
+								break
+							}
+						}
+					}
+
+					// 出力モデル
+					if isAdd {
+						mlog.IT(mi18n.T("先モデルボーン追加"), mi18n.T("先モデルボーン追加説明"))
+
+						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
+							mutils.CreateOutputPath(path, "sizing")
+
+						toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
+					} else {
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = nil
+						toolState.OutputPmxPicker.SetPath("")
+					}
 
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						// モーション未設定の場合、空モーションを定義する
@@ -287,6 +310,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				mi18n.T("出力モーション(Vmd)"),
 				mi18n.T("出力モーションツールチップ"),
 				mi18n.T("出力モーションの使い方"))
+		}
+
+		{
+			toolState.OutputPmxPicker = widget.NewPmxSaveFilePicker(
+				controlWindow,
+				scrollView,
+				mi18n.T("出力モデル(Pmx)"),
+				mi18n.T("出力モデルツールチップ"),
+				mi18n.T("出力モデルの使い方"))
 		}
 
 		walk.NewVSeparator(scrollView)
@@ -365,6 +397,38 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						Text:    mi18n.T("下半身補正"),
 					},
 					declarative.Label{Text: mi18n.T("下半身補正概要")},
+					// 上半身補正
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingUpperCheck,
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								if toolState.SizingUpperCheck.Checked() {
+									sizingSet.IsSizingLeg = true
+									toolState.SizingLegCheck.UpdateChecked(true)
+								}
+								sizingSet.IsSizingUpper = toolState.SizingUpperCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						Text: mi18n.T("上半身補正"),
+					},
+					declarative.Label{Text: mi18n.T("上半身補正概要")},
+					// 肩補正
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingShoulderCheck,
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingShoulder = toolState.SizingShoulderCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						Text: mi18n.T("肩補正"),
+					},
+					declarative.Label{Text: mi18n.T("肩補正概要")},
 					// 腕補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingArmCheck,
@@ -950,16 +1014,22 @@ func setOutputPath(toolState *ToolState) {
 			_, fileName, _ := mutils.SplitPath(sizingSet.SizingPmxPath)
 
 			suffix := ""
-			if toolState.SizingSets[toolState.CurrentIndex].IsSizingLeg {
+			if toolState.SizingSets[i].IsSizingLeg {
+				suffix += "G"
+			}
+			if toolState.SizingSets[i].IsSizingLower {
 				suffix += "L"
 			}
-			if toolState.SizingSets[toolState.CurrentIndex].IsSizingLower {
-				suffix += "W"
+			if toolState.SizingSets[i].IsSizingUpper {
+				suffix += "U"
 			}
-			if toolState.SizingSets[toolState.CurrentIndex].IsSizingArm {
-				suffix += "R"
+			if toolState.SizingSets[i].IsSizingShoulder {
+				suffix += "S"
 			}
-			if toolState.SizingSets[toolState.CurrentIndex].IsSizingFinger {
+			if toolState.SizingSets[i].IsSizingArm {
+				suffix += "A"
+			}
+			if toolState.SizingSets[i].IsSizingFinger {
 				suffix += "F"
 			}
 			if len(suffix) > 0 {

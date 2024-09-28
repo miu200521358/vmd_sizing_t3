@@ -27,10 +27,13 @@ type ToolState struct {
 	OriginalPmxPicker             *widget.FilePicker  // モーション作成元モデル(Pmx)ファイル選択
 	SizingPmxPicker               *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
-	SizingArmCheck                *walk.CheckBox      // サイジング腕チェック
-	SizingLegCheck                *walk.CheckBox      // サイジング足チェック
-	SizingFingerCheck             *walk.CheckBox      // サイジング指チェック
-	SizingLowerCheck              *walk.CheckBox      // サイジング上半身チェック
+	OutputPmxPicker               *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
+	SizingLegCheck                *walk.CheckBox      // 足チェック
+	SizingLowerCheck              *walk.CheckBox      // 下半身チェック
+	SizingUpperCheck              *walk.CheckBox      // 上半身チェック
+	SizingShoulderCheck           *walk.CheckBox      // 肩チェック
+	SizingArmCheck                *walk.CheckBox      // 腕チェック
+	SizingFingerCheck             *walk.CheckBox      // 指チェック
 	OriginalPmxRatioEdit          *walk.NumberEdit    // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit    // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit    // 素体上半身角度編集
@@ -313,17 +316,26 @@ func (toolState *ToolState) IsOriginalJson() bool {
 
 func (toolState *ToolState) onClickSizingTabSave() {
 	for i, sizingSet := range toolState.SizingSets {
-		rep := repository.NewVmdRepository()
-
-		// TODO VMDのダイエット
-
-		sizingSet.OutputVmd.SetName(sizingSet.SizingPmx.Name())
-		if err := rep.Save(sizingSet.OutputVmdPath, sizingSet.OutputVmd, false); err != nil {
-			mlog.ET(mi18n.T("出力失敗"), mi18n.T("サイジング出力失敗メッセージ",
-				map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
-		} else {
-			mlog.IT(mi18n.T("出力成功"), mi18n.T("サイジング出力成功メッセージ",
-				map[string]interface{}{"Index": i + 1, "Path": sizingSet.OutputVmdPath}))
+		{
+			rep := repository.NewVmdRepository()
+			sizingSet.OutputVmd.SetName(sizingSet.SizingPmx.Name())
+			if err := rep.Save(sizingSet.OutputVmdPath, sizingSet.OutputVmd, false); err != nil {
+				mlog.ET(mi18n.T("出力失敗"), mi18n.T("サイジング出力失敗メッセージ",
+					map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
+			} else {
+				mlog.IT(mi18n.T("出力成功"), mi18n.T("サイジング出力成功メッセージ",
+					map[string]interface{}{"Index": i + 1, "Path": sizingSet.OutputVmdPath}))
+			}
+		}
+		if sizingSet.OutputPmx != nil && sizingSet.OutputPmxPath != "" {
+			rep := repository.NewPmxRepository()
+			if err := rep.Save(sizingSet.OutputPmxPath, sizingSet.OutputPmx, true); err != nil {
+				mlog.ET(mi18n.T("出力失敗"), mi18n.T("先モデル出力失敗メッセージ",
+					map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
+			} else {
+				mlog.IT(mi18n.T("出力成功"), mi18n.T("先モデル出力成功メッセージ",
+					map[string]interface{}{"Index": i + 1, "Path": sizingSet.OutputPmxPath}))
+			}
 		}
 	}
 

@@ -24,22 +24,23 @@ var modelFs embed.FS
 
 // FitBoneモーフ名
 var fit_morph_name = fmt.Sprintf("%s_%s", pmx.MLIB_PREFIX, "FitBone")
+var sizing_display_slot_name = "Sizing"
 
-func AdjustPmxForSizing(model *pmx.PmxModel) (*pmx.PmxModel, error) {
+func AdjustPmxForSizing(model *pmx.PmxModel) (*pmx.PmxModel, []string, error) {
 	// 素体PMXモデルを読み込む
 	baseModel, err := loadMannequinPmx()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// 足りないボーンを追加
-	addNonExistBones(baseModel, model, false)
+	nonExistBoneNames := addNonExistBones(baseModel, model, false)
 
 	model.Setup()
 	// 強制更新用にハッシュ上書き
 	model.SetRandHash()
 
-	return model, nil
+	return model, nonExistBoneNames, nil
 }
 
 func LoadOriginalPmxByJson(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
@@ -388,9 +389,9 @@ func getBaseScale(model, jsonModel *pmx.PmxModel) float64 {
 }
 
 // baseModel にあって、 model にないボーンを追加する
-func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) {
+func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) []string {
 	if !model.Bones.ContainsByName(pmx.ARM.Left()) || !model.Bones.ContainsByName(pmx.ARM.Right()) {
-		return
+		return nil
 	}
 
 	ratio := getBaseScale(baseModel, model)
@@ -457,6 +458,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) {
 		newBone.SetName(baseBone.Name())
 		newBone.SetEnglishName(baseBone.EnglishName())
 		newBone.BoneFlag = baseBone.BoneFlag
+		newBone.IsSystem = false
 		if baseBone.ParentIndex < 0 {
 			if newBone.Name() == pmx.ROOT.String() {
 				newBone.ParentIndex = -1
@@ -507,18 +509,18 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) {
 				upperBone.TailIndex = newBone.Index()
 				upperBone.BoneFlag |= pmx.BONE_FLAG_TAIL_IS_BONE
 			} else if strings.Contains(baseBone.Name(), "腕捩") {
-				if !((slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left()) &&
-					newBone.Name() == pmx.ARM_TWIST1.Left()) &&
-					(slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left()) &&
-						newBone.Name() == pmx.ARM_TWIST2.Left()) &&
-					(slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left()) &&
-						newBone.Name() == pmx.ARM_TWIST3.Left()) &&
-					(slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right()) &&
-						newBone.Name() == pmx.ARM_TWIST1.Right()) &&
-					(slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right()) &&
-						newBone.Name() == pmx.ARM_TWIST2.Right()) &&
-					(slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right()) &&
-						newBone.Name() == pmx.ARM_TWIST3.Right())) {
+				if (newBone.Name() == pmx.ARM_TWIST1.Left() &&
+					!slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left())) ||
+					(newBone.Name() == pmx.ARM_TWIST2.Left() &&
+						!slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left())) ||
+					(newBone.Name() == pmx.ARM_TWIST3.Left() &&
+						!slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left())) ||
+					(newBone.Name() == pmx.ARM_TWIST1.Right() &&
+						!slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right())) ||
+					(newBone.Name() == pmx.ARM_TWIST2.Right() &&
+						!slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right())) ||
+					(newBone.Name() == pmx.ARM_TWIST3.Right() &&
+						!slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right())) {
 					// 分割ボーンは元の捩りボーンが追加されている時だけにする
 					continue
 				}
@@ -543,18 +545,18 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) {
 				newBone.Position = armBone.Position.Lerp(elbowBone.Position, twistRatio)
 				newBone.FixedAxis = elbowBone.Position.Subed(armBone.Position).Normalized()
 			} else if strings.Contains(baseBone.Name(), "手捩") {
-				if !((slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left()) &&
-					newBone.Name() == pmx.WRIST_TWIST1.Left()) &&
-					(slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left()) &&
-						newBone.Name() == pmx.WRIST_TWIST2.Left()) &&
-					(slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left()) &&
-						newBone.Name() == pmx.WRIST_TWIST3.Left()) &&
-					(slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right()) &&
-						newBone.Name() == pmx.WRIST_TWIST1.Right()) &&
-					(slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right()) &&
-						newBone.Name() == pmx.WRIST_TWIST2.Right()) &&
-					(slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right()) &&
-						newBone.Name() == pmx.WRIST_TWIST3.Right())) {
+				if (newBone.Name() == pmx.WRIST_TWIST1.Left() &&
+					!slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left())) ||
+					(newBone.Name() == pmx.WRIST_TWIST2.Left() &&
+						!slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left())) ||
+					(newBone.Name() == pmx.WRIST_TWIST3.Left() &&
+						!slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left())) ||
+					(newBone.Name() == pmx.WRIST_TWIST1.Right() &&
+						!slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right())) ||
+					(newBone.Name() == pmx.WRIST_TWIST2.Right() &&
+						!slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right())) ||
+					(newBone.Name() == pmx.WRIST_TWIST3.Right() &&
+						!slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right())) {
 					// 分割ボーンは元の捩りボーンが追加されている時だけにする
 					continue
 				}
@@ -775,12 +777,23 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) {
 			}
 		}
 
-		// // 表示先は位置に変更
-		// if baseBone.IsTailBone() {
-		// 	// BONE_FLAG_TAIL_IS_BONE を削除
-		// 	newBone.BoneFlag = newBone.BoneFlag &^ pmx.BONE_FLAG_TAIL_IS_BONE
-		// 	newBone.TailPosition = baseBone.Extend.ChildRelativePosition.Copy()
-		// }
+		if newBone.IsSystem || !newBone.IsVisible() {
+			newBone.BoneFlag &^= pmx.BONE_FLAG_CAN_MANIPULATE
+			newBone.BoneFlag &^= pmx.BONE_FLAG_CAN_TRANSLATE
+			newBone.BoneFlag &^= pmx.BONE_FLAG_CAN_ROTATE
+			newBone.BoneFlag &^= pmx.BONE_FLAG_IS_VISIBLE
+		} else {
+			// 表示枠追加
+			displaySlot := model.DisplaySlots.GetByName(sizing_display_slot_name)
+			if displaySlot == nil {
+				displaySlot = pmx.NewDisplaySlot()
+				displaySlot.SetIndex(model.DisplaySlots.Len())
+				displaySlot.SetName(sizing_display_slot_name)
+				model.DisplaySlots.Append(displaySlot)
+			}
+			displaySlot.References = append(displaySlot.References,
+				&pmx.Reference{DisplayType: pmx.DISPLAY_TYPE_BONE, DisplayIndex: newBone.Index()})
+		}
 
 		// ボーン追加
 		model.Bones.Insert(newBone, afterIndex)
@@ -792,6 +805,8 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) {
 
 	// ウェイト調整
 	fixDeformWeights(model, nonExistBoneNames)
+
+	return nonExistBoneNames
 }
 
 func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
@@ -952,6 +967,12 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 				continue
 			}
 
+			if vertex.Position.Subed(wristBone.Position).Normalized().Dot(
+				index1Bone.Position.Subed(wristBone.Position).Normalized()) < -0.1 {
+				// 手首側は対象外
+				continue
+			}
+
 			// 手首から指0へのベクトルと頂点位置の直交地点
 			thumb0Orthogonal := mmath.IntersectLinePoint(wristBone.Position, thumb0Bone.Position, vertex.Position)
 
@@ -1017,7 +1038,7 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 
 			nearestIndex := mmath.ArgSort(mmath.Float64Slice{parentDistance, twist1Distance, twist2Distance, twist3Distance, childDistance})[0]
 			// ひじに最も近い頂点は捩りに割り当てる
-			nearestBone := []*pmx.Bone{parentBone, twist1Bone, twist2Bone, twist3Bone, twistBone}[nearestIndex]
+			nearestBone := []*pmx.Bone{twist1Bone, twist1Bone, twist2Bone, twist3Bone, twistBone}[nearestIndex]
 			nearestPositionBone := []*pmx.Bone{parentBone, twist1Bone, twist2Bone, twist3Bone, childBone}[nearestIndex]
 			nearestParentBone := []*pmx.Bone{parentBone, parentBone, twist1Bone, twist2Bone, twist3Bone}[nearestIndex]
 			nearestChildBone := []*pmx.Bone{twist1Bone, twist2Bone, twist3Bone, childBone, childBone}[nearestIndex]
@@ -1028,6 +1049,9 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 			rangeDistance := nearestParentBone.Position.Distance(nearestChildBone.Position)
 			nearestDistance := nearestPositionBone.Position.Distance(twistOrthogonal)
 			vertexRatio := (rangeDistance - nearestDistance) / rangeDistance
+			if nearestIndex == 0 && vertexRatio < 0.3 {
+				continue
+			}
 			vertex.Deform.Add(nearestBone.Index(), parentBone.Index(), vertexRatio)
 
 			// 腕とかの残りを親に割り当てる

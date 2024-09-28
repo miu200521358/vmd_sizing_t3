@@ -108,7 +108,7 @@ func TestUsecase_AdjustPmxForSizing(t *testing.T) {
 	originalModel := data.(*pmx.PmxModel)
 
 	{
-		model, err := AdjustPmxForSizing(originalModel)
+		model, _, err := AdjustPmxForSizing(originalModel)
 		if err != nil {
 			t.Errorf("Expected error to be nil, got %q", err)
 		}
