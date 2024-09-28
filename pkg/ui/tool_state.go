@@ -12,51 +12,50 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
-	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 	"github.com/miu200521358/walk/pkg/walk"
 )
 
 type ToolState struct {
 	App                           *app.MApp
 	ControlWindow                 *controller.ControlWindow
-	SizingTab                     *widget.MTabPage   // サイジングタブページ
-	CurrentIndex                  int                // 現在のインデックス
-	NavToolBar                    *walk.ToolBar      // サイジングNo.ナビゲーション
-	SizingSets                    []*model.SizingSet // サイジング情報セット
-	OriginalVmdPicker             *widget.FilePicker // サイジング対象モーション(Vmd/Vpd)ファイル選択
-	OriginalPmxPicker             *widget.FilePicker // モーション作成元モデル(Pmx)ファイル選択
-	SizingPmxPicker               *widget.FilePicker // サイジング先モデル(Pmx)ファイル選択
-	OutputVmdPicker               *widget.FilePicker // 出力モーション(Vmd)ファイル選択
-	SizingArmStanceCheck          *walk.CheckBox     // サイジング腕スタンス補正チェックボックス
-	SizingMoveCheck               *walk.CheckBox     // サイジング移動補正チェックボックス
-	SizingLegStanceCheck          *walk.CheckBox     // サイジング足スタンス補正チェックボックス
-	SizingFingerStanceCheck       *walk.CheckBox     // サイジング指スタンス補正チェックボックス
-	SizingWholeStanceCheck        *walk.CheckBox     // サイジング上半身スタンス補正チェックボックス
-	OriginalPmxRatioEdit          *walk.NumberEdit   // オリジナルモデル比率編集
-	OriginalPmxUpperLengthEdit    *walk.NumberEdit   // 素体上半身長さ編集
-	OriginalPmxUpperAngleEdit     *walk.NumberEdit   // 素体上半身角度編集
-	OriginalPmxUpper2LengthEdit   *walk.NumberEdit   // 素体上半身2長さ編集
-	OriginalPmxUpper2AngleEdit    *walk.NumberEdit   // 素体上半身2角度編集
-	OriginalPmxNeckLengthEdit     *walk.NumberEdit   // 素体首長さ編集
-	OriginalPmxNeckAngleEdit      *walk.NumberEdit   // 素体首角度編集
-	OriginalPmxHeadLengthEdit     *walk.NumberEdit   // 素体頭編集
-	OriginalPmxShoulderLengthEdit *walk.NumberEdit   // 素体肩長さ
-	OriginalPmxShoulderAngleEdit  *walk.NumberEdit   // 素体肩角度編集
-	OriginalPmxArmLengthEdit      *walk.NumberEdit   // 素体腕長さ編集
-	OriginalPmxArmAngleEdit       *walk.NumberEdit   // 素体腕角度編集
-	OriginalPmxElbowLengthEdit    *walk.NumberEdit   // 素体ひじ長さ編集
-	OriginalPmxElbowAngleEdit     *walk.NumberEdit   // 素体ひじ角度編集
-	OriginalPmxWristLengthEdit    *walk.NumberEdit   // 素体手首長さ編集
-	OriginalPmxWristAngleEdit     *walk.NumberEdit   // 素体手首角度編集
-	OriginalPmxLowerLengthEdit    *walk.NumberEdit   // 素体下半身長さ編集
-	OriginalPmxLowerAngleEdit     *walk.NumberEdit   // 素体下半身角度編集
-	OriginalPmxLegWidthEdit       *walk.NumberEdit   // 素体足横幅編集
-	OriginalPmxLegLengthEdit      *walk.NumberEdit   // 素体足長さ編集
-	OriginalPmxLegAngleEdit       *walk.NumberEdit   // 素体足角度編集
-	OriginalPmxKneeLengthEdit     *walk.NumberEdit   // 素体ひざ長さ編集
-	OriginalPmxKneeAngleEdit      *walk.NumberEdit   // 素体ひざ角度編集
-	OriginalPmxAnkleLengthEdit    *walk.NumberEdit   // 素体足首長さ編集
-	SizingTabSaveButton           *walk.PushButton   // サイジングタブ保存ボタン
+	SizingTab                     *widget.MTabPage    // サイジングタブページ
+	CurrentIndex                  int                 // 現在のインデックス
+	NavToolBar                    *walk.ToolBar       // サイジングNo.ナビゲーション
+	SizingSets                    []*domain.SizingSet // サイジング情報セット
+	OriginalVmdPicker             *widget.FilePicker  // サイジング対象モーション(Vmd/Vpd)ファイル選択
+	OriginalPmxPicker             *widget.FilePicker  // モーション作成元モデル(Pmx)ファイル選択
+	SizingPmxPicker               *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
+	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
+	SizingArmCheck                *walk.CheckBox      // サイジング腕チェック
+	SizingLegCheck                *walk.CheckBox      // サイジング足チェック
+	SizingFingerCheck             *walk.CheckBox      // サイジング指チェック
+	SizingLowerCheck              *walk.CheckBox      // サイジング上半身チェック
+	OriginalPmxRatioEdit          *walk.NumberEdit    // オリジナルモデル比率編集
+	OriginalPmxUpperLengthEdit    *walk.NumberEdit    // 素体上半身長さ編集
+	OriginalPmxUpperAngleEdit     *walk.NumberEdit    // 素体上半身角度編集
+	OriginalPmxUpper2LengthEdit   *walk.NumberEdit    // 素体上半身2長さ編集
+	OriginalPmxUpper2AngleEdit    *walk.NumberEdit    // 素体上半身2角度編集
+	OriginalPmxNeckLengthEdit     *walk.NumberEdit    // 素体首長さ編集
+	OriginalPmxNeckAngleEdit      *walk.NumberEdit    // 素体首角度編集
+	OriginalPmxHeadLengthEdit     *walk.NumberEdit    // 素体頭編集
+	OriginalPmxShoulderLengthEdit *walk.NumberEdit    // 素体肩長さ
+	OriginalPmxShoulderAngleEdit  *walk.NumberEdit    // 素体肩角度編集
+	OriginalPmxArmLengthEdit      *walk.NumberEdit    // 素体腕長さ編集
+	OriginalPmxArmAngleEdit       *walk.NumberEdit    // 素体腕角度編集
+	OriginalPmxElbowLengthEdit    *walk.NumberEdit    // 素体ひじ長さ編集
+	OriginalPmxElbowAngleEdit     *walk.NumberEdit    // 素体ひじ角度編集
+	OriginalPmxWristLengthEdit    *walk.NumberEdit    // 素体手首長さ編集
+	OriginalPmxWristAngleEdit     *walk.NumberEdit    // 素体手首角度編集
+	OriginalPmxLowerLengthEdit    *walk.NumberEdit    // 素体下半身長さ編集
+	OriginalPmxLowerAngleEdit     *walk.NumberEdit    // 素体下半身角度編集
+	OriginalPmxLegWidthEdit       *walk.NumberEdit    // 素体足横幅編集
+	OriginalPmxLegLengthEdit      *walk.NumberEdit    // 素体足長さ編集
+	OriginalPmxLegAngleEdit       *walk.NumberEdit    // 素体足角度編集
+	OriginalPmxKneeLengthEdit     *walk.NumberEdit    // 素体ひざ長さ編集
+	OriginalPmxKneeAngleEdit      *walk.NumberEdit    // 素体ひざ角度編集
+	OriginalPmxAnkleLengthEdit    *walk.NumberEdit    // 素体足首長さ編集
+	SizingTabSaveButton           *walk.PushButton    // サイジングタブ保存ボタン
 	currentPageChangedPublisher   walk.EventPublisher
 	JsonSaveTab                   *widget.MTabPage // サイジングタブページ
 }
@@ -65,7 +64,7 @@ func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolS
 	toolState := &ToolState{
 		App:           app,
 		ControlWindow: controlWindow,
-		SizingSets:    make([]*model.SizingSet, 0),
+		SizingSets:    make([]*domain.SizingSet, 0),
 	}
 
 	newSizingTab(controlWindow, toolState)
@@ -113,7 +112,7 @@ func (toolState *ToolState) resetSizingSet() error {
 	for range toolState.NavToolBar.Actions().Len() {
 		toolState.NavToolBar.Actions().RemoveAt(toolState.NavToolBar.Actions().Len() - 1)
 	}
-	toolState.SizingSets = make([]*model.SizingSet, 0)
+	toolState.SizingSets = make([]*domain.SizingSet, 0)
 	toolState.CurrentIndex = -1
 
 	// 1セット追加
@@ -135,7 +134,7 @@ func (toolState *ToolState) addSizingSet() error {
 		return err
 	}
 	toolState.NavToolBar.Actions().Add(action)
-	toolState.SizingSets = append(toolState.SizingSets, model.NewSizingSet(len(toolState.SizingSets)))
+	toolState.SizingSets = append(toolState.SizingSets, domain.NewSizingSet(len(toolState.SizingSets)))
 
 	if len(toolState.SizingSets) > 0 {
 		if err := toolState.setCurrentAction(len(toolState.SizingSets) - 1); err != nil {
@@ -227,11 +226,10 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 }
 
 func (toolState *ToolState) ResetSizingParameter() {
-	toolState.SizingArmStanceCheck.SetChecked(false)
-	toolState.SizingMoveCheck.SetChecked(false)
-	toolState.SizingLegStanceCheck.SetChecked(false)
-	toolState.SizingFingerStanceCheck.SetChecked(false)
-	toolState.SizingWholeStanceCheck.SetChecked(false)
+	toolState.SizingArmCheck.SetChecked(false)
+	toolState.SizingLegCheck.SetChecked(false)
+	toolState.SizingFingerCheck.SetChecked(false)
+	toolState.SizingLowerCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -313,12 +311,13 @@ func (toolState *ToolState) IsOriginalJson() bool {
 	return strings.HasSuffix(strings.ToLower(toolState.OriginalPmxPicker.GetPath()), ".json")
 }
 
-func (toolState *ToolState) onClickSizingTabOk() {
+func (toolState *ToolState) onClickSizingTabSave() {
 	for i, sizingSet := range toolState.SizingSets {
 		rep := repository.NewVmdRepository()
 
 		// TODO VMDのダイエット
 
+		sizingSet.OutputVmd.SetName(sizingSet.SizingPmx.Name())
 		if err := rep.Save(sizingSet.OutputVmdPath, sizingSet.OutputVmd, false); err != nil {
 			mlog.ET(mi18n.T("出力失敗"), mi18n.T("サイジング出力失敗メッセージ",
 				map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
@@ -336,9 +335,8 @@ func (toolState *ToolState) ResetSizingCheck() {
 		sizingSet.ResetSizingFlag()
 	}
 
-	toolState.SizingArmStanceCheck.UpdateChecked(false)
-	toolState.SizingMoveCheck.UpdateChecked(false)
-	toolState.SizingLegStanceCheck.SetChecked(false)
-	toolState.SizingFingerStanceCheck.SetChecked(false)
-	toolState.SizingWholeStanceCheck.SetChecked(false)
+	toolState.SizingArmCheck.UpdateChecked(false)
+	toolState.SizingLegCheck.SetChecked(false)
+	toolState.SizingFingerCheck.SetChecked(false)
+	toolState.SizingLowerCheck.SetChecked(false)
 }

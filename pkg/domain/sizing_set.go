@@ -1,4 +1,4 @@
-package model
+package domain
 
 import (
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
@@ -22,17 +22,15 @@ type SizingSet struct {
 	SizingPmx   *pmx.PmxModel
 	OutputVmd   *vmd.VmdMotion
 
-	IsSizingMove         bool
-	IsSizingLegStance    bool
-	IsSizingArmStance    bool
-	IsSizingFingerStance bool
-	IsSizingWholeStance  bool
+	IsSizingLeg    bool
+	IsSizingArm    bool
+	IsSizingFinger bool
+	IsSizingLower  bool
 
-	CompletedSizingMove         bool
-	CompletedSizingLegStance    bool
-	CompletedSizingArmStance    bool
-	CompletedSizingFingerStance bool
-	CompletedSizingWholeStance  bool
+	CompletedSizingLeg    bool
+	CompletedSizingArm    bool
+	CompletedSizingFinger bool
+	CompletedSizingLower  bool
 
 	OriginalJsonPmx           *pmx.PmxModel
 	OriginalPmxRatio          float64 // 全体比率
@@ -68,15 +66,13 @@ func NewSizingSet(index int) *SizingSet {
 }
 
 func (sizingSet *SizingSet) ResetSizingFlag() {
-	sizingSet.IsSizingMove = false
-	sizingSet.IsSizingLegStance = false
-	sizingSet.IsSizingArmStance = false
-	sizingSet.IsSizingFingerStance = false
-	sizingSet.IsSizingWholeStance = false
+	sizingSet.IsSizingLeg = false
+	sizingSet.IsSizingArm = false
+	sizingSet.IsSizingFinger = false
+	sizingSet.IsSizingLower = false
 
-	sizingSet.CompletedSizingMove = false
-	sizingSet.CompletedSizingLegStance = false
-	sizingSet.CompletedSizingArmStance = false
-	sizingSet.CompletedSizingFingerStance = false
-	sizingSet.CompletedSizingWholeStance = false
+	sizingSet.CompletedSizingLeg = false
+	sizingSet.CompletedSizingArm = false
+	sizingSet.CompletedSizingFinger = false
+	sizingSet.CompletedSizingLower = false
 }

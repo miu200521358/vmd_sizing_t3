@@ -1,9 +1,9 @@
 package ui
 
 import (
+	"fmt"
 	"sync"
 
-	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
@@ -12,7 +12,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/mutils"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
-	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/usecase"
 	"github.com/miu200521358/walk/pkg/declarative"
 	"github.com/miu200521358/walk/pkg/walk"
@@ -131,14 +131,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					// 出力パス設定
-					outputPath := mutils.CreateOutputPath(path, "sizing")
-					if toolState.SizingPmxPicker.GetPath() != "" {
-						// サイジング先モデルが指定されている場合、ファイル名を含める
-						_, fileName, _ := mutils.SplitPath(toolState.SizingPmxPicker.GetPath())
-						outputPath = mutils.CreateOutputPath(path, fileName)
-						toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
-					}
-					toolState.OutputVmdPicker.SetPath(outputPath)
+					setOutputPath(toolState)
 
 					// 元モデル用モーション
 					motion := data.(*vmd.VmdMotion)
@@ -153,7 +146,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// サイジング先モデル用モーション
 					sizingMotion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
 					sizingMotion.SetRandHash()
-					toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 					toolState.ResetSizingCheck()
 
@@ -227,6 +219,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						// モーション未設定の場合、サイジングモーフ付き空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
 					}
+
+					// 出力パス設定
+					setOutputPath(toolState)
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
 				}
@@ -268,15 +263,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = model.Name()
 					toolState.ResetSizingCheck()
 
-					// 出力パス設定
-					if toolState.OriginalVmdPicker.GetPath() != "" {
-						// サイジング先モデルが指定されている場合、ファイル名を含める
-						_, fileName, _ := mutils.SplitPath(toolState.SizingPmxPicker.GetPath())
-						outputPath := mutils.CreateOutputPath(toolState.OriginalVmdPicker.GetPath(), fileName)
-						toolState.OutputVmdPicker.SetPath(outputPath)
-						toolState.SizingSets[toolState.CurrentIndex].OutputVmdPath = outputPath
-					}
-
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						// モーション未設定の場合、空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
@@ -285,6 +271,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						// モーション未設定の場合、サイジングモーフ付き空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
 					}
+
+					// 出力パス設定
+					setOutputPath(toolState)
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
 				}
@@ -317,93 +306,97 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 			composite := declarative.Composite{
 				// Background: declarative.SolidColorBrush{Color: walk.RGB(255, 255, 255)},
-				Layout: declarative.Grid{Columns: 3},
+				Layout: declarative.Grid{Columns: 4},
 				Children: []declarative.Widget{
-					// 移動位置合わせ
+					// 全補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingMoveCheck,
+						AssignTo: &toolState.SizingLegCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingMove = toolState.SizingMoveCheck.Checked()
+								sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
+								sizingSet.IsSizingLower = toolState.SizingLegCheck.Checked()
+								sizingSet.IsSizingArm = toolState.SizingLegCheck.Checked()
+								sizingSet.IsSizingFinger = toolState.SizingLegCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
+
+							// 出力パス設定
+							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 30, Height: 20},
-						MaxSize: declarative.Size{Width: 30, Height: 20},
+						MinSize: declarative.Size{Width: 80, Height: 20},
+						MaxSize: declarative.Size{Width: 80, Height: 20},
+						Text:    mi18n.T("全補正"),
 					},
-					declarative.Label{
-						Text: mi18n.T("移動位置合わせ"),
-					},
-					declarative.Label{Text: mi18n.T("移動位置合わせ概要")},
-					// 腕角度合わせ
+					declarative.Label{Text: mi18n.T("全補正概要"), ColumnSpan: 3},
+					// 足補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingArmStanceCheck,
+						AssignTo: &toolState.SizingLegCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingArmStance = toolState.SizingArmStanceCheck.Checked()
+								sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
+
+							// 出力パス設定
+							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 30, Height: 20},
-						MaxSize: declarative.Size{Width: 30, Height: 20},
+						MinSize: declarative.Size{Width: 80, Height: 20},
+						MaxSize: declarative.Size{Width: 80, Height: 20},
+						Text:    mi18n.T("足補正"),
 					},
-					declarative.Label{Text: mi18n.T("腕角度合わせ")},
-					declarative.Label{Text: mi18n.T("腕角度合わせ概要")},
-					// 足角度合わせ
+					declarative.Label{Text: mi18n.T("足補正概要")},
+					// 下半身補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingLegStanceCheck,
+						AssignTo: &toolState.SizingLowerCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								if toolState.SizingLegStanceCheck.Checked() {
-									// 足角度合わせは移動を必須とする
-									sizingSet.IsSizingMove = true
-									toolState.SizingMoveCheck.UpdateChecked(true)
+								if toolState.SizingLowerCheck.Checked() {
+									sizingSet.IsSizingLeg = true
+									toolState.SizingLegCheck.UpdateChecked(true)
 								}
-								sizingSet.IsSizingLegStance = toolState.SizingLegStanceCheck.Checked()
+								sizingSet.IsSizingLower = toolState.SizingLowerCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 30, Height: 20},
-						MaxSize: declarative.Size{Width: 30, Height: 20},
+						MinSize: declarative.Size{Width: 80, Height: 20},
+						MaxSize: declarative.Size{Width: 80, Height: 20},
+						Text:    mi18n.T("下半身補正"),
 					},
-					declarative.Label{Text: mi18n.T("足角度合わせ")},
-					declarative.Label{Text: mi18n.T("足角度合わせ概要")},
-					// 指角度合わせ
+					declarative.Label{Text: mi18n.T("下半身補正概要")},
+					// 腕補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingFingerStanceCheck,
+						AssignTo: &toolState.SizingArmCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingFingerStance = toolState.SizingFingerStanceCheck.Checked()
-							}
-							remakeSizingMorph(toolState)
-						},
-						MinSize: declarative.Size{Width: 30, Height: 20},
-						MaxSize: declarative.Size{Width: 30, Height: 20},
-					},
-					declarative.Label{Text: mi18n.T("指角度合わせ")},
-					declarative.Label{Text: mi18n.T("指角度合わせ概要")},
-					// 全身位置角度合わせ
-					declarative.CheckBox{
-						AssignTo: &toolState.SizingWholeStanceCheck,
-						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								if toolState.SizingWholeStanceCheck.Checked() {
-									// 全身位置合わせは移動系補正を行わない
-									sizingSet.IsSizingMove = false
-									toolState.SizingMoveCheck.UpdateChecked(false)
-									sizingSet.IsSizingLegStance = false
-									toolState.SizingLegStanceCheck.UpdateChecked(false)
+								if toolState.SizingArmCheck.Checked() {
+									sizingSet.IsSizingLeg = true
+									toolState.SizingLegCheck.UpdateChecked(true)
 								}
-								sizingSet.IsSizingWholeStance = toolState.SizingWholeStanceCheck.Checked()
+								sizingSet.IsSizingArm = toolState.SizingArmCheck.Checked()
 							}
 							remakeSizingMorph(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 30, Height: 20},
-						MaxSize: declarative.Size{Width: 30, Height: 20},
+						Text: mi18n.T("腕補正"),
 					},
-					declarative.Label{Text: mi18n.T("全身位置角度合わせ")},
-					declarative.Label{Text: mi18n.T("全身位置角度合わせ概要")},
-					// declarative.HSpacer{ColumnSpan: 3, MinSize: declarative.Size{Width: 500, Height: 1}},
+					declarative.Label{Text: mi18n.T("腕補正概要")},
+					// 指補正
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingFingerCheck,
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingFinger = toolState.SizingFingerCheck.Checked()
+							}
+							remakeSizingMorph(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						Text: mi18n.T("指補正"),
+					},
+					declarative.Label{Text: mi18n.T("指補正概要")},
 				},
 			}
 
@@ -886,25 +879,26 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			widget.RaiseError(err)
 		}
 		toolState.SizingTabSaveButton.SetText(mi18n.T("サイジング結果保存"))
-		toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabOk)
+		toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabSave)
 	}
 }
 
 func remakeSizingMorph(toolState *ToolState) {
 	toolState.SetEnabled(false)
 
+	allScales := usecase.GenerateSizingScales(toolState.SizingSets)
+
 	var wg sync.WaitGroup
 	for _, sizingSet := range toolState.SizingSets {
 		if sizingSet.OriginalPmx != nil && sizingSet.SizingPmx != nil &&
 			sizingSet.OriginalVmd != nil {
 			wg.Add(1)
-			go func(sizingSet *model.SizingSet) {
+			go func(sizingSet *domain.SizingSet) {
 				defer wg.Done()
-				if (!sizingSet.IsSizingMove && sizingSet.CompletedSizingMove) ||
-					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
-					(!sizingSet.IsSizingLegStance && sizingSet.CompletedSizingLegStance) ||
-					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) ||
-					(!sizingSet.IsSizingWholeStance && sizingSet.CompletedSizingWholeStance) {
+				if (!sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) ||
+					(!sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) ||
+					(!sizingSet.IsSizingArm && sizingSet.CompletedSizingArm) ||
+					(!sizingSet.IsSizingFinger && sizingSet.CompletedSizingFinger) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
@@ -913,21 +907,14 @@ func remakeSizingMorph(toolState *ToolState) {
 					}
 					sizingSet.OutputVmd = sizingMotion.(*vmd.VmdMotion)
 
-					sizingSet.CompletedSizingMove = false
-					sizingSet.CompletedSizingArmStance = false
-					sizingSet.CompletedSizingLegStance = false
-					sizingSet.CompletedSizingFingerStance = false
-					sizingSet.CompletedSizingWholeStance = false
+					sizingSet.CompletedSizingArm = false
+					sizingSet.CompletedSizingLeg = false
+					sizingSet.CompletedSizingFinger = false
+					sizingSet.CompletedSizingLower = false
 				}
 
-				var scales *mmath.MVec3
-				if sizingSet.IsSizingMove || sizingSet.IsSizingWholeStance {
-					scales = usecase.GetMoveScale(sizingSet)
-				}
-
-				usecase.SizingStance(sizingSet, scales)
-				usecase.SizingLegStance(sizingSet)
-				usecase.SizingWholeStance(sizingSet, scales)
+				frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
+				usecase.SizingLower(sizingSet, frames, originalAllDeltas)
 				sizingSet.OutputVmd.SetRandHash()
 			}(sizingSet)
 		}
@@ -952,5 +939,38 @@ func remakeFitMorph(toolState *ToolState) {
 		)
 		// 強制更新用にハッシュ設定
 		toolState.SizingSets[toolState.CurrentIndex].OriginalPmx.SetRandHash()
+	}
+}
+
+func setOutputPath(toolState *ToolState) {
+	for i, sizingSet := range toolState.SizingSets {
+		// 出力パス設定
+		if sizingSet.OriginalVmdPath != "" {
+			// サイジング先モデルが指定されている場合、ファイル名を含める
+			_, fileName, _ := mutils.SplitPath(sizingSet.SizingPmxPath)
+
+			suffix := ""
+			if toolState.SizingSets[toolState.CurrentIndex].IsSizingLeg {
+				suffix += "L"
+			}
+			if toolState.SizingSets[toolState.CurrentIndex].IsSizingLower {
+				suffix += "W"
+			}
+			if toolState.SizingSets[toolState.CurrentIndex].IsSizingArm {
+				suffix += "R"
+			}
+			if toolState.SizingSets[toolState.CurrentIndex].IsSizingFinger {
+				suffix += "F"
+			}
+			if len(suffix) > 0 {
+				suffix = fmt.Sprintf("_%s", suffix)
+			}
+
+			sizingSet.OutputVmdPath = mutils.CreateOutputPath(
+				sizingSet.OriginalVmdPath, fmt.Sprintf("%s%s", fileName, suffix))
+			if i == toolState.CurrentIndex {
+				toolState.OutputVmdPicker.SetPath(sizingSet.OutputVmdPath)
+			}
+		}
 	}
 }

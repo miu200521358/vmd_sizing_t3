@@ -15,7 +15,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
-	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
 //go:embed base_model/*.pmx
@@ -79,7 +79,7 @@ func AddFitMorph(motion *vmd.VmdMotion) *vmd.VmdMotion {
 	return motion
 }
 
-func RemakeFitMorph(model, jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) *pmx.PmxModel {
+func RemakeFitMorph(model, jsonModel *pmx.PmxModel, sizingSet *domain.SizingSet) *pmx.PmxModel {
 	model.Morphs.RemoveByName(fit_morph_name)
 
 	// 足りないボーンを追加
@@ -94,7 +94,7 @@ func RemakeFitMorph(model, jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) 
 	return model
 }
 
-func resizeJsonModel(jsonModel *pmx.PmxModel, sizingSet *model.SizingSet) {
+func resizeJsonModel(jsonModel *pmx.PmxModel, sizingSet *domain.SizingSet) {
 	// リサイズ
 	resizeMotion := vmd.NewVmdMotion("")
 	{

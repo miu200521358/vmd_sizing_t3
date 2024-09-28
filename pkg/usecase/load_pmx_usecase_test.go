@@ -7,11 +7,11 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
-	"github.com/miu200521358/vmd_sizing_t3/pkg/model"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
 func TestUsecase_LoadOriginalPmxByJson(t *testing.T) {
-	// Save the model
+	// Save the domain
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/003_三日月宗近/三日月宗近 わち式 （刀ミュインナーβ）/わち式三日月宗近（刀ミュインナーβ）.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.json"
@@ -66,7 +66,7 @@ func TestUsecase_LoadOriginalPmxByJson(t *testing.T) {
 			t.Errorf("Expected error to be nil, got %q", err)
 		}
 
-		sizingSet := model.NewSizingSet(0)
+		sizingSet := domain.NewSizingSet(0)
 		sizingSet.OriginalPmxRatio = 1.0
 		sizingSet.OriginalPmxShoulderLength = 5.0
 		sizingSet.OriginalPmxShoulderAngle = 30.0
