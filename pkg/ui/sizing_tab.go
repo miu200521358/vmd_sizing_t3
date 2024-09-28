@@ -149,6 +149,31 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 					toolState.ResetSizingCheck()
 
+					isAdd := false
+					if toolState.SizingSets[toolState.CurrentIndex].SizingPmx != nil {
+						for _, boneName := range toolState.SizingSets[toolState.CurrentIndex].SizingAddedBoneNames {
+							if toolState.SizingSets[toolState.CurrentIndex].OutputVmd.BoneFrames.Contains(boneName) {
+								isAdd = true
+								break
+							}
+						}
+					}
+
+					if isAdd {
+						// 出力モデル
+						sizingModel := toolState.SizingSets[toolState.CurrentIndex].SizingPmx
+						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
+							mutils.CreateOutputPath(path, "sizing")
+
+						toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
+					} else {
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = nil
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath = ""
+						toolState.OutputPmxPicker.SetPath("")
+					}
+
 					controlWindow.UpdateMaxFrame(motion.MaxFrame())
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
@@ -248,7 +273,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					model := data.(*pmx.PmxModel)
-					sizingModel, _, err := usecase.AdjustPmxForSizing(model)
+					sizingModel, addBoneNames, err := usecase.AdjustPmxForSizing(model)
 					if err != nil {
 						mlog.E(mi18n.T("素体読み込み失敗"), err)
 						return
@@ -259,15 +284,32 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = sizingModel
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = sizingModel.Name()
+					toolState.SizingSets[toolState.CurrentIndex].SizingAddedBoneNames = addBoneNames
 					toolState.ResetSizingCheck()
 
-					// 出力モデル
-					sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
-					toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
-					toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
-						mutils.CreateOutputPath(path, "sizing")
+					isAdd := false
+					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd != nil {
+						for _, boneName := range addBoneNames {
+							if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd.BoneFrames.Contains(boneName) {
+								isAdd = true
+								break
+							}
+						}
+					}
 
-					toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
+					if isAdd {
+						// 出力モデル
+						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
+							mutils.CreateOutputPath(path, "sizing")
+
+						toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
+					} else {
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = nil
+						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath = ""
+						toolState.OutputPmxPicker.SetPath("")
+					}
 
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						// モーション未設定の場合、空モーションを定義する

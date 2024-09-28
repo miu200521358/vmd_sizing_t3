@@ -14,9 +14,10 @@ type SizingSet struct {
 	OutputVmdPath   string
 	OutputPmxPath   string
 
-	OriginalVmdName string
-	OriginalPmxName string
-	SizingPmxName   string
+	OriginalVmdName      string
+	OriginalPmxName      string
+	SizingPmxName        string
+	SizingAddedBoneNames []string
 
 	OriginalVmd *vmd.VmdMotion
 	OriginalPmx *pmx.PmxModel
