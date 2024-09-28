@@ -51,6 +51,7 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 
 	// 左ひざIK
 	leftKneeIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, leftKneeBone.Name()))
+	leftKneeIkBone.Position = leftKneeBone.Position
 	leftKneeIkBone.Ik = pmx.NewIk()
 	leftKneeIkBone.Ik.BoneIndex = leftKneeBone.Index()
 	leftKneeIkBone.Ik.LoopCount = leftLegIkBone.Ik.LoopCount
@@ -61,6 +62,7 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 
 	// 右ひざIK
 	rightKneeIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, rightKneeBone.Name()))
+	rightKneeIkBone.Position = rightKneeBone.Position
 	rightKneeIkBone.Ik = pmx.NewIk()
 	rightKneeIkBone.Ik.BoneIndex = rightKneeBone.Index()
 	rightKneeIkBone.Ik.LoopCount = rightLegIkBone.Ik.LoopCount
@@ -71,6 +73,7 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 
 	// 左足首IK
 	leftAnkleIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, leftAnkleBone.Name()))
+	leftAnkleIkBone.Position = leftAnkleBone.Position
 	leftAnkleIkBone.Ik = pmx.NewIk()
 	leftAnkleIkBone.Ik.BoneIndex = leftAnkleBone.Index()
 	leftAnkleIkBone.Ik.LoopCount = leftLegIkBone.Ik.LoopCount
@@ -84,6 +87,7 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 
 	// 右足首IK
 	rightAnkleIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, rightAnkleBone.Name()))
+	rightAnkleIkBone.Position = rightAnkleBone.Position
 	rightAnkleIkBone.Ik = pmx.NewIk()
 	rightAnkleIkBone.Ik.BoneIndex = rightAnkleBone.Index()
 	rightAnkleIkBone.Ik.LoopCount = rightLegIkBone.Ik.LoopCount
