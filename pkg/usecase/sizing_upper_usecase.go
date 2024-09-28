@@ -46,8 +46,8 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 	sizingUpper2Vector := neckRootBone.Position.Subed(upper2Bone.Position).Round(1e-2)
 
 	// 上半身2の位置比率
-	upperRatio := sizingUpperVector.Dived(originalUpperVector).Effective().One()
-	upper2Ratio := sizingUpper2Vector.Dived(originalUpper2Vector).Effective().One()
+	upperRatio := sizingUpperVector.Length() / originalUpperVector.Length()
+	upper2Ratio := sizingUpper2Vector.Length() / originalUpper2Vector.Length()
 
 	// 上半身IK
 	upperIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, upperBone.Name()))
@@ -115,10 +115,10 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 
 		sizingUpperRootDelta := vmdDeltas.Bones.Get(upperRootBone.Index())
 		upper2Positions[index] = sizingUpperRootDelta.FilledGlobalPosition().Added(
-			originalUpper2LocalPosition.Muled(upperRatio))
+			originalUpper2LocalPosition.MuledScalar(upperRatio))
 		sizingUpper2Delta := vmdDeltas.Bones.Get(upper2Bone.Index())
 		neckRootPositions[index] = sizingUpper2Delta.FilledGlobalPosition().Added(
-			originalNeckRootLocalPosition.Muled(upper2Ratio))
+			originalNeckRootLocalPosition.MuledScalar(upper2Ratio))
 	})
 
 	sizingUpperIkDeltas := make([]*delta.VmdDeltas, len(frames))
