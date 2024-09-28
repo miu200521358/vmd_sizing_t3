@@ -28,8 +28,8 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 
 	originalLegCenterBone := originalModel.Bones.GetByName(pmx.LEG_CENTER.String())
 	originalLowerBone := originalModel.Bones.GetByName(pmx.LOWER.String())
-	originalLeftBone := originalModel.Bones.GetByName(pmx.LEG.Left())
-	originalRightBone := originalModel.Bones.GetByName(pmx.LEG.Right())
+	originalLeftLegBone := originalModel.Bones.GetByName(pmx.LEG.Left())
+	originalRightLegBone := originalModel.Bones.GetByName(pmx.LEG.Right())
 
 	centerBone := sizingModel.Bones.GetByName(pmx.CENTER.String())
 	grooveBone := sizingModel.Bones.GetByName(pmx.GROOVE.String())
@@ -105,6 +105,18 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 	// sizingLegIkOnDeltas := make([]*delta.VmdDeltas, len(frames))
 	lowerRotations := make([]*mmath.MQuaternion, len(frames))
 
+	// 元モデル初期姿勢ベクトル
+	originalLowerDirection := originalLegCenterBone.Position.Subed(originalLowerBone.Position).Normalized()
+	originalLowerUp := originalLeftLegBone.Position.Subed(originalRightLegBone.Position).Normalized()
+	originalInitialLowerSlope := mmath.NewMQuaternionFromDirection(originalLowerDirection, originalLowerUp)
+
+	// // 先モデル初期姿勢モデル
+	// sizingLowerDirection := legCenterBone.Position.Subed(lowerBone.Position).Normalized()
+	// sizingLowerUp := leftLegBone.Position.Subed(rightLegBone.Position).Normalized()
+	// sizingInitialLowerSlope := mmath.NewMQuaternionFromDirection(sizingLowerDirection, sizingLowerUp)
+
+	// initialLowerSlopeDiffQuat := sizingInitialLowerSlope.Muled(originalInitialLowerSlope.Inverted())
+
 	// 先モデルのデフォーム(IK OFF)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
@@ -113,18 +125,19 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, leg_all_bone_names, false)
 		sizingLowerDeltas[index] = vmdDeltas
 
-		// 足中心から見た下半身ボーンの相対位置を取得
-		originalLegCenterDelta := originalAllDeltas[index].Bones.Get(originalLegCenterBone.Index())
-		originalLowerDelta := originalAllDeltas[index].Bones.Get(originalLowerBone.Index())
+		// // 足中心から見た下半身ボーンの相対位置を取得
+		// originalLegCenterDelta := originalAllDeltas[index].Bones.Get(originalLegCenterBone.Index())
+		// originalLowerDelta := originalAllDeltas[index].Bones.Get(originalLowerBone.Index())
 
-		originalLeftLegDelta := originalAllDeltas[index].Bones.Get(originalLeftBone.Index())
-		originalRightLegDelta := originalAllDeltas[index].Bones.Get(originalRightBone.Index())
-		originalLegUp := originalLeftLegDelta.FilledGlobalPosition().Subed(
-			originalRightLegDelta.FilledGlobalPosition())
-		originalLegDirection := originalLegCenterDelta.FilledGlobalPosition().Subed(
-			originalLowerDelta.FilledGlobalPosition())
-		originalLegSlope := mmath.NewMQuaternionFromDirection(
-			originalLegDirection.Normalized(), originalLegUp.Normalized())
+		// originalLeftLegDelta := originalAllDeltas[index].Bones.Get(originalLeftLegBone.Index())
+		// originalRightLegDelta := originalAllDeltas[index].Bones.Get(originalRightLegBone.Index())
+		// originalLegUp := originalLeftLegDelta.FilledGlobalPosition().Subed(
+		// 	originalRightLegDelta.FilledGlobalPosition())
+		// originalLegDirection := originalLegCenterDelta.FilledGlobalPosition().Subed(
+		// 	originalLowerDelta.FilledGlobalPosition())
+		// originalFixLowerSlope := mmath.NewMQuaternionFromDirection(
+		// 	originalLegDirection.Normalized(), originalLegUp.Normalized())
+		// // originalLowerSlopeDiffQuat := originalFixLowerSlope.Inverted().Muled(originalInitialLowerSlope)
 
 		// lowerRootDelta := vmdDeltas.Bones.Get(lowerRootBone.Index())
 		lowerDelta := vmdDeltas.Bones.Get(lowerBone.Index())
@@ -136,13 +149,14 @@ func SizingLower(sizingSet *domain.SizingSet, frames []int, originalAllDeltas []
 			sizingRightLegDelta.FilledGlobalPosition())
 		sizingLegDirection := legCenterDelta.FilledGlobalPosition().Subed(
 			lowerDelta.FilledGlobalPosition())
-		sizingLegSlope := mmath.NewMQuaternionFromDirection(
+		sizingFixLowerSlope := mmath.NewMQuaternionFromDirection(
 			sizingLegDirection.Normalized(), sizingLegUp.Normalized())
+		lowerRotations[index] = sizingFixLowerSlope.Muled(originalInitialLowerSlope.Inverted())
 
-		// 下半身の向きを元モデルと同じにする
-		lowerBf := sizingMotion.BoneFrames.Get(lowerBone.Name()).Get(frame)
-		lowerOffsetRotation := originalLegSlope.Muled(sizingLegSlope.Inverted())
-		lowerRotations[index] = lowerOffsetRotation.Muled(lowerBf.Rotation)
+		// // 下半身の向きを元モデルと同じにする
+		// lowerBf := sizingMotion.BoneFrames.Get(lowerBone.Name()).Get(frame)
+		// lowerOffsetRotation := originalFixLowerSlope.Muled(sizingFixLowerSlope.Inverted())
+		// lowerRotations[index] = lowerOffsetRotation.Muled(lowerBf.Rotation)
 	})
 
 	// 下半身の回転を補正登録
