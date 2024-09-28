@@ -6,7 +6,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-var trunk_bone_names = []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER.String()}
+var trunk_bone_names = []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER.String(), pmx.LEG_CENTER.String()}
 var leg_direction_bone_names = [][]string{
 	{pmx.LEG.Left(), pmx.KNEE.Left(), pmx.HEEL.Left(), pmx.ANKLE.Left(), pmx.TOE.Left(), pmx.TOE_P.Left(),
 		pmx.TOE_C.Left(), pmx.LEG_D.Left(), pmx.KNEE_D.Left(), pmx.HEEL_D.Left(), pmx.ANKLE_D.Left(),
@@ -17,7 +17,8 @@ var leg_direction_bone_names = [][]string{
 		pmx.TOE_D.Right(), pmx.TOE_P_D.Right(), pmx.TOE_C_D.Right(), pmx.TOE_EX.Right(),
 		pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Right(), pmx.TOE_IK.Right()},
 }
-var leg_all_bone_names = append(leg_direction_bone_names[0], leg_direction_bone_names[1]...)
+var leg_all_direction_bone_names = append(leg_direction_bone_names[0], leg_direction_bone_names[1]...)
+var leg_all_bone_names = append(trunk_bone_names, leg_all_direction_bone_names...)
 
 func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
 	scales := make([]*mmath.MVec3, len(sizingSets))
