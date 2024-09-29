@@ -9,18 +9,12 @@
       "type": "go",
       "request": "attach",
       "mode": "remote",
-      "remotePath": "C:/MMD/vmd_sizing_t3",
-      "substitutePath": [
-        {
-          "from": "C:/MMD/vmd_sizing_t3",
-          "to": "${workspaceFolder}"
-        }
-      ],
+      "remotePath": "${workspaceFolder}",
       "port": 2345,
       "host": "127.0.0.1",
       "apiVersion": 2,
-      "showLog": true,
-      "trace": "verbose",
+      "showLog": false,
+      "trace": "error",
       "preLaunchTask": "go build and start dlv",
       "cwd": "${workspaceFolder}",
     },
