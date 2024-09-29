@@ -7,11 +7,22 @@
     {
       "name": "Launch",
       "type": "go",
-      "request": "launch",
-      "mode": "debug",
-      "program": "${workspaceFolder}/cmd/main.go",
-      "preLaunchTask": "go: mod tidy",
+      "request": "attach",
+      "mode": "remote",
+      "remotePath": "C:/MMD/vmd_sizing_t3",
+      "substitutePath": [
+        {
+          "from": "C:/MMD/vmd_sizing_t3",
+          "to": "${workspaceFolder}"
+        }
+      ],
+      "port": 2345,
+      "host": "127.0.0.1",
+      "apiVersion": 2,
       "showLog": true,
+      "trace": "verbose",
+      "preLaunchTask": "go build and start dlv",
+      "cwd": "${workspaceFolder}",
     },
     {
       "name": "[dev] Build",

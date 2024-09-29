@@ -2,6 +2,43 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "go build and start dlv",
+			"type": "shell",
+			"command": "go build -gcflags=\"all=-N -l\" -ldflags=\"-H windowsgui\" -o main.exe ./cmd && dlv exec ./main.exe --headless --listen=:2345 --api-version=2 --accept-multiclient",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"panel": "shared"
+			},
+			"dependsOn": [
+				"go: mod tidy"
+			],
+			"problemMatcher": {
+				"owner": "custom",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}"
+				],
+				"pattern": [
+					{
+						"regexp": ".",
+						"file": 1,
+						"location": 2,
+						"message": 3
+					}
+				],
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "started",
+					"endsPattern": "listening on"
+				}
+			}
+		},
+		{
 			"label": "shell: delete pre debug exe",
 			"type": "shell",
 			"command": "cmd.exe",

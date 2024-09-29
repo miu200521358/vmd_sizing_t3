@@ -30,3 +30,5 @@ cmd/user_config.json
 *.pprof
 *.log
 test_resources/
+history.json
+user_config.json
