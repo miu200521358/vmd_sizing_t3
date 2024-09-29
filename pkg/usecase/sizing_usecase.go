@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"fmt"
+
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
@@ -88,11 +90,17 @@ func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
 
 	// 複数人いるときはXZは共通のスケールを使用する
 	meanXZScale /= float64(len(scales))
-	newXZScale := min(1.2, meanXZScale)
+	newXZScale := meanXZScale
+	if len(sizingSets) > 1 {
+		newXZScale = min(1.2, meanXZScale)
+	}
 
-	for i := range scales {
-		mlog.I(mi18n.T("移動補正スケール", map[string]interface{}{
-			"No": i + 1, "XZ": newXZScale, "OrgXZ": scales[i].X, "Y": scales[i].Y}))
+	for i, sizingSet := range sizingSets {
+		if sizingSet.IsSizingLeg && !sizingSet.CompletedSizingLeg {
+			mlog.I(mi18n.T("移動補正スケール", map[string]interface{}{
+				"No": i + 1, "XZ": fmt.Sprintf("%.3f", newXZScale),
+				"OrgXZ": fmt.Sprintf("%.3f", scales[i].X), "Y": fmt.Sprintf("%.3f", scales[i].Y)}))
+		}
 
 		scales[i].X = newXZScale
 		scales[i].Z = newXZScale
