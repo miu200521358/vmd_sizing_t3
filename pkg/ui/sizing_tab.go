@@ -348,22 +348,21 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 		walk.NewVSeparator(scrollView)
 
-		// サイジングパラメーター
+		// サイジングオプション
 		{
 			// タイトル
 			titleLabel, err := walk.NewTextLabel(scrollView)
 			if err != nil {
 				widget.RaiseError(err)
 			}
-			titleLabel.SetText(mi18n.T("サイジングパラメーター"))
-			titleLabel.SetToolTipText(mi18n.T("サイジングパラメーター説明"))
+			titleLabel.SetText(mi18n.T("サイジングオプション"))
+			titleLabel.SetToolTipText(mi18n.T("サイジングオプション説明"))
 			titleLabel.MouseDown().Attach(func(x, y int, button walk.MouseButton) {
-				mlog.IL(mi18n.T("サイジングパラメーター説明"))
+				mlog.IL(mi18n.T("サイジングオプション説明"))
 			})
 
 			composite := declarative.Composite{
-				// Background: declarative.SolidColorBrush{Color: walk.RGB(255, 255, 255)},
-				Layout: declarative.Grid{Columns: 4},
+				Layout: declarative.Grid{Columns: 2},
 				Children: []declarative.Widget{
 					// 全補正
 					declarative.CheckBox{
@@ -389,11 +388,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 100, Height: 20},
-						MaxSize: declarative.Size{Width: 100, Height: 20},
-						Text:    mi18n.T("全補正"),
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("全補正"),
+						ToolTipText: mi18n.T("全補正概要"),
+						ColumnSpan:  2,
 					},
-					declarative.Label{Text: mi18n.T("全補正概要"), ColumnSpan: 3},
 					// 足補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLegCheck,
@@ -405,11 +405,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 100, Height: 20},
-						MaxSize: declarative.Size{Width: 100, Height: 20},
-						Text:    mi18n.T("足補正"),
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("足補正"),
+						ToolTipText: mi18n.T("足補正概要"),
 					},
-					declarative.Label{Text: mi18n.T("足補正概要")},
 					// 下半身補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLowerCheck,
@@ -425,11 +425,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 100, Height: 20},
-						MaxSize: declarative.Size{Width: 100, Height: 20},
-						Text:    mi18n.T("下半身補正"),
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("下半身補正"),
+						ToolTipText: mi18n.T("下半身補正概要"),
 					},
-					declarative.Label{Text: mi18n.T("下半身補正概要")},
 					// 上半身補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingUpperCheck,
@@ -441,11 +441,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 100, Height: 20},
-						MaxSize: declarative.Size{Width: 100, Height: 20},
-						Text:    mi18n.T("上半身補正"),
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("上半身補正"),
+						ToolTipText: mi18n.T("上半身補正概要"),
 					},
-					declarative.Label{Text: mi18n.T("上半身補正概要")},
 					// 肩補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingShoulderCheck,
@@ -457,11 +457,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 100, Height: 20},
-						MaxSize: declarative.Size{Width: 100, Height: 20},
-						Text:    mi18n.T("肩補正"),
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("肩補正"),
+						ToolTipText: mi18n.T("肩補正概要"),
 					},
-					declarative.Label{Text: mi18n.T("肩補正概要")},
 					// 腕補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingArmCheck,
@@ -477,11 +477,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 100, Height: 20},
-						MaxSize: declarative.Size{Width: 100, Height: 20},
-						Text:    mi18n.T("腕補正"),
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("腕補正"),
+						ToolTipText: mi18n.T("腕補正概要"),
 					},
-					declarative.Label{Text: mi18n.T("腕補正概要")},
 					// 指補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingFingerCheck,
@@ -493,11 +493,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
-						MinSize: declarative.Size{Width: 100, Height: 20},
-						MaxSize: declarative.Size{Width: 100, Height: 20},
-						Text:    mi18n.T("指補正"),
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("指補正"),
+						ToolTipText: mi18n.T("指補正概要"),
 					},
-					declarative.Label{Text: mi18n.T("指補正概要")},
 				},
 			}
 

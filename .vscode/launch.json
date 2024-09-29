@@ -11,12 +11,14 @@
       "mode": "debug",
       "program": "${workspaceFolder}/cmd/main.go",
       "preLaunchTask": "go: mod tidy",
+      "showLog": true,
     },
     {
       "name": "[dev] Build",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/.vscode/scripts/build_exe.py",
+      "cwd": "${workspaceFolder}/cmd",
       "env": {
         "WORKSPACE_FOLDER": "${workspaceFolder}",
         "ENV": "dev"
@@ -27,6 +29,7 @@
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/.vscode/scripts/build_exe.py",
+      "cwd": "${workspaceFolder}/cmd",
       "env": {
         "WORKSPACE_FOLDER": "${workspaceFolder}",
         "ENV": "prod"
