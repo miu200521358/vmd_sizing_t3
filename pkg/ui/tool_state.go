@@ -137,6 +137,7 @@ func (toolState *ToolState) addSizingSet() error {
 	if err != nil {
 		return err
 	}
+	toolState.NavToolBar.SetDefaultButtonWidth(200)
 	toolState.NavToolBar.Actions().Add(action)
 	toolState.SizingSets = append(toolState.SizingSets, domain.NewSizingSet(len(toolState.SizingSets)))
 
@@ -147,17 +148,17 @@ func (toolState *ToolState) addSizingSet() error {
 	}
 
 	// セット追加したら一旦クリア
-	toolState.OriginalVmdPicker.SetPath("")
+	toolState.OriginalVmdPicker.ChangePath("")
 	toolState.OriginalVmdPicker.SetName("")
 
-	toolState.OriginalPmxPicker.SetPath("")
+	toolState.OriginalPmxPicker.ChangePath("")
 	toolState.OriginalPmxPicker.SetName("")
 
-	toolState.SizingPmxPicker.SetPath("")
+	toolState.SizingPmxPicker.ChangePath("")
 	toolState.SizingPmxPicker.SetName("")
 
-	toolState.OutputVmdPicker.SetPath("")
-	toolState.OutputPmxPicker.SetPath("")
+	toolState.OutputVmdPicker.ChangePath("")
+	toolState.OutputPmxPicker.ChangePath("")
 
 	toolState.ResetSizingParameter()
 	toolState.ResetOriginalPmxParameter()
@@ -169,7 +170,11 @@ func (toolState *ToolState) newPageAction() (*walk.Action, error) {
 	action := walk.NewAction()
 	action.SetCheckable(true)
 	action.SetExclusive(true)
-	action.SetText(fmt.Sprintf("No. %d", len(toolState.SizingSets)+1))
+	if len(toolState.SizingSets) == 0 {
+		action.SetText(fmt.Sprintf("     No. %d", len(toolState.SizingSets)+1))
+	} else {
+		action.SetText(fmt.Sprintf("No. %d", len(toolState.SizingSets)+1))
+	}
 	index := len(toolState.SizingSets)
 
 	action.Triggered().Attach(func() {
@@ -191,17 +196,25 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 
 	// サイジングセットの情報を切り替え
 	sizingSet := toolState.SizingSets[index]
-	toolState.OriginalVmdPicker.SetPath(sizingSet.OriginalVmdPath)
+	toolState.OriginalVmdPicker.ChangePath(sizingSet.OriginalVmdPath)
 	toolState.OriginalVmdPicker.SetName(sizingSet.OriginalPmxName)
 
-	toolState.OriginalPmxPicker.SetPath(sizingSet.OriginalPmxPath)
+	toolState.OriginalPmxPicker.ChangePath(sizingSet.OriginalPmxPath)
 	toolState.OriginalPmxPicker.SetName(sizingSet.OriginalPmxName)
 
-	toolState.SizingPmxPicker.SetPath(sizingSet.SizingPmxPath)
+	toolState.SizingPmxPicker.ChangePath(sizingSet.SizingPmxPath)
 	toolState.SizingPmxPicker.SetName(sizingSet.SizingPmxName)
 
-	toolState.OutputVmdPicker.SetPath(sizingSet.OutputVmdPath)
-	toolState.OutputPmxPicker.SetPath(sizingSet.OutputPmxPath)
+	toolState.OutputVmdPicker.ChangePath(sizingSet.OutputVmdPath)
+	toolState.OutputPmxPicker.ChangePath(sizingSet.OutputPmxPath)
+
+	toolState.SizingAllCheck.UpdateChecked(sizingSet.IsSizingAll)
+	toolState.SizingLegCheck.UpdateChecked(sizingSet.IsSizingLeg)
+	toolState.SizingLowerCheck.UpdateChecked(sizingSet.IsSizingLower)
+	toolState.SizingUpperCheck.UpdateChecked(sizingSet.IsSizingUpper)
+	toolState.SizingShoulderCheck.UpdateChecked(sizingSet.IsSizingShoulder)
+	toolState.SizingArmCheck.UpdateChecked(sizingSet.IsSizingArm)
+	toolState.SizingFingerCheck.UpdateChecked(sizingSet.IsSizingFinger)
 
 	toolState.OriginalPmxRatioEdit.SetValue(sizingSet.OriginalPmxRatio)
 	toolState.OriginalPmxUpperLengthEdit.SetValue(sizingSet.OriginalPmxUpperLength)

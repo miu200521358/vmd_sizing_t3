@@ -370,20 +370,29 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
 								sizingSet.IsSizingLeg = toolState.SizingAllCheck.Checked()
-								sizingSet.IsSizingLower = toolState.SizingAllCheck.Checked()
-								sizingSet.IsSizingUpper = toolState.SizingAllCheck.Checked()
-								sizingSet.IsSizingShoulder = toolState.SizingAllCheck.Checked()
-								sizingSet.IsSizingArm = toolState.SizingAllCheck.Checked()
-								sizingSet.IsSizingFinger = toolState.SizingAllCheck.Checked()
-
-								toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-								toolState.SizingLowerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-								toolState.SizingUpperCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-								toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-								toolState.SizingArmCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-								toolState.SizingFingerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							}
-							retakeSizing(toolState)
+							toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingAll =
+								toolState.SizingAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
+								toolState.SizingAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
+								toolState.SizingAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
+								toolState.SizingAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingArm =
+								toolState.SizingAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingFinger =
+								toolState.SizingAllCheck.Checked()
+
+							toolState.SizingLowerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							toolState.SizingUpperCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							toolState.SizingArmCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							toolState.SizingFingerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+
+							go retakeSizing(toolState)
 
 							// 出力パス設定
 							setOutputPath(toolState)
@@ -398,10 +407,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLegCheck,
 						OnCheckedChanged: func() {
+							// 足補正は全セットに適用する
 							for _, sizingSet := range toolState.SizingSets {
 								sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
 							}
-							retakeSizing(toolState)
+							go retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -414,14 +424,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLowerCheck,
 						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								if toolState.SizingLowerCheck.Checked() {
+							if toolState.SizingLowerCheck.Checked() {
+								for _, sizingSet := range toolState.SizingSets {
 									sizingSet.IsSizingLeg = true
-									toolState.SizingLegCheck.UpdateChecked(true)
 								}
-								sizingSet.IsSizingLower = toolState.SizingLowerCheck.Checked()
+								toolState.SizingLegCheck.UpdateChecked(true)
 							}
-							retakeSizing(toolState)
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
+								toolState.SizingLowerCheck.Checked()
+							go retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -434,10 +445,10 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingUpperCheck,
 						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingUpper = toolState.SizingUpperCheck.Checked()
-							}
-							retakeSizing(toolState)
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
+								toolState.SizingUpperCheck.Checked()
+
+							go retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -450,10 +461,10 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingShoulderCheck,
 						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingShoulder = toolState.SizingShoulderCheck.Checked()
-							}
-							retakeSizing(toolState)
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
+								toolState.SizingShoulderCheck.Checked()
+
+							go retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -466,14 +477,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingArmCheck,
 						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								if toolState.SizingArmCheck.Checked() {
-									sizingSet.IsSizingUpper = true
-									toolState.SizingUpperCheck.UpdateChecked(true)
-								}
-								sizingSet.IsSizingArm = toolState.SizingArmCheck.Checked()
+							if toolState.SizingArmCheck.Checked() {
+								toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper = true
 							}
-							retakeSizing(toolState)
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingArm =
+								toolState.SizingArmCheck.Checked()
+
+							go retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -486,10 +496,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingFingerCheck,
 						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingFinger = toolState.SizingFingerCheck.Checked()
-							}
-							retakeSizing(toolState)
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingFinger =
+								toolState.SizingFingerCheck.Checked()
+							go retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -985,7 +994,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 }
 
 func retakeSizing(toolState *ToolState) {
-	toolState.SetEnabled(false)
+	mlog.IL(mi18n.T("サイジング開始"))
+
+	toolState.ControlWindow.Synchronize(func() {
+		toolState.SetEnabled(false)
+	})
 
 	allScales := usecase.GenerateSizingScales(toolState.SizingSets)
 
@@ -1027,8 +1040,10 @@ func retakeSizing(toolState *ToolState) {
 	}
 	wg.Wait()
 
-	toolState.SetEnabled(true)
-	toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
+	toolState.ControlWindow.Synchronize(func() {
+		toolState.SetEnabled(true)
+		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
+	})
 }
 
 func remakeFitMorph(toolState *ToolState) {

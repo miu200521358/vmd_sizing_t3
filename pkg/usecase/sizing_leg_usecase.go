@@ -6,6 +6,8 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
+	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
+	"github.com/miu200521358/mlib_go/pkg/mutils"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
@@ -75,6 +77,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 
 	frames, originalAllDeltas := getOriginalDeltas(sizingSet)
 
+	mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1}))
+
 	// サイジング先にFKを焼き込み
 	for _, vmdDeltas := range originalAllDeltas {
 		for _, boneDelta := range vmdDeltas.Bones.Data {
@@ -89,6 +93,14 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 			sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), sizingBf)
 		}
 	}
+
+	if mlog.IsVerbose() {
+		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "Leg_01_FK焼き込み")
+		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
+		mlog.V("Leg_01_FK焼き込み: %s", outputPath)
+	}
+
+	mlog.I(mi18n.T("足補正02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	sizingOffDeltas := make([]*delta.VmdDeltas, len(frames))
 	centerPositions := make([]*mmath.MVec3, len(frames))
@@ -126,6 +138,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		rightLegIkPositions[index] = rightLegIkBf.Position
 	})
 
+	mlog.I(mi18n.T("足補正03", map[string]interface{}{"No": sizingSet.Index + 1}))
+
 	// 補正を登録
 	for i, vmdDeltas := range sizingOffDeltas {
 		rightLegBoneDelta := vmdDeltas.Bones.Get(rightLegBone.Index())
@@ -138,6 +152,14 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		sizingGrooveBf.Position = groovePositions[i]
 		sizingMotion.InsertRegisteredBoneFrame(grooveBone.Name(), sizingGrooveBf)
 	}
+
+	if mlog.IsVerbose() {
+		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "Leg_02_右足基準補正")
+		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
+		mlog.V("Leg_02_右足基準補正: %s", outputPath)
+	}
+
+	mlog.I(mi18n.T("足補正04", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	sizingCenterDeltas := make([]*delta.VmdDeltas, len(frames))
 	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
@@ -165,6 +187,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		leftLegIkBf := sizingMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
 		leftLegIkPositions[index] = leftLegIkBf.Position.Subed(leftLegDiff)
 	})
+
+	mlog.I(mi18n.T("足補正05", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 左足の結果を登録＆センターのオフセットを保持
 	for i, iFrame := range frames {
@@ -226,6 +250,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		}
 	}
 
+	mlog.I(mi18n.T("足補正06", map[string]interface{}{"No": sizingSet.Index + 1}))
+
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
@@ -245,6 +271,14 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		leftLegIkBf.Position = leftLegIkPositions[i]
 		sizingMotion.InsertRegisteredBoneFrame(leftLegIkBone.Name(), leftLegIkBf)
 	}
+
+	if mlog.IsVerbose() {
+		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "Leg_03_移動オフセット")
+		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
+		mlog.V("Leg_03_移動オフセット: %s", outputPath)
+	}
+
+	mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// // ひざと足首を一旦除去
 	// sizingMotion.BoneFrames.Delete(leftKneeBone.Name())

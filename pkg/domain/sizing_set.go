@@ -25,6 +25,7 @@ type SizingSet struct {
 	OutputVmd   *vmd.VmdMotion
 	OutputPmx   *pmx.PmxModel
 
+	IsSizingAll      bool
 	IsSizingLower    bool
 	IsSizingLeg      bool
 	IsSizingUpper    bool

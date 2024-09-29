@@ -3,6 +3,8 @@ package usecase
 import (
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
@@ -84,15 +86,14 @@ func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
 		}
 	}
 
-	if len(scales) == 1 {
-		return scales
-	}
-
 	// 複数人いるときはXZは共通のスケールを使用する
 	meanXZScale /= float64(len(scales))
 	newXZScale := min(1.2, meanXZScale)
 
 	for i := range scales {
+		mlog.I(mi18n.T("移動補正スケール", map[string]interface{}{
+			"No": i + 1, "XZ": newXZScale, "OrgXZ": scales[i].X, "Y": scales[i].Y}))
+
 		scales[i].X = newXZScale
 		scales[i].Z = newXZScale
 	}
