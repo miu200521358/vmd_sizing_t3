@@ -362,7 +362,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			})
 
 			composite := declarative.Composite{
-				Layout: declarative.Grid{Columns: 2},
+				Layout: declarative.Grid{Columns: 3},
 				Children: []declarative.Widget{
 					// 全補正
 					declarative.CheckBox{
@@ -381,16 +381,16 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
 								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingArm =
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmStance =
 								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingFinger =
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
 								toolState.SizingAllCheck.Checked()
 
 							toolState.SizingLowerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingUpperCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-							toolState.SizingArmCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-							toolState.SizingFingerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							toolState.SizingFingerStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 
 							go retakeSizing(toolState)
 
@@ -401,7 +401,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("全補正"),
 						ToolTipText: mi18n.T("全補正概要"),
-						ColumnSpan:  2,
+						ColumnSpan:  3,
 					},
 					// 足補正
 					declarative.CheckBox{
@@ -473,15 +473,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						Text:        mi18n.T("肩補正"),
 						ToolTipText: mi18n.T("肩補正概要"),
 					},
-					// 腕補正
+					// 腕スタンス補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingArmCheck,
+						AssignTo: &toolState.SizingArmStanceCheck,
 						OnCheckedChanged: func() {
-							if toolState.SizingArmCheck.Checked() {
-								toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper = true
-							}
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingArm =
-								toolState.SizingArmCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmStance =
+								toolState.SizingArmStanceCheck.Checked()
 
 							go retakeSizing(toolState)
 							// 出力パス設定
@@ -489,23 +486,23 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("腕補正"),
-						ToolTipText: mi18n.T("腕補正概要"),
+						Text:        mi18n.T("腕スタンス補正"),
+						ToolTipText: mi18n.T("腕スタンス補正概要"),
 					},
-					// 指補正
+					// 指スタンス補正
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingFingerCheck,
+						AssignTo: &toolState.SizingFingerStanceCheck,
 						OnCheckedChanged: func() {
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingFinger =
-								toolState.SizingFingerCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
+								toolState.SizingFingerStanceCheck.Checked()
 							go retakeSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("指補正"),
-						ToolTipText: mi18n.T("指補正概要"),
+						Text:        mi18n.T("指スタンス補正"),
+						ToolTipText: mi18n.T("指スタンス補正概要"),
 					},
 				},
 			}
@@ -1013,8 +1010,8 @@ func retakeSizing(toolState *ToolState) {
 					(!sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) ||
 					(!sizingSet.IsSizingUpper && sizingSet.CompletedSizingUpper) ||
 					(!sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) ||
-					(!sizingSet.IsSizingArm && sizingSet.CompletedSizingArm) ||
-					(!sizingSet.IsSizingFinger && sizingSet.CompletedSizingFinger) {
+					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
+					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
@@ -1027,13 +1024,20 @@ func retakeSizing(toolState *ToolState) {
 					sizingSet.CompletedSizingLower = false
 					sizingSet.CompletedSizingUpper = false
 					sizingSet.CompletedSizingShoulder = false
-					sizingSet.CompletedSizingArm = false
-					sizingSet.CompletedSizingFinger = false
+					sizingSet.CompletedSizingArmStance = false
+					sizingSet.CompletedSizingFingerStance = false
 				}
 
 				frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
+				sizingSet.OutputVmd.SetRandHash()
+
 				usecase.SizingLower(sizingSet, frames, originalAllDeltas)
+				sizingSet.OutputVmd.SetRandHash()
+
 				usecase.SizingUpper(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
+
+				usecase.SizingArmFingerStance(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 			}(sizingSet)
 		}
@@ -1085,10 +1089,10 @@ func setOutputPath(toolState *ToolState) {
 			if toolState.SizingSets[i].IsSizingShoulder {
 				suffix += "S"
 			}
-			if toolState.SizingSets[i].IsSizingArm {
+			if toolState.SizingSets[i].IsSizingArmStance {
 				suffix += "A"
 			}
-			if toolState.SizingSets[i].IsSizingFinger {
+			if toolState.SizingSets[i].IsSizingFingerStance {
 				suffix += "F"
 			}
 			if len(suffix) > 0 {

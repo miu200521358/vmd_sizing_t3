@@ -25,20 +25,20 @@ type SizingSet struct {
 	OutputVmd   *vmd.VmdMotion
 	OutputPmx   *pmx.PmxModel
 
-	IsSizingAll      bool
-	IsSizingLower    bool
-	IsSizingLeg      bool
-	IsSizingUpper    bool
-	IsSizingShoulder bool
-	IsSizingArm      bool
-	IsSizingFinger   bool
+	IsSizingAll          bool
+	IsSizingLower        bool
+	IsSizingLeg          bool
+	IsSizingUpper        bool
+	IsSizingShoulder     bool
+	IsSizingArmStance    bool
+	IsSizingFingerStance bool
 
-	CompletedSizingLower    bool
-	CompletedSizingLeg      bool
-	CompletedSizingUpper    bool
-	CompletedSizingShoulder bool
-	CompletedSizingArm      bool
-	CompletedSizingFinger   bool
+	CompletedSizingLower        bool
+	CompletedSizingLeg          bool
+	CompletedSizingUpper        bool
+	CompletedSizingShoulder     bool
+	CompletedSizingArmStance    bool
+	CompletedSizingFingerStance bool
 
 	OriginalJsonPmx           *pmx.PmxModel
 	OriginalPmxRatio          float64 // 全体比率
@@ -78,13 +78,13 @@ func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.IsSizingLower = false
 	sizingSet.IsSizingUpper = false
 	sizingSet.IsSizingShoulder = false
-	sizingSet.IsSizingArm = false
-	sizingSet.IsSizingFinger = false
+	sizingSet.IsSizingArmStance = false
+	sizingSet.IsSizingFingerStance = false
 
 	sizingSet.CompletedSizingLeg = false
 	sizingSet.CompletedSizingLower = false
 	sizingSet.CompletedSizingUpper = false
 	sizingSet.CompletedSizingShoulder = false
-	sizingSet.CompletedSizingArm = false
-	sizingSet.CompletedSizingFinger = false
+	sizingSet.CompletedSizingArmStance = false
+	sizingSet.CompletedSizingFingerStance = false
 }

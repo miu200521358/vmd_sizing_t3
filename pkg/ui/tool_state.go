@@ -33,8 +33,8 @@ type ToolState struct {
 	SizingLowerCheck              *walk.CheckBox      // 下半身チェック
 	SizingUpperCheck              *walk.CheckBox      // 上半身チェック
 	SizingShoulderCheck           *walk.CheckBox      // 肩チェック
-	SizingArmCheck                *walk.CheckBox      // 腕チェック
-	SizingFingerCheck             *walk.CheckBox      // 指チェック
+	SizingArmStanceCheck          *walk.CheckBox      // 腕チェック
+	SizingFingerStanceCheck       *walk.CheckBox      // 指チェック
 	OriginalPmxRatioEdit          *walk.NumberEdit    // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit    // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit    // 素体上半身角度編集
@@ -213,8 +213,8 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.SizingLowerCheck.UpdateChecked(sizingSet.IsSizingLower)
 	toolState.SizingUpperCheck.UpdateChecked(sizingSet.IsSizingUpper)
 	toolState.SizingShoulderCheck.UpdateChecked(sizingSet.IsSizingShoulder)
-	toolState.SizingArmCheck.UpdateChecked(sizingSet.IsSizingArm)
-	toolState.SizingFingerCheck.UpdateChecked(sizingSet.IsSizingFinger)
+	toolState.SizingArmStanceCheck.UpdateChecked(sizingSet.IsSizingArmStance)
+	toolState.SizingFingerStanceCheck.UpdateChecked(sizingSet.IsSizingFingerStance)
 
 	toolState.OriginalPmxRatioEdit.SetValue(sizingSet.OriginalPmxRatio)
 	toolState.OriginalPmxUpperLengthEdit.SetValue(sizingSet.OriginalPmxUpperLength)
@@ -249,8 +249,8 @@ func (toolState *ToolState) ResetSizingParameter() {
 	toolState.SizingLowerCheck.SetChecked(false)
 	toolState.SizingUpperCheck.SetChecked(false)
 	toolState.SizingShoulderCheck.SetChecked(false)
-	toolState.SizingArmCheck.SetChecked(false)
-	toolState.SizingFingerCheck.SetChecked(false)
+	toolState.SizingArmStanceCheck.SetChecked(false)
+	toolState.SizingFingerStanceCheck.SetChecked(false)
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -370,7 +370,7 @@ func (toolState *ToolState) ResetSizingCheck() {
 	toolState.SizingLowerCheck.SetChecked(false)
 	toolState.SizingUpperCheck.SetChecked(false)
 	toolState.SizingShoulderCheck.SetChecked(false)
-	toolState.SizingArmCheck.SetChecked(false)
-	toolState.SizingArmCheck.UpdateChecked(false)
-	toolState.SizingFingerCheck.SetChecked(false)
+	toolState.SizingArmStanceCheck.SetChecked(false)
+	toolState.SizingArmStanceCheck.UpdateChecked(false)
+	toolState.SizingFingerStanceCheck.SetChecked(false)
 }
