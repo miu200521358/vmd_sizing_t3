@@ -1044,6 +1044,8 @@ func retakeSizing(toolState *ToolState) {
 		toolState.SetEnabled(true)
 		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 	})
+
+	widget.Beep()
 }
 
 func remakeFitMorph(toolState *ToolState) {
