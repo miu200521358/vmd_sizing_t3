@@ -1028,14 +1028,15 @@ func retakeSizing(toolState *ToolState) {
 					sizingSet.CompletedSizingFingerStance = false
 				}
 
-				frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
+				// frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
+				usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.SizingLower(sizingSet, frames, originalAllDeltas)
-				sizingSet.OutputVmd.SetRandHash()
+				// usecase.SizingLower(sizingSet, frames, originalAllDeltas)
+				// sizingSet.OutputVmd.SetRandHash()
 
-				usecase.SizingUpper(sizingSet)
-				sizingSet.OutputVmd.SetRandHash()
+				// usecase.SizingUpper(sizingSet)
+				// sizingSet.OutputVmd.SetRandHash()
 
 				usecase.SizingArmFingerStance(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
