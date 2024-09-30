@@ -17,7 +17,8 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
-	if originalModel == nil || sizingModel == nil || originalMotion == nil || sizingMotion == nil {
+	if (!sizingSet.IsSizingArmStance || (sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance)) &&
+		(!sizingSet.IsSizingFingerStance || (sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance)) {
 		return
 	}
 
@@ -25,37 +26,43 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 		return
 	}
 
-	stanceQuats := createArmFingerStanceQuats(originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
+	mlog.I(mi18n.T("腕指スタンス補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+
+	stanceQuats := createArmFingerStanceQuats(
+		originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
 
 	var wg sync.WaitGroup
-	for _, boneName := range originalMotion.BoneFrames.Names() {
-		wg.Add(1)
+	for _, boneNames := range [][]string{arm_bone_names, finger_bone_names} {
+		for _, boneName := range boneNames {
+			wg.Add(1)
 
-		go func(originalBfs, sizingBfs *vmd.BoneNameFrames) {
-			defer wg.Done()
-			for _, frame := range originalBfs.Indexes.List() {
-				originalBf := originalMotion.BoneFrames.Get(boneName).Get(frame)
-				sizingBf := sizingBfs.Get(frame)
-				if originalBf == nil || sizingBf == nil {
-					continue
-				}
+			go func(originalBfs, sizingBfs *vmd.BoneNameFrames) {
+				defer wg.Done()
+				for _, frame := range originalBfs.Indexes.List() {
+					originalBf := originalMotion.BoneFrames.Get(boneName).Get(frame)
+					sizingBf := sizingBfs.Get(frame)
+					if originalBf == nil || sizingBf == nil {
+						continue
+					}
 
-				// 回転補正
-				bone := sizingModel.Bones.GetByName(boneName)
-				if bone != nil {
-					if _, ok := stanceQuats[bone.Index()]; ok {
-						sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(originalBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
-						sizingBfs.Update(sizingBf)
+					// 回転補正
+					bone := sizingModel.Bones.GetByName(boneName)
+					if bone != nil {
+						if _, ok := stanceQuats[bone.Index()]; ok {
+							sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(originalBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
+							sizingBfs.Update(sizingBf)
+						}
 					}
 				}
-			}
-		}(originalMotion.BoneFrames.Get(boneName), sizingMotion.BoneFrames.Get(boneName))
+			}(originalMotion.BoneFrames.Get(boneName), sizingMotion.BoneFrames.Get(boneName))
+		}
 	}
 
 	wg.Wait()
 
-	sizingSet.CompletedSizingArmStance = true
-	sizingSet.CompletedSizingFingerStance = true
+	// 腕スタンス補正だけしているときとかあるので、Completeは補正対象のフラグを受け継ぐ
+	sizingSet.CompletedSizingArmStance = sizingSet.IsSizingArmStance
+	sizingSet.CompletedSizingFingerStance = sizingSet.IsSizingFingerStance
 }
 
 func createArmFingerStanceQuats(
