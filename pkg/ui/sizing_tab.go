@@ -126,7 +126,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.OriginalVmdPicker.SetOnPathChanged(func(path string) {
 				if data, err := toolState.OriginalVmdPicker.Load(); err == nil {
 					if data == nil {
-						toolState.OutputVmdPicker.SetPath("")
+						toolState.OutputVmdPicker.ChangePath("")
 						return
 					}
 
@@ -152,7 +152,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					isAdd := false
 					if toolState.SizingSets[toolState.CurrentIndex].SizingPmx != nil {
 						for _, boneName := range toolState.SizingSets[toolState.CurrentIndex].SizingAddedBoneNames {
-							if toolState.SizingSets[toolState.CurrentIndex].OutputVmd.BoneFrames.Contains(boneName) {
+							if toolState.SizingSets[toolState.CurrentIndex].OutputVmd.BoneFrames.Contains(boneName) && toolState.SizingSets[toolState.CurrentIndex].SizingPmx.Bones.GetByName(boneName).IsStandard() {
 								isAdd = true
 								break
 							}
@@ -175,6 +175,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					controlWindow.UpdateMaxFrame(motion.MaxFrame())
+					go retakeSizing(toolState)
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
 				}
@@ -350,8 +351,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 		// サイジングオプション
 		{
+			// ボタンBox
+			buttonComposite, err := walk.NewComposite(scrollView)
+			if err != nil {
+				widget.RaiseError(err)
+			}
+			buttonComposite.SetLayout(walk.NewHBoxLayout())
+
 			// タイトル
-			titleLabel, err := walk.NewTextLabel(scrollView)
+			titleLabel, err := walk.NewTextLabel(buttonComposite)
 			if err != nil {
 				widget.RaiseError(err)
 			}
@@ -359,6 +367,19 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			titleLabel.SetToolTipText(mi18n.T("サイジングオプション説明"))
 			titleLabel.MouseDown().Attach(func(x, y int, button walk.MouseButton) {
 				mlog.IL(mi18n.T("サイジングオプション説明"))
+			})
+
+			// 補正適用保留
+			toolState.AdoptCheck, err = walk.NewCheckBox(buttonComposite)
+			if err != nil {
+				widget.RaiseError(err)
+			}
+			toolState.AdoptCheck.SetMinMaxSize(walk.Size{Width: 100, Height: 20}, walk.Size{Width: 100, Height: 20})
+			toolState.AdoptCheck.SetText(mi18n.T("即時反映"))
+			toolState.AdoptCheck.SetToolTipText(mi18n.T("即時反映説明"))
+			toolState.AdoptCheck.UpdateChecked(true)
+			toolState.AdoptCheck.CheckedChanged().Attach(func() {
+				go retakeSizing(toolState)
 			})
 
 			composite := declarative.Composite{
@@ -991,6 +1012,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 }
 
 func retakeSizing(toolState *ToolState) {
+	if !toolState.AdoptCheck.Checked() ||
+		toolState.SizingSets[toolState.CurrentIndex].OriginalPmx == nil ||
+		toolState.SizingSets[toolState.CurrentIndex].SizingPmx == nil ||
+		toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
+		return
+	}
+
 	mlog.IL(mi18n.T("サイジング開始"))
 
 	toolState.ControlWindow.Synchronize(func() {

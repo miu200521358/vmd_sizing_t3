@@ -74,6 +74,7 @@ func NewSizingSet(index int) *SizingSet {
 }
 
 func (sizingSet *SizingSet) ResetSizingFlag() {
+	sizingSet.IsSizingAll = false
 	sizingSet.IsSizingLeg = false
 	sizingSet.IsSizingLower = false
 	sizingSet.IsSizingUpper = false

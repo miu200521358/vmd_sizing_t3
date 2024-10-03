@@ -28,6 +28,7 @@ type ToolState struct {
 	SizingPmxPicker               *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
 	OutputPmxPicker               *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
+	AdoptCheck                    *walk.CheckBox      // サイジング適用ボタン
 	SizingAllCheck                *walk.CheckBox      // 全体チェック
 	SizingLegCheck                *walk.CheckBox      // 足チェック
 	SizingLowerCheck              *walk.CheckBox      // 下半身チェック
@@ -245,7 +246,12 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 }
 
 func (toolState *ToolState) ResetSizingParameter() {
-	toolState.SizingLegCheck.SetChecked(false)
+	toolState.SizingAllCheck.SetChecked(false)
+	if len(toolState.SizingSets) == 0 {
+		toolState.SizingLegCheck.SetChecked(false)
+	} else {
+		toolState.SizingLegCheck.SetChecked(toolState.SizingSets[0].IsSizingLeg)
+	}
 	toolState.SizingLowerCheck.SetChecked(false)
 	toolState.SizingUpperCheck.SetChecked(false)
 	toolState.SizingShoulderCheck.SetChecked(false)
@@ -362,15 +368,14 @@ func (toolState *ToolState) onClickSizingTabSave() {
 }
 
 func (toolState *ToolState) ResetSizingCheck() {
-	for _, sizingSet := range toolState.SizingSets {
-		sizingSet.ResetSizingFlag()
-	}
+	toolState.SizingSets[toolState.CurrentIndex].ResetSizingFlag()
 
-	toolState.SizingLegCheck.SetChecked(false)
-	toolState.SizingLowerCheck.SetChecked(false)
-	toolState.SizingUpperCheck.SetChecked(false)
-	toolState.SizingShoulderCheck.SetChecked(false)
-	toolState.SizingArmStanceCheck.SetChecked(false)
+	toolState.SizingAllCheck.UpdateChecked(false)
+	toolState.SizingLegCheck.UpdateChecked(false)
+	toolState.SizingLowerCheck.UpdateChecked(false)
+	toolState.SizingUpperCheck.UpdateChecked(false)
+	toolState.SizingShoulderCheck.UpdateChecked(false)
 	toolState.SizingArmStanceCheck.UpdateChecked(false)
-	toolState.SizingFingerStanceCheck.SetChecked(false)
+	toolState.SizingArmStanceCheck.UpdateChecked(false)
+	toolState.SizingFingerStanceCheck.UpdateChecked(false)
 }
