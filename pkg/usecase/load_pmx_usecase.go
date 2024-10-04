@@ -14,6 +14,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
@@ -837,28 +838,53 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 		return
 	}
 
-	// D系の置き換え
-	for _, boneNames := range [][]string{
-		{pmx.LEG.Right(), pmx.LEG_D.Right()},
-		{pmx.KNEE.Right(), pmx.KNEE_D.Right()},
-		{pmx.ANKLE.Right(), pmx.ANKLE_D.Right()},
-		{pmx.LEG.Left(), pmx.LEG_D.Left()},
-		{pmx.KNEE.Left(), pmx.KNEE_D.Left()},
-		{pmx.ANKLE.Left(), pmx.ANKLE_D.Left()},
-	} {
-		if !slices.Contains(nonExistBoneNames, boneNames[1]) {
-			continue
-		}
-		fkBone := model.Bones.GetByName(boneNames[0])
-		dBone := model.Bones.GetByName(boneNames[1])
+	// 足・ひざ・足首すべてが足FKにウェイトが乗っている場合のみ置き換え
+	isFixLegD := true
+	if _, ok := allBoneVertices[model.Bones.GetByName(pmx.LEG.Right()).Index()]; !ok {
+		isFixLegD = false
+	}
+	if _, ok := allBoneVertices[model.Bones.GetByName(pmx.KNEE.Right()).Index()]; !ok {
+		isFixLegD = false
+	}
+	if _, ok := allBoneVertices[model.Bones.GetByName(pmx.ANKLE.Right()).Index()]; !ok {
+		isFixLegD = false
+	}
+	if _, ok := allBoneVertices[model.Bones.GetByName(pmx.LEG.Left()).Index()]; !ok {
+		isFixLegD = false
+	}
+	if _, ok := allBoneVertices[model.Bones.GetByName(pmx.KNEE.Left()).Index()]; !ok {
+		isFixLegD = false
+	}
+	if _, ok := allBoneVertices[model.Bones.GetByName(pmx.ANKLE.Left()).Index()]; !ok {
+		isFixLegD = false
+	}
 
-		for _, vertex := range allBoneVertices[fkBone.Index()] {
-			deformIndex := vertex.Deform.Index(fkBone.Index())
-			if deformIndex < 0 {
+	// D系の置き換え
+	if isFixLegD {
+		for _, boneNames := range [][]string{
+			{pmx.LEG.Right(), pmx.LEG_D.Right()},
+			{pmx.KNEE.Right(), pmx.KNEE_D.Right()},
+			{pmx.ANKLE.Right(), pmx.ANKLE_D.Right()},
+			{pmx.LEG.Left(), pmx.LEG_D.Left()},
+			{pmx.KNEE.Left(), pmx.KNEE_D.Left()},
+			{pmx.ANKLE.Left(), pmx.ANKLE_D.Left()},
+		} {
+			if !slices.Contains(nonExistBoneNames, boneNames[1]) {
 				continue
 			}
-			vertex.Deform.AllIndexes()[deformIndex] = dBone.Index()
+			fkBone := model.Bones.GetByName(boneNames[0])
+			dBone := model.Bones.GetByName(boneNames[1])
+
+			for _, vertex := range allBoneVertices[fkBone.Index()] {
+				deformIndex := vertex.Deform.Index(fkBone.Index())
+				if deformIndex < 0 {
+					continue
+				}
+				vertex.Deform.AllIndexes()[deformIndex] = dBone.Index()
+			}
 		}
+	} else {
+		mlog.W(mi18n.T("足Dスキップ"))
 	}
 
 	// 足先EXの置き換え
