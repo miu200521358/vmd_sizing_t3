@@ -291,7 +291,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					isAdd := false
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd != nil {
 						for _, boneName := range addBoneNames {
-							if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd.BoneFrames.Contains(boneName) {
+							nowSizingSet := toolState.SizingSets[toolState.CurrentIndex]
+							if nowSizingSet.OriginalVmd.BoneFrames.Contains(boneName) &&
+								nowSizingSet.OriginalVmd.BoneFrames.Get(boneName).Len() > 1 {
 								isAdd = true
 								break
 							}
@@ -299,6 +301,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					if isAdd {
+						mlog.I(mi18n.T("不足ボーンあり", map[string]interface{}{
+							"addBoneNames": mutils.JoinSlice(addBoneNames)}))
+
 						// 出力モデル
 						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
 						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
