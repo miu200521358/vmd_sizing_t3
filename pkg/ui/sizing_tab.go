@@ -160,7 +160,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						}
 					}
 
-					if isAdd {
+					if isAdd || mlog.IsVerbose() {
 						// 出力モデル
 						sizingModel := toolState.SizingSets[toolState.CurrentIndex].SizingPmx
 						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
@@ -301,8 +301,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						}
 					}
 
-					if isAdd {
+					if isAdd || mlog.IsVerbose() {
 						mlog.I(mi18n.T("不足ボーンあり", map[string]interface{}{
+							"No":           toolState.SizingSets[toolState.CurrentIndex].Index + 1,
 							"addBoneNames": mutils.JoinSlice(addBoneNames)}))
 
 						// 出力モデル
@@ -1208,7 +1209,12 @@ func retakeSizing(toolState *ToolState) {
 					(!sizingSet.IsSizingUpper && sizingSet.CompletedSizingUpper) ||
 					(!sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) ||
 					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
-					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) {
+					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) ||
+					(!sizingSet.IsCleanRoot && sizingSet.CompletedCleanRoot) ||
+					(!sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) ||
+					(!sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) ||
+					(!sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) ||
+					(!sizingSet.IsCleanTwist && sizingSet.CompletedCleanTwist) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
@@ -1223,7 +1229,16 @@ func retakeSizing(toolState *ToolState) {
 					sizingSet.CompletedSizingShoulder = false
 					sizingSet.CompletedSizingArmStance = false
 					sizingSet.CompletedSizingFingerStance = false
+
+					sizingSet.CompletedCleanRoot = false
+					sizingSet.CompletedCleanCenter = false
+					sizingSet.CompletedCleanLegIkParent = false
+					sizingSet.CompletedCleanArmIk = false
+					sizingSet.CompletedCleanTwist = false
 				}
+
+				usecase.CleanRoot(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
 
 				// frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
@@ -1246,6 +1261,8 @@ func retakeSizing(toolState *ToolState) {
 		toolState.SetEnabled(true)
 		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 	})
+
+	mlog.I(mi18n.T("サイジング終了"))
 
 	widget.Beep()
 }

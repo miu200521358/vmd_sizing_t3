@@ -14,7 +14,6 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
-	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
@@ -956,8 +955,6 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string, allBoneVe
 				vertex.Deform.AllIndexes()[deformIndex] = dBone.Index()
 			}
 		}
-	} else {
-		mlog.W(mi18n.T("足Dスキップ"))
 	}
 
 	// 足先EXの置き換え

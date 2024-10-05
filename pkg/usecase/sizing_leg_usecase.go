@@ -59,6 +59,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		return nil, nil
 	}
 
+	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
 	sizingModel := sizingSet.SizingPmx
@@ -91,8 +93,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 	rightToeIkBone := sizingModel.Bones.GetByName(pmx.TOE_IK.Right())
 	rightToeBone := sizingModel.Bones.GetIkTarget(pmx.TOE_IK.Right())
 	// rightToeTailBone := sizingModel.Bones.GetByName(pmx.TOE_T.Right())
-
-	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	frames, originalAllDeltas := getOriginalDeltas(sizingSet)
 

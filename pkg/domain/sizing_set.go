@@ -46,6 +46,12 @@ type SizingSet struct {
 	CompletedSizingArmStance    bool
 	CompletedSizingFingerStance bool
 
+	CompletedCleanRoot        bool
+	CompletedCleanCenter      bool
+	CompletedCleanLegIkParent bool
+	CompletedCleanArmIk       bool
+	CompletedCleanTwist       bool
+
 	OriginalJsonPmx           *pmx.PmxModel
 	OriginalPmxRatio          float64 // 全体比率
 	OriginalPmxUpperLength    float64 // 上半身長さ
