@@ -20,7 +20,7 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 		return
 	}
 
-	mlog.I(mi18n.T("全ての親クリーニング開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("全ての親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
@@ -78,6 +78,7 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 	}
 
 	sizingMotion.BoneFrames.Delete(pmx.ROOT.String())
+
 	sizingSet.CompletedCleanRoot = true
 }
 
@@ -85,25 +86,25 @@ func isValidCleanRoot(sizingSet *domain.SizingSet) bool {
 	sizingModel := sizingSet.SizingPmx
 
 	if !sizingModel.Bones.ContainsByName(pmx.ROOT.String()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親クリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.ROOT.String()}))
 		return false
 	}
 
 	if !sizingModel.Bones.ContainsByName(pmx.CENTER.String()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親クリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.CENTER.String()}))
 		return false
 	}
 
 	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK_PARENT.Left()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親クリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LEG_IK_PARENT.Left()}))
 		return false
 	}
 
 	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK_PARENT.Right()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親クリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("全ての親最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LEG_IK_PARENT.Right()}))
 		return false
 	}

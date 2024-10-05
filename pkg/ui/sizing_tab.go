@@ -593,7 +593,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 		walk.NewVSeparator(scrollView)
 
-		// クリーニングオプション
+		// 最適化オプション
 		{
 			// ボタンBox
 			buttonComposite, err := walk.NewComposite(scrollView)
@@ -607,16 +607,16 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			if err != nil {
 				widget.RaiseError(err)
 			}
-			titleLabel.SetText(mi18n.T("クリーニングオプション"))
-			titleLabel.SetToolTipText(mi18n.T("クリーニングオプション説明"))
+			titleLabel.SetText(mi18n.T("最適化オプション"))
+			titleLabel.SetToolTipText(mi18n.T("最適化オプション説明"))
 			titleLabel.MouseDown().Attach(func(x, y int, button walk.MouseButton) {
-				mlog.IL(mi18n.T("クリーニングオプション説明"))
+				mlog.IL(mi18n.T("最適化オプション説明"))
 			})
 
 			composite := declarative.Composite{
 				Layout: declarative.Grid{Columns: 3},
 				Children: []declarative.Widget{
-					// 全親クリーニング
+					// 全親最適化
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanRootCheck,
 						OnCheckedChanged: func() {
@@ -628,10 +628,10 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("全ての親クリーニング"),
-						ToolTipText: mi18n.T("全ての親クリーニング概要"),
+						Text:        mi18n.T("全ての親最適化"),
+						ToolTipText: mi18n.T("全ての親最適化概要"),
 					},
-					// センタークリーニング
+					// センター最適化
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanCenterCheck,
 						OnCheckedChanged: func() {
@@ -649,10 +649,10 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("センタークリーニング"),
-						ToolTipText: mi18n.T("センタークリーニング概要"),
+						Text:        mi18n.T("センター最適化"),
+						ToolTipText: mi18n.T("センター最適化概要"),
 					},
-					// 足IK親クリーニング
+					// 足IK親最適化
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanLegIkParentCheck,
 						OnCheckedChanged: func() {
@@ -676,10 +676,10 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("足IK親クリーニング"),
-						ToolTipText: mi18n.T("足IK親クリーニング概要"),
+						Text:        mi18n.T("足IK親最適化"),
+						ToolTipText: mi18n.T("足IK親最適化概要"),
 					},
-					// 腕IKクリーニング
+					// 腕IK最適化
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanArmIkCheck,
 						OnCheckedChanged: func() {
@@ -692,10 +692,10 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("腕IKクリーニング"),
-						ToolTipText: mi18n.T("腕IKクリーニング概要"),
+						Text:        mi18n.T("腕IK最適化"),
+						ToolTipText: mi18n.T("腕IK最適化概要"),
 					},
-					// 捩りクリーニング
+					// 捩り最適化
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanTwistCheck,
 						OnCheckedChanged: func() {
@@ -708,8 +708,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("捩りクリーニング"),
-						ToolTipText: mi18n.T("捩りクリーニング概要"),
+						Text:        mi18n.T("捩り最適化"),
+						ToolTipText: mi18n.T("捩り最適化概要"),
 					},
 				},
 			}
@@ -1257,6 +1257,9 @@ func execSizing(toolState *ToolState) {
 				sizingSet.OutputVmd.SetRandHash()
 
 				usecase.CleanCenter(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
+
+				usecase.CleanLegIkParent(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 
 				// frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])

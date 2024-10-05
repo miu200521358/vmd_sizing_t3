@@ -21,7 +21,7 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 		return
 	}
 
-	mlog.I(mi18n.T("センタークリーニング開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
@@ -145,25 +145,25 @@ func isValidCleanCenter(sizingSet *domain.SizingSet) bool {
 	sizingModel := sizingSet.SizingPmx
 
 	if !sizingModel.Bones.ContainsByName(pmx.CENTER.String()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センタークリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.CENTER.String()}))
 		return false
 	}
 
 	if !sizingModel.Bones.ContainsByName(pmx.GROOVE.String()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センタークリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.GROOVE.String()}))
 		return false
 	}
 
 	if !sizingModel.Bones.ContainsByName(pmx.UPPER.String()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センタークリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.UPPER.String()}))
 		return false
 	}
 
 	if !sizingModel.Bones.ContainsByName(pmx.LOWER.String()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センタークリーニングボーン不足", map[string]interface{}{
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LOWER.String()}))
 		return false
 	}
