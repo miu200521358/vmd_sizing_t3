@@ -323,9 +323,9 @@ func resizeJsonModel(jsonModel *pmx.PmxModel, sizingSet *domain.SizingSet) {
 
 	// つま先IK
 	jsonModel.Bones.GetByName(pmx.TOE_IK.Right()).Position =
-		boneDeltas.Bones.GetByName(pmx.TOE.Right()).Position.Copy()
+		boneDeltas.Bones.Get(jsonModel.Bones.GetIkTarget(pmx.TOE_IK.Right()).Index()).Position.Copy()
 	jsonModel.Bones.GetByName(pmx.TOE_IK.Left()).Position =
-		boneDeltas.Bones.GetByName(pmx.TOE.Left()).Position.Copy()
+		boneDeltas.Bones.Get(jsonModel.Bones.GetIkTarget(pmx.TOE_IK.Left()).Index()).Position.Copy()
 
 	jsonModel.Setup()
 }
@@ -397,6 +397,9 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) []string {
 
 	ratio := getBaseScale(baseModel, model)
 	nonExistBoneNames := make([]string, 0)
+	nonExistStandardBoneNames := make([]string, 0)
+
+	var allBoneVertices map[int][]*pmx.Vertex
 
 	for _, baseBoneIndex := range baseModel.Bones.LayerSortedIndexes {
 		baseBone := baseModel.Bones.Get(baseBoneIndex)
@@ -676,6 +679,13 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) []string {
 				if legBone == nil {
 					continue
 				}
+				if allBoneVertices == nil {
+					allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
+				}
+				if _, ok := allBoneVertices[legBone.Index()]; !ok {
+					// 足のボーンにウェイトが乗った頂点がない場合、スルー
+					continue
+				}
 
 				newBone.Position = legBone.Position.Copy()
 			} else if slices.Contains([]string{pmx.KNEE_D.Left(), pmx.KNEE_D.Right()}, baseBone.Name()) {
@@ -686,6 +696,13 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) []string {
 				if kneeBone == nil {
 					continue
 				}
+				if allBoneVertices == nil {
+					allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
+				}
+				if _, ok := allBoneVertices[kneeBone.Index()]; !ok {
+					// ひざのボーンにウェイトが乗った頂点がない場合、スルー
+					continue
+				}
 
 				newBone.Position = kneeBone.Position.Copy()
 			} else if slices.Contains([]string{pmx.ANKLE_D.Left(), pmx.ANKLE_D.Right()}, baseBone.Name()) {
@@ -694,6 +711,13 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) []string {
 				ankleBone := model.Bones.GetByName(baseAnkleBone.Name())
 
 				if ankleBone == nil {
+					continue
+				}
+				if allBoneVertices == nil {
+					allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
+				}
+				if _, ok := allBoneVertices[ankleBone.Index()]; !ok {
+					// ひざのボーンにウェイトが乗った頂点がない場合、スルー
 					continue
 				}
 
@@ -733,14 +757,87 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) []string {
 					newBone.Position = parentBone.Position.Added(parentBone.Extend.ChildRelativePosition)
 				}
 				newBone.IsSystem = true
-			} else if slices.Contains([]string{pmx.TOE.Left(), pmx.TOE.Right(), pmx.TOE_D.Left(), pmx.TOE_D.Right()}, baseBone.Name()) {
-				// つま先ボーンはつま先IKの位置と同じ
-				toeIkBoneName := fmt.Sprintf("%sつま先ＩＫ", baseBone.Direction())
-				toeIkBone := model.Bones.GetByName(toeIkBoneName)
-				if toeIkBone == nil {
-					continue
+			} else if slices.Contains([]string{pmx.HEEL.Left(), pmx.HEEL.Right()}, baseBone.Name()) {
+				// かかとはもっとも+Z方向にある足首の位置
+				if allBoneVertices == nil {
+					allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
 				}
-				newBone.Position = toeIkBone.Position.Copy()
+
+				ankleBone := model.Bones.GetByName(pmx.ANKLE.StringFromDirection(newBone.Direction()))
+				heelX := newBone.Position.X
+				heelZ := -math.MaxFloat64
+				if ankleBone != nil {
+					heelZ = ankleBone.Position.Z
+					if _, ok := allBoneVertices[ankleBone.Index()]; ok {
+						for _, vertex := range allBoneVertices[ankleBone.Index()] {
+							if vertex.Position.Z > heelZ {
+								heelZ = vertex.Position.Z
+							}
+						}
+					}
+				}
+				ankleDBone := model.Bones.GetByName(pmx.ANKLE_D.StringFromDirection(baseBone.Direction()))
+				if ankleDBone != nil {
+					if _, ok := allBoneVertices[ankleDBone.Index()]; ok {
+						for _, vertex := range allBoneVertices[ankleDBone.Index()] {
+							if vertex.Position.Z > heelZ {
+								heelZ = vertex.Position.Z
+							}
+						}
+					}
+				}
+				newBone.Position = &mmath.MVec3{X: heelX, Y: 0, Z: heelZ}
+				newBone.IsSystem = true
+			} else if slices.Contains([]string{pmx.TOE_T.Left(), pmx.TOE_T.Right()}, baseBone.Name()) {
+				// つま先先はもっとも-Z方向にある足首の位置
+				if allBoneVertices == nil {
+					allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
+				}
+
+				ankleBone := model.Bones.GetByName(pmx.ANKLE.StringFromDirection(baseBone.Direction()))
+				toeX := newBone.Position.X
+				toeZ := math.MaxFloat64
+				if ankleBone != nil {
+					toeZ = ankleBone.Position.Z
+					if _, ok := allBoneVertices[ankleBone.Index()]; ok {
+						for _, vertex := range allBoneVertices[ankleBone.Index()] {
+							if vertex.Position.Z < toeZ {
+								toeZ = vertex.Position.Z
+							}
+						}
+					}
+				}
+				ankleDBone := model.Bones.GetByName(pmx.ANKLE_D.StringFromDirection(baseBone.Direction()))
+				if ankleDBone != nil {
+					if _, ok := allBoneVertices[ankleDBone.Index()]; ok {
+						for _, vertex := range allBoneVertices[ankleDBone.Index()] {
+							if vertex.Position.Z < toeZ {
+								toeZ = vertex.Position.Z
+							}
+						}
+					}
+				}
+				toeExBone := model.Bones.GetByName(pmx.TOE_EX.StringFromDirection(baseBone.Direction()))
+				if toeExBone != nil {
+					if _, ok := allBoneVertices[toeExBone.Index()]; ok {
+						for _, vertex := range allBoneVertices[toeExBone.Index()] {
+							if vertex.Position.Z < toeZ {
+								toeZ = vertex.Position.Z
+							}
+						}
+					}
+				}
+				newBone.Position = &mmath.MVec3{X: toeX, Y: 0, Z: toeZ}
+				newBone.IsSystem = true
+			} else if slices.Contains([]string{pmx.TOE_P.Left(), pmx.TOE_P.Right()}, baseBone.Name()) {
+				// つま先親はつま先より少し中央よりの位置
+				toeBone := model.Bones.GetByName(pmx.TOE_T.StringFromDirection(baseBone.Direction()))
+				newBone.Position = &mmath.MVec3{X: toeBone.Position.X - toeBone.Position.X*0.1, Y: 0, Z: toeBone.Position.Z}
+				newBone.IsSystem = true
+			} else if slices.Contains([]string{pmx.TOE_C.Left(), pmx.TOE_C.Right()}, baseBone.Name()) {
+				// つま先子はつま先より少し外よりの位置
+				toeBone := model.Bones.GetByName(pmx.TOE_T.StringFromDirection(baseBone.Direction()))
+				newBone.Position = &mmath.MVec3{X: toeBone.Position.X + toeBone.Position.X*0.1, Y: 0, Z: toeBone.Position.Z}
 				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.TOE_C_D.Left(), pmx.TOE_C_D.Right()}, baseBone.Name()) {
 				// つま先子Dはつま先子の位置
@@ -799,45 +896,21 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson bool) []string {
 		// ボーン追加
 		model.Bones.Insert(newBone, afterIndex)
 		nonExistBoneNames = append(nonExistBoneNames, newBone.Name())
+		if newBone.IsStandard() {
+			nonExistStandardBoneNames = append(nonExistStandardBoneNames, newBone.Name())
+		}
 	}
 
 	// ボーン設定を補正
 	fixBaseBones(baseModel, model, fromJson, nonExistBoneNames)
 
 	// ウェイト調整
-	fixDeformWeights(model, nonExistBoneNames)
+	fixDeformWeights(model, nonExistStandardBoneNames, allBoneVertices)
 
-	return nonExistBoneNames
+	return nonExistStandardBoneNames
 }
 
-func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
-	var allBoneVertices map[int][]*pmx.Vertex
-
-	// ウェイト調整が必要なボーンを追加した場合
-	if slices.Contains(nonExistBoneNames, pmx.UPPER2.String()) ||
-		slices.Contains(nonExistBoneNames, pmx.LEG_D.Right()) ||
-		slices.Contains(nonExistBoneNames, pmx.KNEE_D.Right()) ||
-		slices.Contains(nonExistBoneNames, pmx.ANKLE_D.Right()) ||
-		slices.Contains(nonExistBoneNames, pmx.LEG_D.Left()) ||
-		slices.Contains(nonExistBoneNames, pmx.KNEE_D.Left()) ||
-		slices.Contains(nonExistBoneNames, pmx.ANKLE_D.Left()) ||
-		slices.Contains(nonExistBoneNames, pmx.TOE_EX.Right()) ||
-		slices.Contains(nonExistBoneNames, pmx.TOE_EX.Left()) ||
-		slices.Contains(nonExistBoneNames, pmx.THUMB0.Right()) ||
-		slices.Contains(nonExistBoneNames, pmx.THUMB0.Left()) ||
-		slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Right()) ||
-		slices.Contains(nonExistBoneNames, pmx.ARM_TWIST.Left()) ||
-		slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Right()) ||
-		slices.Contains(nonExistBoneNames, pmx.WRIST_TWIST.Left()) {
-		// 頂点をボーンINDEX別に纏める
-		allBoneVertices = model.Vertices.GetMapByBoneIndex(0.0)
-	}
-
-	if allBoneVertices == nil {
-		// ウェイト調整が不要な場合、終了
-		return
-	}
-
+func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string, allBoneVertices map[int][]*pmx.Vertex) {
 	// 足・ひざ・足首すべてが足FKにウェイトが乗っている場合のみ置き換え
 	isFixLegD := true
 	if _, ok := allBoneVertices[model.Bones.GetByName(pmx.LEG.Right()).Index()]; !ok {
@@ -889,8 +962,8 @@ func fixDeformWeights(model *pmx.PmxModel, nonExistBoneNames []string) {
 
 	// 足先EXの置き換え
 	for _, boneNames := range [][]string{
-		{pmx.ANKLE.Right(), pmx.TOE_EX.Right(), pmx.TOE.Right(), pmx.ANKLE_D.Right()},
-		{pmx.ANKLE.Left(), pmx.TOE_EX.Left(), pmx.TOE.Left(), pmx.ANKLE_D.Left()},
+		{pmx.ANKLE.Right(), pmx.TOE_EX.Right(), pmx.TOE_T.Right(), pmx.ANKLE_D.Right()},
+		{pmx.ANKLE.Left(), pmx.TOE_EX.Left(), pmx.TOE_T.Left(), pmx.ANKLE_D.Left()},
 	} {
 		if !slices.Contains(nonExistBoneNames, boneNames[1]) {
 			continue
