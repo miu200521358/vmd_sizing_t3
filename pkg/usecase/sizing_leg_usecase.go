@@ -487,7 +487,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 	if mlog.IsVerbose() {
 		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正07_FK再計算")
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-		mlog.V("足補正07_FK再計算: %s", outputPath)
+		mlog.V("Leg_04_FK再計算: %s", outputPath)
 	}
 
 	sizingSet.CompletedSizingLeg = true

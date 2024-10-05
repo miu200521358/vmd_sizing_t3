@@ -146,6 +146,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// サイジング先モデル用モーション
 					sizingMotion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
 					sizingMotion.SetRandHash()
+					sizingMotion.Clean()
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 					toolState.ResetSizingCheck()
 
