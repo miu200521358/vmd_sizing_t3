@@ -176,7 +176,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					controlWindow.UpdateMaxFrame(motion.MaxFrame())
-					go retakeSizing(toolState)
+					go execSizing(toolState)
 				} else {
 					mlog.E(mi18n.T("読み込み失敗"), err)
 				}
@@ -385,7 +385,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			toolState.AdoptSizingCheck.SetToolTipText(mi18n.T("即時反映説明"))
 			toolState.AdoptSizingCheck.UpdateChecked(true)
 			toolState.AdoptSizingCheck.CheckedChanged().Attach(func() {
-				go retakeSizing(toolState)
+				go execSizing(toolState)
 			})
 
 			composite := declarative.Composite{
@@ -439,7 +439,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.CleanTwistCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 
 							// 出力パス設定
 							setOutputPath(toolState)
@@ -470,7 +470,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.CleanLegIkParentCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -502,7 +502,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
 								toolState.SizingLowerCheck.Checked()
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -518,7 +518,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
 								toolState.SizingUpperCheck.Checked()
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -534,7 +534,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
 								toolState.SizingShoulderCheck.Checked()
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -559,7 +559,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.CleanTwistCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -574,7 +574,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						OnCheckedChanged: func() {
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
 								toolState.SizingFingerStanceCheck.Checked()
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -622,7 +622,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						OnCheckedChanged: func() {
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
 								toolState.CleanRootCheck.Checked()
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -635,10 +635,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanCenterCheck,
 						OnCheckedChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot ||
+									toolState.CleanCenterCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
 								toolState.CleanCenterCheck.Checked()
+							toolState.CleanRootCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -651,10 +656,21 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanLegIkParentCheck,
 						OnCheckedChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot ||
+									toolState.CleanLegIkParentCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter ||
+									toolState.CleanLegIkParentCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
 								toolState.CleanLegIkParentCheck.Checked()
 
-							go retakeSizing(toolState)
+							toolState.CleanRootCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
+							toolState.CleanCenterCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
+
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -670,7 +686,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
 								toolState.CleanArmIkCheck.Checked()
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -686,7 +702,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
 								toolState.CleanTwistCheck.Checked()
 
-							go retakeSizing(toolState)
+							go execSizing(toolState)
 							// 出力パス設定
 							setOutputPath(toolState)
 						},
@@ -1181,7 +1197,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	}
 }
 
-func retakeSizing(toolState *ToolState) {
+func execSizing(toolState *ToolState) {
 	if !toolState.AdoptSizingCheck.Checked() ||
 		toolState.SizingSets[toolState.CurrentIndex].OriginalPmx == nil ||
 		toolState.SizingSets[toolState.CurrentIndex].SizingPmx == nil ||
@@ -1238,6 +1254,9 @@ func retakeSizing(toolState *ToolState) {
 				}
 
 				usecase.CleanRoot(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
+
+				usecase.CleanCenter(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 
 				// frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
