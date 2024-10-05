@@ -33,6 +33,12 @@ type SizingSet struct {
 	IsSizingArmStance    bool
 	IsSizingFingerStance bool
 
+	IsCleanRoot        bool
+	IsCleanCenter      bool
+	IsCleanLegIkParent bool
+	IsCleanArmIk       bool
+	IsCleanTwist       bool
+
 	CompletedSizingLower        bool
 	CompletedSizingLeg          bool
 	CompletedSizingUpper        bool

@@ -120,6 +120,34 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 	sizingMotion.BoneFrames.Delete(pmx.TOE_IK.Right())
 
 	if mlog.IsVerbose() {
+		{
+			kf := vmd.NewIkFrame(0)
+			{
+				kef := vmd.NewIkEnableFrame(0)
+				kef.BoneName = leftLegIkBone.Name()
+				kef.Enabled = false
+				kf.IkList = append(kf.IkList, kef)
+			}
+			{
+				kef := vmd.NewIkEnableFrame(0)
+				kef.BoneName = leftToeIkBone.Name()
+				kef.Enabled = false
+				kf.IkList = append(kf.IkList, kef)
+			}
+			{
+				kef := vmd.NewIkEnableFrame(0)
+				kef.BoneName = rightLegIkBone.Name()
+				kef.Enabled = false
+				kf.IkList = append(kf.IkList, kef)
+			}
+			{
+				kef := vmd.NewIkEnableFrame(0)
+				kef.BoneName = rightToeIkBone.Name()
+				kef.Enabled = false
+				kf.IkList = append(kf.IkList, kef)
+			}
+		}
+
 		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正01_FK焼き込み")
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
 		mlog.V("足補正01_FK焼き込み: %s", outputPath)
@@ -393,6 +421,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 	}
 
 	if mlog.IsVerbose() {
+		sizingMotion.IkFrames.Delete(0)
+
 		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正05_足IK補正")
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
 		mlog.V("足補正05_足IK補正: %s", outputPath)

@@ -28,7 +28,7 @@ type ToolState struct {
 	SizingPmxPicker               *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
 	OutputPmxPicker               *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
-	AdoptCheck                    *walk.CheckBox      // サイジング適用ボタン
+	AdoptSizingCheck              *walk.CheckBox      // サイジング適用ボタン
 	SizingAllCheck                *walk.CheckBox      // 全体チェック
 	SizingLegCheck                *walk.CheckBox      // 足チェック
 	SizingLowerCheck              *walk.CheckBox      // 下半身チェック
@@ -36,6 +36,11 @@ type ToolState struct {
 	SizingShoulderCheck           *walk.CheckBox      // 肩チェック
 	SizingArmStanceCheck          *walk.CheckBox      // 腕チェック
 	SizingFingerStanceCheck       *walk.CheckBox      // 指チェック
+	CleanRootCheck                *walk.CheckBox      // 全親クリーニングチェック
+	CleanCenterCheck              *walk.CheckBox      // センタークリーニングチェック
+	CleanLegIkParentCheck         *walk.CheckBox      // 足IK親クリーニングチェック
+	CleanArmIkCheck               *walk.CheckBox      // 腕IKクリーニングチェック
+	CleanTwistCheck               *walk.CheckBox      // 捩りクリーニングチェック
 	OriginalPmxRatioEdit          *walk.NumberEdit    // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit    // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit    // 素体上半身角度編集
