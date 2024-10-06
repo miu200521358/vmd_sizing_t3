@@ -56,44 +56,46 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) {
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, false, frame, legIkRelativeBoneNames, false)
 
-		legIkLeftPositions[index] = vmdDeltas.Bones.Get(originalLegIkLeftBone.Index()).FilledGlobalPosition().Subed(
-			originalLegIkLeftBone.Position)
-		legIkRightPositions[index] = vmdDeltas.Bones.Get(originalLegIkRightBone.Index()).FilledGlobalPosition().Subed(
-			originalLegIkRightBone.Position)
+		for _, boneName := range []string{pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()} {
+			bone := originalModel.Bones.GetByName(boneName)
 
-		leftLegIkLocalRotation := sizingMotion.BoneFrames.Get(originalLegIkLeftBone.Name()).Get(frame).Rotation
-		for _, boneIndex := range originalLegIkLeftBone.Extend.ParentBoneIndexes {
-			boneDelta := vmdDeltas.Bones.Get(boneIndex)
-			if boneDelta == nil {
-				continue
+			legIkLocalRotation := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame).Rotation
+			for _, boneIndex := range bone.Extend.ParentBoneIndexes {
+				boneDelta := vmdDeltas.Bones.Get(boneIndex)
+				if boneDelta == nil {
+					continue
+				}
+				legIkLocalRotation = boneDelta.FilledFrameRotation().Muled(legIkLocalRotation)
 			}
-			leftLegIkLocalRotation = boneDelta.FilledFrameRotation().Muled(leftLegIkLocalRotation)
-		}
-		legIkLeftRotations[index] = leftLegIkLocalRotation
+			legIkLocalPosition := vmdDeltas.Bones.Get(bone.Index()).FilledGlobalPosition().Subed(bone.Position)
 
-		rightLegIkLocalRotation := sizingMotion.BoneFrames.Get(originalLegIkRightBone.Name()).Get(frame).Rotation
-		for _, boneIndex := range originalLegIkRightBone.Extend.ParentBoneIndexes {
-			boneDelta := vmdDeltas.Bones.Get(boneIndex)
-			if boneDelta == nil {
-				continue
+			switch boneName {
+			case pmx.LEG_IK_PARENT.Left():
+				legIkLeftPositions[index] = legIkLocalPosition
+				legIkLeftRotations[index] = legIkLocalRotation
+			case pmx.LEG_IK_PARENT.Right():
+				legIkRightPositions[index] = legIkLocalPosition
+				legIkRightRotations[index] = legIkLocalRotation
 			}
-			rightLegIkLocalRotation = boneDelta.FilledFrameRotation().Muled(rightLegIkLocalRotation)
 		}
-		legIkRightRotations[index] = rightLegIkLocalRotation
 	})
 
-	for j, iFrame := range frames {
+	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
-		legIkLeftBf := sizingMotion.BoneFrames.Get(pmx.LEG_IK.Left()).Get(frame)
-		legIkLeftBf.Position = legIkLeftPositions[j]
-		legIkLeftBf.Rotation = legIkLeftRotations[j]
-		sizingMotion.InsertRegisteredBoneFrame(pmx.LEG_IK.Left(), legIkLeftBf)
+		for _, bone := range []*pmx.Bone{originalLegIkLeftBone, originalLegIkRightBone} {
+			bf := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame)
 
-		legIkRightBf := sizingMotion.BoneFrames.Get(pmx.LEG_IK.Right()).Get(frame)
-		legIkRightBf.Position = legIkRightPositions[j]
-		legIkRightBf.Rotation = legIkRightRotations[j]
-		sizingMotion.InsertRegisteredBoneFrame(pmx.LEG_IK.Right(), legIkRightBf)
+			switch bone.Name() {
+			case pmx.LEG_IK_PARENT.Left():
+				bf.Position = legIkLeftPositions[i]
+				bf.Rotation = legIkLeftRotations[i]
+			case pmx.LEG_IK_PARENT.Right():
+				bf.Position = legIkRightPositions[i]
+				bf.Rotation = legIkRightRotations[i]
+			}
+			sizingMotion.InsertRegisteredBoneFrame(bone.Name(), bf)
+		}
 	}
 
 	sizingMotion.BoneFrames.Delete(pmx.LEG_IK_PARENT.Left())

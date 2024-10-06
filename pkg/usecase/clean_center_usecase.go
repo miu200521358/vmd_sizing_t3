@@ -23,13 +23,13 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 
 	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
-	sizingModel := sizingSet.SizingPmx
+	originalModel := sizingSet.OriginalPmx
 	sizingMotion := sizingSet.OutputVmd
 
-	centerBone := sizingModel.Bones.GetByName(pmx.CENTER.String())
-	grooveBone := sizingModel.Bones.GetByName(pmx.GROOVE.String())
-	upperBone := sizingModel.Bones.GetByName(pmx.UPPER.String())
-	lowerBone := sizingModel.Bones.GetByName(pmx.LOWER.String())
+	centerBone := originalModel.Bones.GetByName(pmx.CENTER.String())
+	grooveBone := originalModel.Bones.GetByName(pmx.GROOVE.String())
+	upperBone := originalModel.Bones.GetByName(pmx.UPPER.String())
+	lowerBone := originalModel.Bones.GetByName(pmx.LOWER.String())
 
 	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.GROOVE.String()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(centerRelativeBoneNames)
@@ -82,9 +82,9 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	// 元モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, centerRelativeBoneNames, false)
+		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, centerRelativeBoneNames, false)
 
 		centerLocalPosition := vmdDeltas.Bones.Get(centerBone.Index()).FilledGlobalPosition().Subed(centerBone.Position)
 		grooveLocalPosition := vmdDeltas.Bones.Get(grooveBone.Index()).FilledGlobalPosition().Subed(
@@ -95,47 +95,45 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 			Y: 0, Z: centerLocalPosition.Z + grooveLocalPosition.Z}
 		groovePositions[index] = &mmath.MVec3{X: 0, Y: centerLocalPosition.Y + grooveLocalPosition.Y, Z: 0}
 
-		upperLocalRotation := sizingMotion.BoneFrames.Get(upperBone.Name()).Get(frame).Rotation
-		for _, boneIndex := range upperBone.Extend.ParentBoneIndexes {
-			boneDelta := vmdDeltas.Bones.Get(boneIndex)
-			if boneDelta == nil {
-				continue
+		for _, bone := range []*pmx.Bone{upperBone, lowerBone} {
+			localRotation := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame).Rotation
+			for _, boneIndex := range bone.Extend.ParentBoneIndexes {
+				boneDelta := vmdDeltas.Bones.Get(boneIndex)
+				if boneDelta == nil {
+					continue
+				}
+				localRotation = boneDelta.FilledFrameRotation().Muled(localRotation)
 			}
-			upperLocalRotation = boneDelta.FilledFrameRotation().Muled(upperLocalRotation)
-		}
-		upperRotations[index] = upperLocalRotation
 
-		lowerLocalRotation := sizingMotion.BoneFrames.Get(lowerBone.Name()).Get(frame).Rotation
-		for _, boneIndex := range lowerBone.Extend.ParentBoneIndexes {
-			boneDelta := vmdDeltas.Bones.Get(boneIndex)
-			if boneDelta == nil {
-				continue
+			switch bone.Name() {
+			case pmx.UPPER.String():
+				upperRotations[index] = localRotation
+			case pmx.LOWER.String():
+				lowerRotations[index] = localRotation
 			}
-			lowerLocalRotation = boneDelta.FilledFrameRotation().Muled(lowerLocalRotation)
 		}
-		lowerRotations[index] = lowerLocalRotation
 	})
 
-	for j, iFrame := range frames {
+	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
-		centerBf := sizingMotion.BoneFrames.Get(pmx.CENTER.String()).Get(frame)
-		centerBf.Position = centerPositions[j]
-		centerBf.Rotation = mmath.NewMQuaternion()
-		sizingMotion.InsertRegisteredBoneFrame(pmx.CENTER.String(), centerBf)
+		for _, bone := range []*pmx.Bone{centerBone, grooveBone, upperBone, lowerBone} {
+			bf := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame)
 
-		grooveBf := sizingMotion.BoneFrames.Get(pmx.GROOVE.String()).Get(frame)
-		grooveBf.Position = groovePositions[j]
-		grooveBf.Rotation = mmath.NewMQuaternion()
-		sizingMotion.InsertRegisteredBoneFrame(pmx.GROOVE.String(), grooveBf)
-
-		upperBf := sizingMotion.BoneFrames.Get(pmx.UPPER.String()).Get(frame)
-		upperBf.Rotation = upperRotations[j]
-		sizingMotion.InsertRegisteredBoneFrame(pmx.UPPER.String(), upperBf)
-
-		lowerBf := sizingMotion.BoneFrames.Get(pmx.LOWER.String()).Get(frame)
-		lowerBf.Rotation = lowerRotations[j]
-		sizingMotion.InsertRegisteredBoneFrame(pmx.LOWER.String(), lowerBf)
+			switch bone.Name() {
+			case pmx.CENTER.String():
+				bf.Position = centerPositions[i]
+				bf.Rotation = mmath.NewMQuaternion()
+			case pmx.GROOVE.String():
+				bf.Position = groovePositions[i]
+				bf.Rotation = mmath.NewMQuaternion()
+			case pmx.UPPER.String():
+				bf.Rotation = upperRotations[i]
+			case pmx.LOWER.String():
+				bf.Rotation = lowerRotations[i]
+			}
+			sizingMotion.InsertRegisteredBoneFrame(bone.Name(), bf)
+		}
 	}
 
 	sizingSet.CompletedCleanCenter = true

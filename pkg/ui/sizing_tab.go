@@ -400,6 +400,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								sizingSet.IsCleanRoot = toolState.SizingAllCheck.Checked()
 								sizingSet.IsCleanCenter = toolState.SizingAllCheck.Checked()
 								sizingSet.IsCleanLegIkParent = toolState.SizingAllCheck.Checked()
+								sizingSet.IsCleanWaist = toolState.SizingAllCheck.Checked()
 							}
 							toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 
@@ -409,6 +410,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
 							toolState.CleanLegIkParentCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
+							toolState.CleanWaistCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist)
 
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingAll =
 								toolState.SizingAllCheck.Checked()
@@ -431,13 +434,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
 								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
-								toolState.SizingAllCheck.Checked()
 
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
-							toolState.CleanTwistCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
 
 							go execSizing(toolState)
 
@@ -461,6 +460,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								sizingSet.IsCleanRoot = toolState.SizingLegCheck.Checked()
 								sizingSet.IsCleanCenter = toolState.SizingLegCheck.Checked()
 								sizingSet.IsCleanLegIkParent = toolState.SizingLegCheck.Checked()
+								sizingSet.IsCleanWaist = toolState.SizingLegCheck.Checked()
 							}
 
 							toolState.CleanRootCheck.UpdateChecked(
@@ -469,6 +469,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
 							toolState.CleanLegIkParentCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
+							toolState.CleanWaistCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist)
 
 							go execSizing(toolState)
 							// 出力パス設定
@@ -489,6 +491,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								sizingSet.IsCleanRoot = toolState.SizingLowerCheck.Checked()
 								sizingSet.IsCleanCenter = toolState.SizingLowerCheck.Checked()
 								sizingSet.IsCleanLegIkParent = toolState.SizingLowerCheck.Checked()
+								sizingSet.IsCleanWaist = toolState.SizingLowerCheck.Checked()
 							}
 							toolState.SizingLegCheck.UpdateChecked(
 								toolState.SizingLowerCheck.Checked())
@@ -499,6 +502,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
 							toolState.CleanLegIkParentCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
+							toolState.CleanWaistCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist)
 
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
 								toolState.SizingLowerCheck.Checked()
@@ -551,13 +556,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingArmStanceCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
 								toolState.SizingArmStanceCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
-								toolState.SizingArmStanceCheck.Checked()
 
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
-							toolState.CleanTwistCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
 
 							go execSizing(toolState)
 							// 出力パス設定
@@ -678,6 +679,22 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("足IK親最適化"),
 						ToolTipText: mi18n.T("足IK親最適化概要"),
+					},
+					// 腰最適化
+					declarative.CheckBox{
+						AssignTo: &toolState.CleanWaistCheck,
+						OnCheckedChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist =
+								toolState.CleanWaistCheck.Checked()
+
+							go execSizing(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("腰最適化"),
+						ToolTipText: mi18n.T("腰最適化"),
 					},
 					// 腕IK最適化
 					declarative.CheckBox{
