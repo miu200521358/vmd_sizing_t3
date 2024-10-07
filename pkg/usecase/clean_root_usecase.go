@@ -55,17 +55,10 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 				continue
 			}
 			bone := originalModel.Bones.GetByName(boneName)
-			boneLocalPosition := vmdDeltas.Bones.Get(bone.Index()).FilledGlobalPosition().Subed(bone.Position)
-			var boneLocalRotation *mmath.MQuaternion
-			for _, boneIndex := range bone.Extend.ParentBoneIndexes {
-				if boneLocalRotation == nil {
-					boneLocalRotation = vmdDeltas.Bones.Get(boneIndex).FilledFrameRotation().Copy()
-				} else {
-					boneLocalRotation.Mul(vmdDeltas.Bones.Get(boneIndex).FilledFrameRotation())
-				}
-			}
-			childLocalPositions[bone.Index()][index] = boneLocalPosition
-			childLocalRotations[bone.Index()][index] = boneLocalRotation
+			childLocalPositions[bone.Index()][index] =
+				vmdDeltas.Bones.Get(bone.Index()).FilledGlobalPosition().Subed(bone.Position)
+			childLocalRotations[bone.Index()][index] =
+				vmdDeltas.Bones.Get(bone.Index()).FilledGlobalBoneRotation()
 		}
 	})
 
