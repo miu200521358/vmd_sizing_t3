@@ -23,11 +23,15 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 		return
 	}
 
-	mlog.I(mi18n.T("全ての親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
 	sizingMotion := sizingSet.OutputVmd
+
+	if !sizingMotion.BoneFrames.ContainsActive(pmx.ROOT.String()) {
+		return
+	}
+
+	mlog.I(mi18n.T("全ての親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	rootRelativeBoneNames := []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(rootRelativeBoneNames)
@@ -89,6 +93,10 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 			continue
 		}
 		startFrame := frames[i-1] + 1
+
+		if endFrame-startFrame-1 <= 0 {
+			continue
+		}
 
 		miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
 			frame := float32(startFrame + index + 1)

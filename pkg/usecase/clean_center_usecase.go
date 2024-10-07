@@ -22,11 +22,18 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 		return
 	}
 
-	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
 	sizingMotion := sizingSet.OutputVmd
+
+	if !(sizingMotion.BoneFrames.ContainsActive(pmx.CENTER.String()) ||
+		sizingMotion.BoneFrames.ContainsActive(pmx.GROOVE.String()) ||
+		sizingMotion.BoneFrames.ContainsActive(pmx.UPPER.String()) ||
+		sizingMotion.BoneFrames.ContainsActive(pmx.LOWER.String())) {
+		return
+	}
+
+	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	centerBone := originalModel.Bones.GetByName(pmx.CENTER.String())
 	grooveBone := originalModel.Bones.GetByName(pmx.GROOVE.String())
@@ -90,6 +97,10 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 			continue
 		}
 		startFrame := frames[i-1] + 1
+
+		if endFrame-startFrame-1 <= 0 {
+			continue
+		}
 
 		miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
 			frame := float32(startFrame + index + 1)
