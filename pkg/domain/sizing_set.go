@@ -25,7 +25,9 @@ type SizingSet struct {
 	OutputVmd   *vmd.VmdMotion
 	OutputPmx   *pmx.PmxModel
 
+	IsSizingCleanAll     bool
 	IsSizingAll          bool
+	IsCleanAll           bool
 	IsSizingLower        bool
 	IsSizingLeg          bool
 	IsSizingUpper        bool
@@ -88,7 +90,7 @@ func NewSizingSet(index int) *SizingSet {
 }
 
 func (sizingSet *SizingSet) ResetSizingFlag() {
-	sizingSet.IsSizingAll = false
+	sizingSet.IsSizingCleanAll = false
 	sizingSet.IsSizingLeg = false
 	sizingSet.IsSizingLower = false
 	sizingSet.IsSizingUpper = false

@@ -356,7 +356,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 		walk.NewVSeparator(scrollView)
 
-		// サイジングオプション
+		// 一括オプション
 		{
 			headerComposite, err := walk.NewComposite(scrollView)
 			if err != nil {
@@ -369,13 +369,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			if err != nil {
 				widget.RaiseError(err)
 			}
-			titleLabel.SetText(mi18n.T("サイジングオプション"))
-			titleLabel.SetToolTipText(mi18n.T("サイジングオプション説明"))
+			titleLabel.SetText(mi18n.T("サイジング一括オプション"))
+			titleLabel.SetToolTipText(mi18n.T("サイジング一括オプション説明"))
 			titleLabel.MouseDown().Attach(func(x, y int, button walk.MouseButton) {
-				mlog.IL(mi18n.T("サイジングオプション説明"))
+				mlog.IL(mi18n.T("サイジング一括オプション説明"))
 			})
 
-			// 補正適用保留
+			// 即時反映
 			toolState.AdoptSizingCheck, err = walk.NewCheckBox(headerComposite)
 			if err != nil {
 				widget.RaiseError(err)
@@ -391,18 +391,46 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			composite := declarative.Composite{
 				Layout: declarative.Grid{Columns: 3},
 				Children: []declarative.Widget{
-					// 全補正
+					// 全補正&最適化
 					declarative.CheckBox{
-						AssignTo: &toolState.SizingAllCheck,
+						AssignTo: &toolState.SizingCleanAllCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingLeg = toolState.SizingAllCheck.Checked()
-								sizingSet.IsCleanRoot = toolState.SizingAllCheck.Checked()
-								sizingSet.IsCleanCenter = toolState.SizingAllCheck.Checked()
-								sizingSet.IsCleanLegIkParent = toolState.SizingAllCheck.Checked()
-								sizingSet.IsCleanWaist = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingLeg = toolState.SizingCleanAllCheck.Checked()
 							}
-							toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							toolState.SizingLegCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingCleanAll =
+								toolState.SizingCleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
+								toolState.SizingCleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
+								toolState.SizingCleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
+								toolState.SizingCleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmStance =
+								toolState.SizingCleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
+								toolState.SizingCleanAllCheck.Checked()
+
+							toolState.SizingLowerCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.SizingUpperCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.SizingFingerStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
+								toolState.CleanAllCheck.Checked()
 
 							toolState.CleanRootCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
@@ -412,6 +440,29 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
 							toolState.CleanWaistCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist)
+							toolState.CleanArmIkCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
+							toolState.CleanArmIkCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
+
+							go execSizing(toolState)
+
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("全補正&最適化"),
+						ToolTipText: mi18n.T("全補正&最適化説明"),
+					},
+					// 全補正
+					declarative.CheckBox{
+						AssignTo: &toolState.SizingAllCheck,
+						OnCheckedChanged: func() {
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingLeg = toolState.SizingAllCheck.Checked()
+							}
+							toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingAll =
 								toolState.SizingAllCheck.Checked()
@@ -432,12 +483,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingFingerStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
-								toolState.SizingAllCheck.Checked()
-
-							toolState.CleanArmIkCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
-
 							go execSizing(toolState)
 
 							// 出力パス設定
@@ -446,9 +491,82 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("全補正"),
-						ToolTipText: mi18n.T("全補正概要"),
-						ColumnSpan:  3,
+						ToolTipText: mi18n.T("全補正説明"),
 					},
+					// 全最適化
+					declarative.CheckBox{
+						AssignTo: &toolState.CleanAllCheck,
+						OnCheckedChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanAll =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
+								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
+								toolState.CleanAllCheck.Checked()
+
+							toolState.CleanRootCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
+							toolState.CleanCenterCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
+							toolState.CleanLegIkParentCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
+							toolState.CleanWaistCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanWaist)
+							toolState.CleanArmIkCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
+							toolState.CleanArmIkCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
+
+							go execSizing(toolState)
+
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("全最適化"),
+						ToolTipText: mi18n.T("全最適化説明"),
+					},
+				},
+			}
+
+			if err := composite.Create(declarative.NewBuilder(scrollView)); err != nil {
+				widget.RaiseError(err)
+			}
+		}
+
+		walk.NewVSeparator(scrollView)
+
+		// サイジングオプション
+		{
+			headerComposite, err := walk.NewComposite(scrollView)
+			if err != nil {
+				widget.RaiseError(err)
+			}
+			headerComposite.SetLayout(walk.NewHBoxLayout())
+
+			// タイトル
+			titleLabel, err := walk.NewTextLabel(headerComposite)
+			if err != nil {
+				widget.RaiseError(err)
+			}
+			titleLabel.SetText(mi18n.T("サイジングオプション"))
+			titleLabel.SetToolTipText(mi18n.T("サイジングオプション説明"))
+			titleLabel.MouseDown().Attach(func(x, y int, button walk.MouseButton) {
+				mlog.IL(mi18n.T("サイジングオプション説明"))
+			})
+
+			composite := declarative.Composite{
+				Layout: declarative.Grid{Columns: 3},
+				Children: []declarative.Widget{
 					// 足補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingLegCheck,
@@ -479,7 +597,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("足補正"),
-						ToolTipText: mi18n.T("足補正概要"),
+						ToolTipText: mi18n.T("足補正説明"),
 					},
 					// 下半身補正
 					declarative.CheckBox{
@@ -514,7 +632,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("下半身補正"),
-						ToolTipText: mi18n.T("下半身補正概要"),
+						ToolTipText: mi18n.T("下半身補正説明"),
 					},
 					// 上半身補正
 					declarative.CheckBox{
@@ -530,7 +648,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("上半身補正"),
-						ToolTipText: mi18n.T("上半身補正概要"),
+						ToolTipText: mi18n.T("上半身補正説明"),
 					},
 					// 肩補正
 					declarative.CheckBox{
@@ -546,7 +664,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("肩補正"),
-						ToolTipText: mi18n.T("肩補正概要"),
+						ToolTipText: mi18n.T("肩補正説明"),
 					},
 					// 腕スタンス補正
 					declarative.CheckBox{
@@ -567,7 +685,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("腕スタンス補正"),
-						ToolTipText: mi18n.T("腕スタンス補正概要"),
+						ToolTipText: mi18n.T("腕スタンス補正説明"),
 					},
 					// 指スタンス補正
 					declarative.CheckBox{
@@ -582,7 +700,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("指スタンス補正"),
-						ToolTipText: mi18n.T("指スタンス補正概要"),
+						ToolTipText: mi18n.T("指スタンス補正説明"),
 					},
 				},
 			}
@@ -630,7 +748,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("全ての親最適化"),
-						ToolTipText: mi18n.T("全ての親最適化概要"),
+						ToolTipText: mi18n.T("全ての親最適化説明"),
 					},
 					// センター最適化
 					declarative.CheckBox{
@@ -651,7 +769,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("センター最適化"),
-						ToolTipText: mi18n.T("センター最適化概要"),
+						ToolTipText: mi18n.T("センター最適化説明"),
 					},
 					// 足IK親最適化
 					declarative.CheckBox{
@@ -678,7 +796,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("足IK親最適化"),
-						ToolTipText: mi18n.T("足IK親最適化概要"),
+						ToolTipText: mi18n.T("足IK親最適化説明"),
 					},
 					// 腰最適化
 					declarative.CheckBox{
@@ -710,7 +828,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("腕IK最適化"),
-						ToolTipText: mi18n.T("腕IK最適化概要"),
+						ToolTipText: mi18n.T("腕IK最適化説明"),
 					},
 					// 捩り最適化
 					declarative.CheckBox{
@@ -726,7 +844,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("捩り最適化"),
-						ToolTipText: mi18n.T("捩り最適化概要"),
+						ToolTipText: mi18n.T("捩り最適化説明"),
 					},
 				},
 			}

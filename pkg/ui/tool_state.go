@@ -29,7 +29,9 @@ type ToolState struct {
 	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
 	OutputPmxPicker               *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
 	AdoptSizingCheck              *walk.CheckBox      // サイジング適用ボタン
-	SizingAllCheck                *walk.CheckBox      // 全体チェック
+	SizingCleanAllCheck           *walk.CheckBox      // 全補正&最適化チェック
+	SizingAllCheck                *walk.CheckBox      // 全補正チェック
+	CleanAllCheck                 *walk.CheckBox      // 全最適化チェック
 	SizingLegCheck                *walk.CheckBox      // 足チェック
 	SizingLowerCheck              *walk.CheckBox      // 下半身チェック
 	SizingUpperCheck              *walk.CheckBox      // 上半身チェック
@@ -215,7 +217,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.OutputVmdPicker.ChangePath(sizingSet.OutputVmdPath)
 	toolState.OutputPmxPicker.ChangePath(sizingSet.OutputPmxPath)
 
-	toolState.SizingAllCheck.UpdateChecked(sizingSet.IsSizingAll)
+	toolState.SizingCleanAllCheck.UpdateChecked(sizingSet.IsSizingCleanAll)
 	toolState.SizingLegCheck.UpdateChecked(sizingSet.IsSizingLeg)
 	toolState.SizingLowerCheck.UpdateChecked(sizingSet.IsSizingLower)
 	toolState.SizingUpperCheck.UpdateChecked(sizingSet.IsSizingUpper)
@@ -252,7 +254,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 }
 
 func (toolState *ToolState) ResetSizingParameter() {
-	toolState.SizingAllCheck.SetChecked(false)
+	toolState.SizingCleanAllCheck.SetChecked(false)
 	if len(toolState.SizingSets) == 0 {
 		toolState.SizingLegCheck.SetChecked(false)
 	} else {
@@ -376,7 +378,7 @@ func (toolState *ToolState) onClickSizingTabSave() {
 func (toolState *ToolState) ResetSizingCheck() {
 	toolState.SizingSets[toolState.CurrentIndex].ResetSizingFlag()
 
-	toolState.SizingAllCheck.UpdateChecked(false)
+	toolState.SizingCleanAllCheck.UpdateChecked(false)
 	toolState.SizingLegCheck.UpdateChecked(false)
 	toolState.SizingLowerCheck.UpdateChecked(false)
 	toolState.SizingUpperCheck.UpdateChecked(false)
