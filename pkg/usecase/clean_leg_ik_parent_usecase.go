@@ -104,7 +104,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) {
 	mlog.I(mi18n.T("足IK親最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 中間キーフレのズレをチェック
-	threshold := originalLegIkLeftBone.Position.Y * 0.05
+	threshold := 0.02
 	var wg sync.WaitGroup
 
 	for i, endFrame := range frames {
