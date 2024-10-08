@@ -614,5 +614,17 @@
     {
         "id": "足IK親最適化02",
         "translation": "【No.{{.No}}】足IK親統合 - 中間キーフレームのズレチェック"
+    },
+    {
+        "id": "腕IK最適化開始",
+        "translation": "【No.{{.No}}】腕IK統合 開始 【腕IKボーン名: {{.LeftBoneName}}, {{.RightBoneName}}】"
+    },
+    {
+        "id": "腕IK最適化01",
+        "translation": "【No.{{.No}}】腕IK統合 - 腕IKキーフレームの統合"
+    },
+    {
+        "id": "腕IK最適化02",
+        "translation": "【No.{{.No}}】腕IK統合 - 中間キーフレームのズレチェック"
     }
 ]

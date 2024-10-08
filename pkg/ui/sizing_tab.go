@@ -1367,6 +1367,9 @@ func execSizing(toolState *ToolState) {
 				usecase.CleanLegIkParent(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 
+				usecase.CleanArmIk(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
+
 				// frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				sizingSet.OutputVmd.SetRandHash()
