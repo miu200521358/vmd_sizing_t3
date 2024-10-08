@@ -41,7 +41,6 @@ type ToolState struct {
 	CleanRootCheck                *walk.CheckBox      // 全親クリーニングチェック
 	CleanCenterCheck              *walk.CheckBox      // センタークリーニングチェック
 	CleanLegIkParentCheck         *walk.CheckBox      // 足IK親クリーニングチェック
-	CleanWaistCheck               *walk.CheckBox      // 腰クリーニングチェック
 	CleanArmIkCheck               *walk.CheckBox      // 腕IKクリーニングチェック
 	CleanTwistCheck               *walk.CheckBox      // 捩りクリーニングチェック
 	OriginalPmxRatioEdit          *walk.NumberEdit    // オリジナルモデル比率編集

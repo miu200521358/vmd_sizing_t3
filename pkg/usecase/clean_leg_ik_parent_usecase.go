@@ -160,7 +160,6 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) {
 
 func isValidCleanLegIkParent(sizingSet *domain.SizingSet) bool {
 	originalModel := sizingSet.OriginalPmx
-	sizingModel := sizingSet.SizingPmx
 
 	if !originalModel.Bones.ContainsByName(pmx.LEG_IK_PARENT.Left()) {
 		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("足IK親最適化ボーン不足", map[string]interface{}{
@@ -183,32 +182,6 @@ func isValidCleanLegIkParent(sizingSet *domain.SizingSet) bool {
 	if !originalModel.Bones.ContainsByName(pmx.LEG_IK.Right()) {
 		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("足IK親最適化ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.LEG_IK.Right()}))
-		return false
-	}
-
-	// ----------
-
-	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK_PARENT.Left()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("足IK親最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LEG_IK_PARENT.Left()}))
-		return false
-	}
-
-	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK_PARENT.Right()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("足IK親最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LEG_IK_PARENT.Right()}))
-		return false
-	}
-
-	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK.Left()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("足IK親最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LEG_IK.Left()}))
-		return false
-	}
-
-	if !sizingModel.Bones.ContainsByName(pmx.LEG_IK.Right()) {
-		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("足IK親最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LEG_IK.Right()}))
 		return false
 	}
 

@@ -26,10 +26,10 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	originalMotion := sizingSet.OriginalVmd
 	sizingMotion := sizingSet.OutputVmd
 
+	isContainsActiveWaist := sizingMotion.BoneFrames.ContainsActive(pmx.WAIST.String())
+
 	if !(sizingMotion.BoneFrames.ContainsActive(pmx.CENTER.String()) ||
-		sizingMotion.BoneFrames.ContainsActive(pmx.GROOVE.String()) ||
-		sizingMotion.BoneFrames.ContainsActive(pmx.UPPER.String()) ||
-		sizingMotion.BoneFrames.ContainsActive(pmx.LOWER.String())) {
+		isContainsActiveWaist) {
 		return
 	}
 
@@ -39,14 +39,19 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	grooveBone := originalModel.Bones.GetByName(pmx.GROOVE.String())
 	upperBone := originalModel.Bones.GetByName(pmx.UPPER.String())
 	lowerBone := originalModel.Bones.GetByName(pmx.LOWER.String())
+	// 腰がある場合、腰キャンセルが効いてるので、足も登録する
+	legLeftBone := originalModel.Bones.GetByName(pmx.LEG.Left())
+	legRightBone := originalModel.Bones.GetByName(pmx.LEG.Right())
 
-	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.LOWER.String()}
+	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.WAIST.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.LOWER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(centerRelativeBoneNames)
 
 	centerPositions := make([]*mmath.MVec3, len(frames))
 	groovePositions := make([]*mmath.MVec3, len(frames))
 	upperRotations := make([]*mmath.MQuaternion, len(frames))
 	lowerRotations := make([]*mmath.MQuaternion, len(frames))
+	legLeftRotations := make([]*mmath.MQuaternion, len(frames))
+	legRightRotations := make([]*mmath.MQuaternion, len(frames))
 
 	mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
@@ -62,12 +67,17 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 		groovePositions[index] = &mmath.MVec3{X: 0, Y: upperLocalPosition.Y, Z: 0}
 		upperRotations[index] = vmdDeltas.Bones.Get(upperBone.Index()).FilledGlobalBoneRotation()
 		lowerRotations[index] = vmdDeltas.Bones.Get(lowerBone.Index()).FilledGlobalBoneRotation()
+		if isContainsActiveWaist {
+			// 足は腰がある場合のみ
+			legLeftRotations[index] = vmdDeltas.Bones.Get(legLeftBone.Index()).FilledGlobalBoneRotation().Muled(lowerRotations[index].Inverted())
+			legRightRotations[index] = vmdDeltas.Bones.Get(legRightBone.Index()).FilledGlobalBoneRotation().Muled(lowerRotations[index].Inverted())
+		}
 	})
 
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
-		for _, bone := range []*pmx.Bone{centerBone, grooveBone, upperBone, lowerBone} {
+		for _, bone := range []*pmx.Bone{centerBone, grooveBone, upperBone, lowerBone, legLeftBone, legRightBone} {
 			bf := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame)
 
 			switch bone.Name() {
@@ -81,10 +91,24 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 				bf.Rotation = upperRotations[i]
 			case pmx.LOWER.String():
 				bf.Rotation = lowerRotations[i]
+			case pmx.LEG.Left():
+				if isContainsActiveWaist {
+					bf.Rotation = legLeftRotations[i]
+				}
+			case pmx.LEG.Right():
+				if isContainsActiveWaist {
+					bf.Rotation = legRightRotations[i]
+				}
 			}
-			sizingMotion.InsertRegisteredBoneFrame(bone.Name(), bf)
+
+			if (bone.IsLegFK() && isContainsActiveWaist) || !bone.IsLegFK() {
+				// 足は腰がある場合のみ
+				sizingMotion.InsertRegisteredBoneFrame(bone.Name(), bf)
+			}
 		}
 	}
+
+	sizingMotion.BoneFrames.Delete(pmx.WAIST.String())
 
 	mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
@@ -124,7 +148,7 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 
 			wg.Wait()
 
-			bone := originalModel.Bones.GetByName(pmx.GROOVE.String())
+			bone := originalModel.Bones.GetByName(pmx.UPPER.String())
 			originalDelta := originalVmdDeltas.Bones.Get(bone.Index())
 			cleanDelta := cleanVmdDeltas.Bones.Get(bone.Index())
 
@@ -150,29 +174,41 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 }
 
 func isValidCleanCenter(sizingSet *domain.SizingSet) bool {
-	sizingModel := sizingSet.SizingPmx
+	originalModel := sizingSet.OriginalPmx
 
-	if !sizingModel.Bones.ContainsByName(pmx.CENTER.String()) {
+	if !originalModel.Bones.ContainsByName(pmx.CENTER.String()) {
 		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.CENTER.String()}))
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.CENTER.String()}))
 		return false
 	}
 
-	if !sizingModel.Bones.ContainsByName(pmx.GROOVE.String()) {
+	if !originalModel.Bones.ContainsByName(pmx.GROOVE.String()) {
 		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.GROOVE.String()}))
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.GROOVE.String()}))
 		return false
 	}
 
-	if !sizingModel.Bones.ContainsByName(pmx.UPPER.String()) {
+	if !originalModel.Bones.ContainsByName(pmx.UPPER.String()) {
 		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.UPPER.String()}))
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.UPPER.String()}))
 		return false
 	}
 
-	if !sizingModel.Bones.ContainsByName(pmx.LOWER.String()) {
+	if !originalModel.Bones.ContainsByName(pmx.LOWER.String()) {
 		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
-			"No": sizingSet.Index + 1, "ModelType": mi18n.T("先モデル"), "BoneName": pmx.LOWER.String()}))
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.LOWER.String()}))
+		return false
+	}
+
+	if !originalModel.Bones.ContainsByName(pmx.LEG.Left()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.LEG.Left()}))
+		return false
+	}
+
+	if !originalModel.Bones.ContainsByName(pmx.LEG.Right()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("センター最適化ボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.LEG.Right()}))
 		return false
 	}
 

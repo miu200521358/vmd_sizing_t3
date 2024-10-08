@@ -38,7 +38,6 @@ type SizingSet struct {
 	IsCleanRoot        bool
 	IsCleanCenter      bool
 	IsCleanLegIkParent bool
-	IsCleanWaist       bool
 	IsCleanArmIk       bool
 	IsCleanTwist       bool
 
