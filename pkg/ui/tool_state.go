@@ -17,57 +17,57 @@ import (
 )
 
 type ToolState struct {
-	App                           *app.MApp
-	ControlWindow                 *controller.ControlWindow
-	SizingTab                     *widget.MTabPage    // サイジングタブページ
-	CurrentIndex                  int                 // 現在のインデックス
-	NavToolBar                    *walk.ToolBar       // サイジングNo.ナビゲーション
-	SizingSets                    []*domain.SizingSet // サイジング情報セット
-	OriginalVmdPicker             *widget.FilePicker  // サイジング対象モーション(Vmd/Vpd)ファイル選択
-	OriginalPmxPicker             *widget.FilePicker  // モーション作成元モデル(Pmx)ファイル選択
-	SizingPmxPicker               *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
-	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
-	OutputPmxPicker               *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
-	AdoptSizingCheck              *walk.CheckBox      // サイジング適用ボタン
-	SizingCleanAllCheck           *walk.CheckBox      // 全補正&最適化チェック
-	SizingAllCheck                *walk.CheckBox      // 全補正チェック
-	CleanAllCheck                 *walk.CheckBox      // 全最適化チェック
-	SizingLegCheck                *walk.CheckBox      // 足チェック
-	SizingLowerCheck              *walk.CheckBox      // 下半身チェック
-	SizingUpperCheck              *walk.CheckBox      // 上半身チェック
-	SizingShoulderCheck           *walk.CheckBox      // 肩チェック
-	SizingArmStanceCheck          *walk.CheckBox      // 腕チェック
-	SizingFingerStanceCheck       *walk.CheckBox      // 指チェック
-	CleanRootCheck                *walk.CheckBox      // 全親クリーニングチェック
-	CleanCenterCheck              *walk.CheckBox      // センタークリーニングチェック
-	CleanLegIkParentCheck         *walk.CheckBox      // 足IK親クリーニングチェック
-	CleanArmIkCheck               *walk.CheckBox      // 腕IKクリーニングチェック
-	CleanTwistCheck               *walk.CheckBox      // 捩りクリーニングチェック
-	OriginalPmxRatioEdit          *walk.NumberEdit    // オリジナルモデル比率編集
-	OriginalPmxUpperLengthEdit    *walk.NumberEdit    // 素体上半身長さ編集
-	OriginalPmxUpperAngleEdit     *walk.NumberEdit    // 素体上半身角度編集
-	OriginalPmxUpper2LengthEdit   *walk.NumberEdit    // 素体上半身2長さ編集
-	OriginalPmxUpper2AngleEdit    *walk.NumberEdit    // 素体上半身2角度編集
-	OriginalPmxNeckLengthEdit     *walk.NumberEdit    // 素体首長さ編集
-	OriginalPmxNeckAngleEdit      *walk.NumberEdit    // 素体首角度編集
-	OriginalPmxHeadLengthEdit     *walk.NumberEdit    // 素体頭編集
-	OriginalPmxShoulderLengthEdit *walk.NumberEdit    // 素体肩長さ
-	OriginalPmxShoulderAngleEdit  *walk.NumberEdit    // 素体肩角度編集
-	OriginalPmxArmLengthEdit      *walk.NumberEdit    // 素体腕長さ編集
-	OriginalPmxArmAngleEdit       *walk.NumberEdit    // 素体腕角度編集
-	OriginalPmxElbowLengthEdit    *walk.NumberEdit    // 素体ひじ長さ編集
-	OriginalPmxElbowAngleEdit     *walk.NumberEdit    // 素体ひじ角度編集
-	OriginalPmxWristLengthEdit    *walk.NumberEdit    // 素体手首長さ編集
-	OriginalPmxWristAngleEdit     *walk.NumberEdit    // 素体手首角度編集
-	OriginalPmxLowerLengthEdit    *walk.NumberEdit    // 素体下半身長さ編集
-	OriginalPmxLowerAngleEdit     *walk.NumberEdit    // 素体下半身角度編集
-	OriginalPmxLegWidthEdit       *walk.NumberEdit    // 素体足横幅編集
-	OriginalPmxLegLengthEdit      *walk.NumberEdit    // 素体足長さ編集
-	OriginalPmxLegAngleEdit       *walk.NumberEdit    // 素体足角度編集
-	OriginalPmxKneeLengthEdit     *walk.NumberEdit    // 素体ひざ長さ編集
-	OriginalPmxKneeAngleEdit      *walk.NumberEdit    // 素体ひざ角度編集
-	OriginalPmxAnkleLengthEdit    *walk.NumberEdit    // 素体足首長さ編集
-	SizingTabSaveButton           *walk.PushButton    // サイジングタブ保存ボタン
+	App                 *app.MApp
+	ControlWindow       *controller.ControlWindow
+	SizingTab           *widget.MTabPage    // サイジングタブページ
+	CurrentIndex        int                 // 現在のインデックス
+	NavToolBar          *walk.ToolBar       // サイジングNo.ナビゲーション
+	SizingSets          []*domain.SizingSet // サイジング情報セット
+	OriginalVmdPicker   *widget.FilePicker  // サイジング対象モーション(Vmd/Vpd)ファイル選択
+	OriginalPmxPicker   *widget.FilePicker  // モーション作成元モデル(Pmx)ファイル選択
+	SizingPmxPicker     *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
+	OutputVmdPicker     *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
+	OutputPmxPicker     *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
+	AdoptSizingCheck    *walk.CheckBox      // サイジング適用ボタン
+	SizingCleanAllCheck *walk.CheckBox      // 全補正&最適化チェック
+	SizingAllCheck      *walk.CheckBox      // 全補正チェック
+	CleanAllCheck       *walk.CheckBox      // 全最適化チェック
+	SizingLegCheck      *walk.CheckBox      // 足チェック
+	// SizingLowerCheck              *walk.CheckBox      // 下半身チェック
+	SizingUpperCheck              *walk.CheckBox   // 上半身チェック
+	SizingShoulderCheck           *walk.CheckBox   // 肩チェック
+	SizingArmStanceCheck          *walk.CheckBox   // 腕チェック
+	SizingFingerStanceCheck       *walk.CheckBox   // 指チェック
+	CleanRootCheck                *walk.CheckBox   // 全親クリーニングチェック
+	CleanCenterCheck              *walk.CheckBox   // センタークリーニングチェック
+	CleanLegIkParentCheck         *walk.CheckBox   // 足IK親クリーニングチェック
+	CleanArmIkCheck               *walk.CheckBox   // 腕IKクリーニングチェック
+	CleanTwistCheck               *walk.CheckBox   // 捩りクリーニングチェック
+	OriginalPmxRatioEdit          *walk.NumberEdit // オリジナルモデル比率編集
+	OriginalPmxUpperLengthEdit    *walk.NumberEdit // 素体上半身長さ編集
+	OriginalPmxUpperAngleEdit     *walk.NumberEdit // 素体上半身角度編集
+	OriginalPmxUpper2LengthEdit   *walk.NumberEdit // 素体上半身2長さ編集
+	OriginalPmxUpper2AngleEdit    *walk.NumberEdit // 素体上半身2角度編集
+	OriginalPmxNeckLengthEdit     *walk.NumberEdit // 素体首長さ編集
+	OriginalPmxNeckAngleEdit      *walk.NumberEdit // 素体首角度編集
+	OriginalPmxHeadLengthEdit     *walk.NumberEdit // 素体頭編集
+	OriginalPmxShoulderLengthEdit *walk.NumberEdit // 素体肩長さ
+	OriginalPmxShoulderAngleEdit  *walk.NumberEdit // 素体肩角度編集
+	OriginalPmxArmLengthEdit      *walk.NumberEdit // 素体腕長さ編集
+	OriginalPmxArmAngleEdit       *walk.NumberEdit // 素体腕角度編集
+	OriginalPmxElbowLengthEdit    *walk.NumberEdit // 素体ひじ長さ編集
+	OriginalPmxElbowAngleEdit     *walk.NumberEdit // 素体ひじ角度編集
+	OriginalPmxWristLengthEdit    *walk.NumberEdit // 素体手首長さ編集
+	OriginalPmxWristAngleEdit     *walk.NumberEdit // 素体手首角度編集
+	OriginalPmxLowerLengthEdit    *walk.NumberEdit // 素体下半身長さ編集
+	OriginalPmxLowerAngleEdit     *walk.NumberEdit // 素体下半身角度編集
+	OriginalPmxLegWidthEdit       *walk.NumberEdit // 素体足横幅編集
+	OriginalPmxLegLengthEdit      *walk.NumberEdit // 素体足長さ編集
+	OriginalPmxLegAngleEdit       *walk.NumberEdit // 素体足角度編集
+	OriginalPmxKneeLengthEdit     *walk.NumberEdit // 素体ひざ長さ編集
+	OriginalPmxKneeAngleEdit      *walk.NumberEdit // 素体ひざ角度編集
+	OriginalPmxAnkleLengthEdit    *walk.NumberEdit // 素体足首長さ編集
+	SizingTabSaveButton           *walk.PushButton // サイジングタブ保存ボタン
 	currentPageChangedPublisher   walk.EventPublisher
 	JsonSaveTab                   *widget.MTabPage // サイジングタブページ
 }
@@ -218,7 +218,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 
 	toolState.SizingCleanAllCheck.UpdateChecked(sizingSet.IsSizingCleanAll)
 	toolState.SizingLegCheck.UpdateChecked(sizingSet.IsSizingLeg)
-	toolState.SizingLowerCheck.UpdateChecked(sizingSet.IsSizingLower)
+	// toolState.SizingLowerCheck.UpdateChecked(sizingSet.IsSizingLower)
 	toolState.SizingUpperCheck.UpdateChecked(sizingSet.IsSizingUpper)
 	toolState.SizingShoulderCheck.UpdateChecked(sizingSet.IsSizingShoulder)
 	toolState.SizingArmStanceCheck.UpdateChecked(sizingSet.IsSizingArmStance)
@@ -259,7 +259,7 @@ func (toolState *ToolState) ResetSizingParameter() {
 	} else {
 		toolState.SizingLegCheck.SetChecked(toolState.SizingSets[0].IsSizingLeg)
 	}
-	toolState.SizingLowerCheck.SetChecked(false)
+	// toolState.SizingLowerCheck.SetChecked(false)
 	toolState.SizingUpperCheck.SetChecked(false)
 	toolState.SizingShoulderCheck.SetChecked(false)
 	toolState.SizingArmStanceCheck.SetChecked(false)
@@ -379,7 +379,7 @@ func (toolState *ToolState) ResetSizingCheck() {
 
 	toolState.SizingCleanAllCheck.UpdateChecked(false)
 	toolState.SizingLegCheck.UpdateChecked(false)
-	toolState.SizingLowerCheck.UpdateChecked(false)
+	// toolState.SizingLowerCheck.UpdateChecked(false)
 	toolState.SizingUpperCheck.UpdateChecked(false)
 	toolState.SizingShoulderCheck.UpdateChecked(false)
 	toolState.SizingArmStanceCheck.UpdateChecked(false)

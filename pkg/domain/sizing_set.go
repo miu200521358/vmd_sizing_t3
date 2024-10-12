@@ -25,10 +25,10 @@ type SizingSet struct {
 	OutputVmd   *vmd.VmdMotion
 	OutputPmx   *pmx.PmxModel
 
-	IsSizingCleanAll     bool
-	IsSizingAll          bool
-	IsCleanAll           bool
-	IsSizingLower        bool
+	IsSizingCleanAll bool
+	IsSizingAll      bool
+	IsCleanAll       bool
+	// IsSizingLower        bool
 	IsSizingLeg          bool
 	IsSizingUpper        bool
 	IsSizingShoulder     bool
@@ -41,7 +41,7 @@ type SizingSet struct {
 	IsCleanArmIk       bool
 	IsCleanTwist       bool
 
-	CompletedSizingLower        bool
+	// CompletedSizingLower        bool
 	CompletedSizingLeg          bool
 	CompletedSizingUpper        bool
 	CompletedSizingShoulder     bool
@@ -91,14 +91,14 @@ func NewSizingSet(index int) *SizingSet {
 func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.IsSizingCleanAll = false
 	sizingSet.IsSizingLeg = false
-	sizingSet.IsSizingLower = false
+	// sizingSet.IsSizingLower = false
 	sizingSet.IsSizingUpper = false
 	sizingSet.IsSizingShoulder = false
 	sizingSet.IsSizingArmStance = false
 	sizingSet.IsSizingFingerStance = false
 
 	sizingSet.CompletedSizingLeg = false
-	sizingSet.CompletedSizingLower = false
+	// sizingSet.CompletedSizingLower = false
 	sizingSet.CompletedSizingUpper = false
 	sizingSet.CompletedSizingShoulder = false
 	sizingSet.CompletedSizingArmStance = false

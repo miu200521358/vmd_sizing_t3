@@ -16,9 +16,9 @@ import (
 )
 
 func SizingLower(sizingSet *domain.SizingSet) {
-	if !sizingSet.IsSizingLower || (sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) {
-		return
-	}
+	// if !sizingSet.IsSizingLower || (sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) {
+	// 	return
+	// }
 
 	if !isValidSizingLower(sizingSet) {
 		return
@@ -540,5 +540,5 @@ func SizingLower(sizingSet *domain.SizingSet) {
 	// 	sizingMotion.InsertRegisteredBoneFrame(rightLegIkBone.Name(), rightLegIkBf)
 	// }
 
-	sizingSet.CompletedSizingLower = true
+	// sizingSet.CompletedSizingLower = true
 }

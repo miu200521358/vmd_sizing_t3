@@ -402,8 +402,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingCleanAll =
 								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
-								toolState.SizingCleanAllCheck.Checked()
+							// toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
+							// 	toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
 								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
@@ -413,7 +413,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
 								toolState.SizingCleanAllCheck.Checked()
 
-							toolState.SizingLowerCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							// toolState.SizingLowerCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 							toolState.SizingUpperCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 							toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 							toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
@@ -462,8 +462,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingAll =
 								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
-								toolState.SizingAllCheck.Checked()
+							// toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
+							// 	toolState.SizingAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
 								toolState.SizingAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
@@ -473,7 +473,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
 								toolState.SizingAllCheck.Checked()
 
-							toolState.SizingLowerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+							// toolState.SizingLowerCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingUpperCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
@@ -588,38 +588,38 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						Text:        mi18n.T("足補正"),
 						ToolTipText: mi18n.T("足補正説明"),
 					},
-					// 下半身補正
-					declarative.CheckBox{
-						AssignTo: &toolState.SizingLowerCheck,
-						OnCheckedChanged: func() {
-							for _, sizingSet := range toolState.SizingSets {
-								sizingSet.IsSizingLeg = toolState.SizingLowerCheck.Checked()
+					// // 下半身補正
+					// declarative.CheckBox{
+					// 	AssignTo: &toolState.SizingLowerCheck,
+					// 	OnCheckedChanged: func() {
+					// 		for _, sizingSet := range toolState.SizingSets {
+					// 			sizingSet.IsSizingLeg = toolState.SizingLowerCheck.Checked()
 
-								sizingSet.IsCleanRoot = toolState.SizingLowerCheck.Checked()
-								sizingSet.IsCleanCenter = toolState.SizingLowerCheck.Checked()
-								sizingSet.IsCleanLegIkParent = toolState.SizingLowerCheck.Checked()
-							}
-							toolState.SizingLegCheck.UpdateChecked(
-								toolState.SizingLowerCheck.Checked())
+					// 			sizingSet.IsCleanRoot = toolState.SizingLowerCheck.Checked()
+					// 			sizingSet.IsCleanCenter = toolState.SizingLowerCheck.Checked()
+					// 			sizingSet.IsCleanLegIkParent = toolState.SizingLowerCheck.Checked()
+					// 		}
+					// 		toolState.SizingLegCheck.UpdateChecked(
+					// 			toolState.SizingLowerCheck.Checked())
 
-							toolState.CleanRootCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
-							toolState.CleanCenterCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
-							toolState.CleanLegIkParentCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
+					// 		toolState.CleanRootCheck.UpdateChecked(
+					// 			toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
+					// 		toolState.CleanCenterCheck.UpdateChecked(
+					// 			toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
+					// 		toolState.CleanLegIkParentCheck.UpdateChecked(
+					// 			toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
 
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
-								toolState.SizingLowerCheck.Checked()
-							go execSizing(toolState)
-							// 出力パス設定
-							setOutputPath(toolState)
-						},
-						MinSize:     declarative.Size{Width: 150, Height: 20},
-						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("下半身補正"),
-						ToolTipText: mi18n.T("下半身補正説明"),
-					},
+					// 		// toolState.SizingSets[toolState.CurrentIndex].IsSizingLower =
+					// 		// 	toolState.SizingLowerCheck.Checked()
+					// 		go execSizing(toolState)
+					// 		// 出力パス設定
+					// 		setOutputPath(toolState)
+					// 	},
+					// 	MinSize:     declarative.Size{Width: 150, Height: 20},
+					// 	MaxSize:     declarative.Size{Width: 150, Height: 20},
+					// 	Text:        mi18n.T("下半身補正"),
+					// 	ToolTipText: mi18n.T("下半身補正説明"),
+					// },
 					// 上半身補正
 					declarative.CheckBox{
 						AssignTo: &toolState.SizingUpperCheck,
@@ -1326,7 +1326,7 @@ func execSizing(toolState *ToolState) {
 			go func(sizingSet *domain.SizingSet) {
 				defer wg.Done()
 				if (!sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) ||
-					(!sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) ||
+					// (!sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) ||
 					(!sizingSet.IsSizingUpper && sizingSet.CompletedSizingUpper) ||
 					(!sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) ||
 					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
@@ -1345,7 +1345,7 @@ func execSizing(toolState *ToolState) {
 					sizingSet.OutputVmd = sizingMotion.(*vmd.VmdMotion)
 
 					sizingSet.CompletedSizingLeg = false
-					sizingSet.CompletedSizingLower = false
+					// sizingSet.CompletedSizingLower = false
 					sizingSet.CompletedSizingUpper = false
 					sizingSet.CompletedSizingShoulder = false
 					sizingSet.CompletedSizingArmStance = false
@@ -1373,8 +1373,8 @@ func execSizing(toolState *ToolState) {
 				usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.SizingLower(sizingSet)
-				sizingSet.OutputVmd.SetRandHash()
+				// usecase.SizingLower(sizingSet)
+				// sizingSet.OutputVmd.SetRandHash()
 
 				usecase.SizingUpper(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
@@ -1424,9 +1424,9 @@ func setOutputPath(toolState *ToolState) {
 			if toolState.SizingSets[i].IsSizingLeg {
 				suffix += "G"
 			}
-			if toolState.SizingSets[i].IsSizingLower {
-				suffix += "L"
-			}
+			// if toolState.SizingSets[i].IsSizingLower {
+			// 	suffix += "L"
+			// }
 			if toolState.SizingSets[i].IsSizingUpper {
 				suffix += "U"
 			}
