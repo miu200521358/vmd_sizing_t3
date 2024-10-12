@@ -160,7 +160,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						}
 					}
 
-					if isAdd || mlog.IsVerbose() {
+					if toolState.SizingSets[toolState.CurrentIndex].SizingPmx != nil && (isAdd || mlog.IsVerbose()) {
 						// 出力モデル
 						sizingModel := toolState.SizingSets[toolState.CurrentIndex].SizingPmx
 						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
@@ -1367,15 +1367,14 @@ func execSizing(toolState *ToolState) {
 				usecase.CleanLegIkParent(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.CleanArmIk(sizingSet)
-				sizingSet.OutputVmd.SetRandHash()
+				// usecase.CleanArmIk(sizingSet)
+				// sizingSet.OutputVmd.SetRandHash()
 
-				// frames, originalAllDeltas := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
 				sizingSet.OutputVmd.SetRandHash()
 
-				// usecase.SizingLower(sizingSet, frames, originalAllDeltas)
-				// sizingSet.OutputVmd.SetRandHash()
+				usecase.SizingLower(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
 
 				// usecase.SizingUpper(sizingSet)
 				// sizingSet.OutputVmd.SetRandHash()

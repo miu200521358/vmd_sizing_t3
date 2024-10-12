@@ -14,49 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func getOriginalDeltas(sizingSet *domain.SizingSet) ([]int, []*delta.VmdDeltas) {
-
-	originalModel := sizingSet.OriginalPmx
-	originalMotion := sizingSet.OriginalVmd
-
-	leftFrames := originalMotion.BoneFrames.RegisteredFrames(leg_direction_bone_names[0])
-	rightFrames := originalMotion.BoneFrames.RegisteredFrames(leg_direction_bone_names[1])
-	trunkFrames := originalMotion.BoneFrames.RegisteredFrames(trunk_lower_bone_names)
-
-	m := make(map[int]struct{})
-	frames := make([]int, 0, len(leftFrames)+len(rightFrames)+len(trunkFrames))
-	for _, fs := range [][]int{leftFrames, rightFrames, trunkFrames} {
-		for _, f := range fs {
-			if _, ok := m[f]; ok {
-				continue
-			}
-			m[f] = struct{}{}
-			frames = append(frames, f)
-		}
-	}
-	mmath.SortInts(frames)
-
-	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
-
-	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
-		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, leg_all_bone_names, false)
-		originalAllDeltas[index] = vmdDeltas
-	})
-
-	return frames, originalAllDeltas
-}
-
-func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta.VmdDeltas) {
+func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	if !sizingSet.IsSizingLeg || (sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) {
-		return nil, nil
+		return
 	}
 
 	if !isValidSizingLower(sizingSet) {
-		return nil, nil
+		return
 	}
 
 	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -94,9 +58,20 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 	rightToeBone := sizingModel.Bones.GetIkTarget(pmx.TOE_IK.Right())
 	// rightToeTailBone := sizingModel.Bones.GetByName(pmx.TOE_T.Right())
 
-	frames, originalAllDeltas := getOriginalDeltas(sizingSet)
+	frames := sizingMotion.BoneFrames.RegisteredFrames(leg_all_bone_names)
+
+	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1}))
+
+	// 元モデルのデフォーム(IK ON)
+	miter.IterParallelByList(frames, 500, func(data, index int) {
+		frame := float32(data)
+		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
+		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, leg_all_bone_names, false)
+		originalAllDeltas[index] = vmdDeltas
+	})
 
 	// サイジング先にFKを焼き込み
 	for _, vmdDeltas := range originalAllDeltas {
@@ -240,8 +215,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, leg_all_bone_names, false)
 
-		originalLeftLegIkBf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
-		originalRightLegIkBf := originalMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
+		originalLeftAnklePosition := originalAllDeltas[index].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition()
+		originalRightAnklePosition := originalAllDeltas[index].Bones.GetByName(pmx.ANKLE.Right()).FilledGlobalPosition()
 
 		// 地面に近い足底が同じ高さになるように調整
 		// originalLegLeftDelta := originalAllDeltas[index].Bones.GetByName(pmx.LEG.Left())
@@ -267,7 +242,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		rightLegIkPositions[index] = rightAnkleDelta.FilledGlobalPosition().Subed(rightLegIkDelta.FilledGlobalPosition())
 
 		// 左足IK-Yの位置を調整
-		if mmath.NearEquals(originalLeftLegIkBf.Position.Y, 0, 1e-2) {
+		if mmath.NearEquals(originalLeftAnklePosition.Y, 0, 1e-2) {
 			leftLegIkPositions[index].Y = 0
 		} else {
 			if originalToeTailLeftDelta.FilledGlobalPosition().Y <= originalHeelLeftDelta.FilledGlobalPosition().Y {
@@ -309,7 +284,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 		}
 
 		// 右足IK-Yの位置を調整
-		if mmath.NearEquals(originalRightLegIkBf.Position.Y, 0, 1e-2) {
+		if mmath.NearEquals(originalRightAnklePosition.Y, 0, 1e-2) {
 			rightLegIkPositions[index].Y = 0
 		} else {
 			if originalToeTailRightDelta.FilledGlobalPosition().Y <= originalHeelRightDelta.FilledGlobalPosition().Y {
@@ -381,30 +356,31 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
-		originalLeftLegIkBf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame)
-		originalRightLegIkBf := originalMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(frame)
+		originalLeftAnklePosition := originalAllDeltas[i].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition()
+		originalRightAnklePosition := originalAllDeltas[i].Bones.GetByName(pmx.ANKLE.Right()).FilledGlobalPosition()
 
 		if i > 0 {
+			originalLeftAnklePrevPosition := originalAllDeltas[i-1].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition()
+			originalRightAnklePrevPosition := originalAllDeltas[i-1].Bones.GetByName(pmx.ANKLE.Right()).FilledGlobalPosition()
+
 			// 前と同じ位置なら同じ位置にする
-			originalPrevRightLegIkBf := originalMotion.BoneFrames.Get(rightLegIkBone.Name()).Get(float32(frames[i-1]))
-			if mmath.NearEquals(originalPrevRightLegIkBf.Position.X, originalRightLegIkBf.Position.X, 1e-2) {
+			if mmath.NearEquals(originalRightAnklePrevPosition.X, originalRightAnklePosition.X, 1e-2) {
 				rightLegIkPositions[i].X = rightLegIkPositions[i-1].X
 			}
-			if mmath.NearEquals(originalPrevRightLegIkBf.Position.Y, originalRightLegIkBf.Position.Y, 1e-2) {
+			if mmath.NearEquals(originalRightAnklePrevPosition.Y, originalRightAnklePosition.Y, 1e-2) {
 				rightLegIkPositions[i].Y = rightLegIkPositions[i-1].Y
 			}
-			if mmath.NearEquals(originalPrevRightLegIkBf.Position.Z, originalRightLegIkBf.Position.Z, 1e-2) {
+			if mmath.NearEquals(originalRightAnklePrevPosition.Z, originalRightAnklePosition.Z, 1e-2) {
 				rightLegIkPositions[i].Z = rightLegIkPositions[i-1].Z
 			}
 
-			originalPrevLeftLegIkBf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(float32(frames[i-1]))
-			if mmath.NearEquals(originalPrevLeftLegIkBf.Position.X, originalLeftLegIkBf.Position.X, 1e-2) {
+			if mmath.NearEquals(originalLeftAnklePrevPosition.X, originalLeftAnklePosition.X, 1e-2) {
 				leftLegIkPositions[i].X = leftLegIkPositions[i-1].X
 			}
-			if mmath.NearEquals(originalPrevLeftLegIkBf.Position.Y, originalLeftLegIkBf.Position.Y, 1e-2) {
+			if mmath.NearEquals(originalLeftAnklePrevPosition.Y, originalLeftAnklePosition.Y, 1e-2) {
 				leftLegIkPositions[i].Y = leftLegIkPositions[i-1].Y
 			}
-			if mmath.NearEquals(originalPrevLeftLegIkBf.Position.Z, originalLeftLegIkBf.Position.Z, 1e-2) {
+			if mmath.NearEquals(originalLeftAnklePrevPosition.Z, originalLeftAnklePosition.Z, 1e-2) {
 				leftLegIkPositions[i].Z = leftLegIkPositions[i-1].Z
 			}
 		}
@@ -521,8 +497,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) ([]int, []*delta
 	}
 
 	sizingSet.CompletedSizingLeg = true
-
-	return frames, originalAllDeltas
 }
 
 func isValidSizingLower(sizingSet *domain.SizingSet) bool {
