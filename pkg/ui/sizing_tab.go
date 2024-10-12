@@ -427,7 +427,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.CleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
 								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
 								toolState.CleanAllCheck.Checked()
 
 							toolState.CleanRootCheck.UpdateChecked(
@@ -439,7 +439,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
 							toolState.CleanArmIkCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip)
 
 							go execSizing(toolState)
 
@@ -503,7 +503,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.CleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
 								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
 								toolState.CleanAllCheck.Checked()
 
 							toolState.CleanRootCheck.UpdateChecked(
@@ -515,7 +515,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
 							toolState.CleanArmIkCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist)
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip)
 
 							go execSizing(toolState)
 
@@ -800,12 +800,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						Text:        mi18n.T("腕IK最適化"),
 						ToolTipText: mi18n.T("腕IK最適化説明"),
 					},
-					// 捩り最適化
+					// 握り最適化
 					declarative.CheckBox{
-						AssignTo: &toolState.CleanTwistCheck,
+						AssignTo: &toolState.CleanGripCheck,
 						OnCheckedChanged: func() {
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanTwist =
-								toolState.CleanTwistCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
+								toolState.CleanGripCheck.Checked()
 
 							go execSizing(toolState)
 							// 出力パス設定
@@ -813,8 +813,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						},
 						MinSize:     declarative.Size{Width: 150, Height: 20},
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("捩り最適化"),
-						ToolTipText: mi18n.T("捩り最適化説明"),
+						Text:        mi18n.T("握り最適化"),
+						ToolTipText: mi18n.T("握り最適化説明"),
 					},
 				},
 			}
@@ -1335,7 +1335,7 @@ func execSizing(toolState *ToolState) {
 					(!sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) ||
 					(!sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) ||
 					(!sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) ||
-					(!sizingSet.IsCleanTwist && sizingSet.CompletedCleanTwist) {
+					(!sizingSet.IsCleanGrip && sizingSet.CompletedCleanGrip) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
@@ -1355,7 +1355,7 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedCleanCenter = false
 					sizingSet.CompletedCleanLegIkParent = false
 					sizingSet.CompletedCleanArmIk = false
-					sizingSet.CompletedCleanTwist = false
+					sizingSet.CompletedCleanGrip = false
 				}
 
 				usecase.CleanRoot(sizingSet)
@@ -1368,6 +1368,9 @@ func execSizing(toolState *ToolState) {
 				sizingSet.OutputVmd.SetRandHash()
 
 				usecase.CleanArmIk(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
+
+				usecase.CleanGrip(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 
 				usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])

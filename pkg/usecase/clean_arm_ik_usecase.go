@@ -54,12 +54,15 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 			armIkBone = armIkRightBone
 		}
 		shoulderRootBone := originalModel.Bones.GetByName(pmx.SHOULDER_ROOT.StringFromDirection(direction))
+		wristBone := originalModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
 
 		mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
 
 		relativeBoneNames := make([]string, 0)
+		relativeBoneNames = append(relativeBoneNames, armIkBone.Name())
+		relativeBoneNames = append(relativeBoneNames, wristBone.Name())
 		shoulderRootBoneLayerIndex := slices.Index(originalModel.Bones.LayerSortedIndexes, shoulderRootBone.Index())
-		for _, boneIndex := range armIkBone.Extend.RelativeBoneIndexes {
+		for _, boneIndex := range wristBone.Extend.RelativeBoneIndexes {
 			bone := originalModel.Bones.Get(boneIndex)
 			boneLayerIndex := slices.Index(originalModel.Bones.LayerSortedIndexes, bone.Index())
 			if bone != nil && boneLayerIndex > shoulderRootBoneLayerIndex {
@@ -101,7 +104,17 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 		}
 	}
 
-	for _, directionVmdDeltas := range allVmdDeltas {
+	for i, direction := range []string{"左", "右"} {
+		var armIkBone *pmx.Bone
+		switch direction {
+		case "左":
+			armIkBone = armIkLeftBone
+		case "右":
+			armIkBone = armIkRightBone
+		}
+
+		directionVmdDeltas := allVmdDeltas[i]
+
 		for _, vmdDeltas := range directionVmdDeltas {
 			for _, boneDelta := range vmdDeltas.Bones.Data {
 				if boneDelta == nil {
@@ -114,6 +127,13 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 
 				bf := sizingMotion.BoneFrames.Get(boneDelta.Bone.Name()).Get(boneDelta.Frame)
 				bf.Rotation = boneDelta.FilledFrameRotation()
+
+				if boneDelta.Bone.Name() == pmx.WRIST.Left() || boneDelta.Bone.Name() == pmx.WRIST.Right() {
+					// 手首の場合、IKターゲットとIKの角度を委譲
+					bf.Rotation = vmdDeltas.Bones.TotalBoneRotation(armIkBone.Ik.BoneIndex).Muled(
+						vmdDeltas.Bones.TotalBoneRotation(armIkBone.Index())).Muled(bf.Rotation)
+				}
+
 				sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
 			}
 		}
@@ -185,6 +205,13 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 						for _, b := range relativeArmBones {
 							bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
 							bf.Rotation = originalVmdDeltas.Bones.Get(b.Index()).FilledFrameRotation()
+
+							if b.Name() == pmx.WRIST.Left() || b.Name() == pmx.WRIST.Right() {
+								// 手首の場合、IKターゲットとIKの角度を委譲
+								bf.Rotation = originalVmdDeltas.Bones.TotalBoneRotation(armIkBone.Ik.BoneIndex).Muled(
+									originalVmdDeltas.Bones.TotalBoneRotation(armIkBone.Index())).Muled(bf.Rotation)
+							}
+
 							sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
 						}
 
@@ -212,13 +239,13 @@ func isValidCleanArmIk(sizingSet *domain.SizingSet) bool {
 
 		if !originalModel.Bones.ContainsByName(pmx.ELBOW.StringFromDirection(direction)) {
 			mlog.WT(mi18n.T("ボーン不足"), mi18n.T("腕IK最適化ボーン不足", map[string]interface{}{
-				"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.ARM.StringFromDirection(direction)}))
+				"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.ELBOW.StringFromDirection(direction)}))
 			return false
 		}
 
 		if !originalModel.Bones.ContainsByName(pmx.WRIST.StringFromDirection(direction)) {
 			mlog.WT(mi18n.T("ボーン不足"), mi18n.T("腕IK最適化ボーン不足", map[string]interface{}{
-				"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.ARM.StringFromDirection(direction)}))
+				"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.WRIST.StringFromDirection(direction)}))
 			return false
 		}
 	}

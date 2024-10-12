@@ -39,7 +39,7 @@ type SizingSet struct {
 	IsCleanCenter      bool
 	IsCleanLegIkParent bool
 	IsCleanArmIk       bool
-	IsCleanTwist       bool
+	IsCleanGrip        bool
 
 	// CompletedSizingLower        bool
 	CompletedSizingLeg          bool
@@ -53,7 +53,7 @@ type SizingSet struct {
 	CompletedCleanLegIkParent bool
 	CompletedCleanWaist       bool
 	CompletedCleanArmIk       bool
-	CompletedCleanTwist       bool
+	CompletedCleanGrip        bool
 
 	OriginalJsonPmx           *pmx.PmxModel
 	OriginalPmxRatio          float64 // 全体比率

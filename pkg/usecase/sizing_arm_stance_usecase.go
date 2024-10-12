@@ -31,7 +31,7 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 		originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
 
 	var wg sync.WaitGroup
-	for _, boneNames := range [][]string{arm_bone_names, finger_bone_names} {
+	for _, boneNames := range [][]string{all_arm_bone_names, all_finger_bone_names} {
 		for _, boneName := range boneNames {
 			wg.Add(1)
 

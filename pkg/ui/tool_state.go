@@ -42,7 +42,7 @@ type ToolState struct {
 	CleanCenterCheck              *walk.CheckBox   // センタークリーニングチェック
 	CleanLegIkParentCheck         *walk.CheckBox   // 足IK親クリーニングチェック
 	CleanArmIkCheck               *walk.CheckBox   // 腕IKクリーニングチェック
-	CleanTwistCheck               *walk.CheckBox   // 捩りクリーニングチェック
+	CleanGripCheck                *walk.CheckBox   // 握り拡散クリーニングチェック
 	OriginalPmxRatioEdit          *walk.NumberEdit // オリジナルモデル比率編集
 	OriginalPmxUpperLengthEdit    *walk.NumberEdit // 素体上半身長さ編集
 	OriginalPmxUpperAngleEdit     *walk.NumberEdit // 素体上半身角度編集
@@ -385,4 +385,11 @@ func (toolState *ToolState) ResetSizingCheck() {
 	toolState.SizingArmStanceCheck.UpdateChecked(false)
 	toolState.SizingArmStanceCheck.UpdateChecked(false)
 	toolState.SizingFingerStanceCheck.UpdateChecked(false)
+
+	toolState.CleanAllCheck.UpdateChecked(false)
+	toolState.CleanRootCheck.UpdateChecked(false)
+	toolState.CleanCenterCheck.UpdateChecked(false)
+	toolState.CleanLegIkParentCheck.UpdateChecked(false)
+	toolState.CleanArmIkCheck.UpdateChecked(false)
+	toolState.CleanGripCheck.UpdateChecked(false)
 }
