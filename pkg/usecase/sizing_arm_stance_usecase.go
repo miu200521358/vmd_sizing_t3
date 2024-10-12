@@ -13,7 +13,6 @@ import (
 
 func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 	originalModel := sizingSet.OriginalPmx
-	originalMotion := sizingSet.OriginalVmd
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
@@ -36,12 +35,11 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 		for _, boneName := range boneNames {
 			wg.Add(1)
 
-			go func(originalBfs, sizingBfs *vmd.BoneNameFrames) {
+			go func(sizingBfs *vmd.BoneNameFrames) {
 				defer wg.Done()
-				for _, frame := range originalBfs.Indexes.List() {
-					originalBf := originalMotion.BoneFrames.Get(boneName).Get(frame)
+				for _, frame := range sizingBfs.Indexes.List() {
 					sizingBf := sizingBfs.Get(frame)
-					if originalBf == nil || sizingBf == nil {
+					if sizingBf == nil {
 						continue
 					}
 
@@ -49,12 +47,12 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 					bone := sizingModel.Bones.GetByName(boneName)
 					if bone != nil {
 						if _, ok := stanceQuats[bone.Index()]; ok {
-							sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(originalBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
+							sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(sizingBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
 							sizingBfs.Update(sizingBf)
 						}
 					}
 				}
-			}(originalMotion.BoneFrames.Get(boneName), sizingMotion.BoneFrames.Get(boneName))
+			}(sizingMotion.BoneFrames.Get(boneName))
 		}
 	}
 

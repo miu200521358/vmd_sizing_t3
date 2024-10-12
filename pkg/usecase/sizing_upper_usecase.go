@@ -27,90 +27,55 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
+	originalUpperRootBone := originalModel.Bones.GetByName(pmx.UPPER_ROOT.String())
 	originalUpperBone := originalModel.Bones.GetByName(pmx.UPPER.String())
 	originalUpper2Bone := originalModel.Bones.GetByName(pmx.UPPER2.String())
-	originalNeckBone := originalModel.Bones.GetByName(pmx.NECK.String())
-	originalHeadBone := originalModel.Bones.GetByName(pmx.HEAD.String())
+	originalLeftShoulderBone := originalModel.Bones.GetByName(pmx.SHOULDER.Left())
+	originalRightShoulderBone := originalModel.Bones.GetByName(pmx.SHOULDER.Right())
+	// originalNeckBone := originalModel.Bones.GetByName(pmx.NECK.String())
+	// originalHeadBone := originalModel.Bones.GetByName(pmx.HEAD.String())
 	originalHeadTailBone := originalModel.Bones.GetByName(pmx.HEAD_TAIL.String())
 
-	upperRootBone := sizingModel.Bones.GetByName(pmx.UPPER_ROOT.String())
-	upperBone := sizingModel.Bones.GetByName(pmx.UPPER.String())
-	upper2Bone := sizingModel.Bones.GetByName(pmx.UPPER2.String())
-	neckBone := sizingModel.Bones.GetByName(pmx.NECK.String())
-	headBone := sizingModel.Bones.GetByName(pmx.HEAD.String())
-	headTailBone := sizingModel.Bones.GetByName(pmx.HEAD_TAIL.String())
+	sizingUpperRootBone := sizingModel.Bones.GetByName(pmx.UPPER_ROOT.String())
+	sizingUpperBone := sizingModel.Bones.GetByName(pmx.UPPER.String())
+	sizingUpper2Bone := sizingModel.Bones.GetByName(pmx.UPPER2.String())
+	// sizingLeftShoulderBone := sizingModel.Bones.GetByName(pmx.SHOULDER.Left())
+	// sizingRightShoulderBone := sizingModel.Bones.GetByName(pmx.SHOULDER.Right())
+	sizingNeckBone := sizingModel.Bones.GetByName(pmx.NECK.String())
+	sizingHeadBone := sizingModel.Bones.GetByName(pmx.HEAD.String())
+	sizingHeadTailBone := sizingModel.Bones.GetByName(pmx.HEAD_TAIL.String())
 
 	// 体幹中心 - 上半身2
-	originalUpperVector := originalUpper2Bone.Position.Subed(originalUpperBone.Position).Round(1e-2)
-	sizingUpperVector := upper2Bone.Position.Subed(upperBone.Position).Round(1e-2)
+	originalUpperVector := originalHeadTailBone.Position.Subed(originalUpperRootBone.Position).Round(1e-2)
+	sizingUpperVector := sizingHeadTailBone.Position.Subed(sizingUpperRootBone.Position).Round(1e-2)
 
-	// 上半身2 - 首
-	originalUpper2Vector := originalNeckBone.Position.Subed(originalUpper2Bone.Position).Round(1e-2)
-	sizingUpper2Vector := neckBone.Position.Subed(upper2Bone.Position).Round(1e-2)
-
-	// 首 - 頭
-	originalNeckVector := originalHeadBone.Position.Subed(originalNeckBone.Position).Round(1e-2)
-	sizingNeckVector := headBone.Position.Subed(neckBone.Position).Round(1e-2)
-
-	// 頭 - 頭先
-	originalHeadVector := originalHeadTailBone.Position.Subed(originalHeadBone.Position).Round(1e-2).Normalized()
-	sizingHeadVector := headTailBone.Position.Subed(headBone.Position).Round(1e-2).Normalized()
-
-	// 位置比率
-	upperRatio := sizingUpperVector.Dived(originalUpperVector).Round(1e-2).Effective().One()
-	upper2Ratio := sizingUpper2Vector.Dived(originalUpper2Vector).Round(1e-2).Effective().One()
-	neckRatio := sizingNeckVector.Dived(originalNeckVector).Round(1e-2).Effective().One()
-	headRatio := sizingHeadVector.Dived(originalHeadVector).Round(1e-2).Effective().One()
+	// 上半身スケール
+	upperScale := sizingUpperVector.Length() / originalUpperVector.Length()
 
 	// 上半身IK
-	upperIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, upperBone.Name()))
-	upperIkBone.Position = upper2Bone.Position
+	upperIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingUpperBone.Name()))
+	upperIkBone.Position = sizingHeadTailBone.Position
 	upperIkBone.Ik = pmx.NewIk()
-	upperIkBone.Ik.BoneIndex = upper2Bone.Index()
-	upperIkBone.Ik.LoopCount = 20
-	upperIkBone.Ik.UnitRotation = mmath.NewMRotationFromRadians(&mmath.MVec3{X: 2, Y: 0, Z: 0})
-	upperIkBone.Ik.Links = make([]*pmx.IkLink, 1)
+	upperIkBone.Ik.BoneIndex = sizingHeadTailBone.Index()
+	upperIkBone.Ik.LoopCount = 200
+	upperIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 1, Y: 0, Z: 0})
+	upperIkBone.Ik.Links = make([]*pmx.IkLink, 4)
 	upperIkBone.Ik.Links[0] = pmx.NewIkLink()
-	upperIkBone.Ik.Links[0].BoneIndex = upperBone.Index()
+	upperIkBone.Ik.Links[0].BoneIndex = sizingHeadBone.Index()
+	upperIkBone.Ik.Links[1] = pmx.NewIkLink()
+	upperIkBone.Ik.Links[1].BoneIndex = sizingNeckBone.Index()
+	upperIkBone.Ik.Links[2] = pmx.NewIkLink()
+	upperIkBone.Ik.Links[2].BoneIndex = sizingUpper2Bone.Index()
+	upperIkBone.Ik.Links[3] = pmx.NewIkLink()
+	upperIkBone.Ik.Links[3].BoneIndex = sizingUpperBone.Index()
 
-	// 上半身2IK
-	upper2IkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, upper2Bone.Name()))
-	upper2IkBone.Position = neckBone.Position
-	upper2IkBone.Ik = pmx.NewIk()
-	upper2IkBone.Ik.BoneIndex = neckBone.Index()
-	upper2IkBone.Ik.LoopCount = 20
-	upper2IkBone.Ik.UnitRotation = mmath.NewMRotationFromRadians(&mmath.MVec3{X: 2, Y: 0, Z: 0})
-	upper2IkBone.Ik.Links = make([]*pmx.IkLink, 1)
-	upper2IkBone.Ik.Links[0] = pmx.NewIkLink()
-	upper2IkBone.Ik.Links[0].BoneIndex = upper2Bone.Index()
-
-	// 首IK
-	neckIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, neckBone.Name()))
-	neckIkBone.Position = headBone.Position
-	neckIkBone.Ik = pmx.NewIk()
-	neckIkBone.Ik.BoneIndex = headBone.Index()
-	neckIkBone.Ik.LoopCount = 20
-	neckIkBone.Ik.UnitRotation = mmath.NewMRotationFromRadians(&mmath.MVec3{X: 2, Y: 0, Z: 0})
-	neckIkBone.Ik.Links = make([]*pmx.IkLink, 1)
-	neckIkBone.Ik.Links[0] = pmx.NewIkLink()
-	neckIkBone.Ik.Links[0].BoneIndex = neckBone.Index()
-
-	// 頭IK
-	headIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, headBone.Name()))
-	headIkBone.Position = headTailBone.Position
-	headIkBone.Ik = pmx.NewIk()
-	headIkBone.Ik.BoneIndex = headTailBone.Index()
-	headIkBone.Ik.LoopCount = 20
-	headIkBone.Ik.UnitRotation = mmath.NewMRotationFromRadians(&mmath.MVec3{X: 2, Y: 0, Z: 0})
-	headIkBone.Ik.Links = make([]*pmx.IkLink, 1)
-	headIkBone.Ik.Links[0] = pmx.NewIkLink()
-	headIkBone.Ik.Links[0].BoneIndex = headBone.Index()
-
-	frames := originalMotion.BoneFrames.RegisteredFrames(trunk_upper_bone_names)
-
-	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
+	frames := sizingMotion.BoneFrames.RegisteredFrames(trunk_upper_bone_names)
 
 	mlog.I(mi18n.T("上半身補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+
+	mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScale)}))
+
+	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	// 元モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
@@ -121,146 +86,67 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 		originalAllDeltas[index] = vmdDeltas
 	})
 
-	sizingOffDeltas := make([]*delta.VmdDeltas, len(frames))
-	sizingUpperIkDeltas := make([]*delta.VmdDeltas, len(frames))
+	sizingUpperRotations := make([]*mmath.MQuaternion, len(frames))
+	sizingUpper2Rotations := make([]*mmath.MQuaternion, len(frames))
+	sizingLeftShoulderRotations := make([]*mmath.MQuaternion, len(frames))
+	sizingRightShoulderRotations := make([]*mmath.MQuaternion, len(frames))
 
-	upper2Positions := make([]*mmath.MVec3, len(frames))
-	neckPositions := make([]*mmath.MVec3, len(frames))
-	headPositions := make([]*mmath.MVec3, len(frames))
+	mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
-	// 先モデルのデフォーム(IK OFF)
+	// 先モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, trunk_upper_bone_names, false)
-		sizingOffDeltas[index] = vmdDeltas
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
 
-		// 体幹中心から見た上半身2の相対位置を取得
-		originalUpperDelta := originalAllDeltas[index].Bones.Get(originalUpperBone.Index())
-		originalUpper2Delta := originalAllDeltas[index].Bones.Get(originalUpper2Bone.Index())
-
-		originalUpper2LocalPosition := originalUpper2Delta.FilledGlobalPosition().Subed(
-			originalUpperDelta.FilledGlobalPosition())
-
-		// 体幹中心から見た首根元の相対位置を取得
-		sizingUpperRootDelta := sizingOffDeltas[index].Bones.Get(upperRootBone.Index())
-
-		upper2Positions[index] = sizingUpperRootDelta.FilledGlobalPosition().Added(
-			originalUpper2LocalPosition.Muled(upperRatio))
-		sizingUpperIkDeltas[index] = deform.DeformIk(
-			sizingModel, sizingMotion, frame, upperIkBone, upper2Positions[index])
-	})
-
-	// 補正を登録
-	for i, iFrame := range frames {
-		frame := float32(iFrame)
-
-		upperBf := sizingMotion.BoneFrames.Get(upperBone.Name()).Get(frame)
-		upperBf.Rotation = sizingUpperIkDeltas[i].Bones.Get(upperBone.Index()).FilledFrameRotation()
-		sizingMotion.InsertRegisteredBoneFrame(upperBone.Name(), upperBf)
-	}
-
-	// ------------------------------
-	sizingUpper2IkDeltas := make([]*delta.VmdDeltas, len(frames))
-
-	// 先モデルの上半身2追加補正(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
-		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, trunk_upper_bone_names, false)
-		sizingUpper2IkDeltas[index] = vmdDeltas
-
-		// 上半身から見た上半身2の相対位置を取得
-		originalUpper2Delta := originalAllDeltas[index].Bones.Get(originalUpper2Bone.Index())
-		originalNeckDelta := originalAllDeltas[index].Bones.Get(originalNeckBone.Index())
-
-		originalNeckLocalPosition := originalNeckDelta.FilledGlobalPosition().Subed(
-			originalUpper2Delta.FilledGlobalPosition())
-
-		sizingUpper2Delta := sizingUpper2IkDeltas[index].Bones.Get(upper2Bone.Index())
-		neckPositions[index] = sizingUpper2Delta.FilledGlobalPosition().Added(
-			originalNeckLocalPosition.Muled(upper2Ratio))
-		sizingUpper2IkDeltas[index] = deform.DeformIk(
-			sizingModel, sizingMotion, frame, upperIkBone, neckPositions[index])
-	})
-
-	// 補正を登録
-	for i, iFrame := range frames {
-		frame := float32(iFrame)
-
-		upper2Bf := sizingMotion.BoneFrames.Get(upper2Bone.Name()).Get(frame)
-		upper2Bf.Rotation = sizingUpper2IkDeltas[i].Bones.Get(upper2Bone.Index()).FilledFrameRotation()
-		sizingMotion.InsertRegisteredBoneFrame(upper2Bone.Name(), upper2Bf)
-	}
-
-	// ------------------------------
-	sizingNeckIkDeltas := make([]*delta.VmdDeltas, len(frames))
-
-	// 先モデルの首追加補正(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
-		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, trunk_upper_bone_names, false)
-		sizingNeckIkDeltas[index] = vmdDeltas
-
-		// 上半身から見た上半身2の相対位置を取得
-		originalNeckDelta := originalAllDeltas[index].Bones.Get(originalNeckBone.Index())
-		originalHeadDelta := originalAllDeltas[index].Bones.Get(originalHeadBone.Index())
-
-		originalHeadLocalPosition := originalHeadDelta.FilledGlobalPosition().Subed(
-			originalNeckDelta.FilledGlobalPosition())
-
-		sizingNeckDelta := sizingNeckIkDeltas[index].Bones.Get(neckBone.Index())
-		neckPositions[index] = sizingNeckDelta.FilledGlobalPosition().Added(
-			originalHeadLocalPosition.Muled(neckRatio))
-		sizingNeckIkDeltas[index] = deform.DeformIk(
-			sizingModel, sizingMotion, frame, neckIkBone, neckPositions[index])
-	})
-
-	// 補正を登録
-	for i, iFrame := range frames {
-		frame := float32(iFrame)
-
-		neckBf := sizingMotion.BoneFrames.Get(neckBone.Name()).Get(frame)
-		neckBf.Rotation = sizingNeckIkDeltas[i].Bones.Get(neckBone.Index()).FilledFrameRotation()
-		sizingMotion.InsertRegisteredBoneFrame(neckBone.Name(), neckBf)
-	}
-
-	// ------------------------------
-	sizingHeadIkDeltas := make([]*delta.VmdDeltas, len(frames))
-
-	// 先モデルの頭追加補正(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
-		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, trunk_upper_bone_names, false)
-		sizingHeadIkDeltas[index] = vmdDeltas
-
-		// 頭から見た頭先の相対位置を取得
-		originalHeadDelta := originalAllDeltas[index].Bones.Get(originalHeadBone.Index())
+		// 体幹中心から見た頭先の相対位置を取得
+		originalUpperRootDelta := originalAllDeltas[index].Bones.Get(originalUpperRootBone.Index())
 		originalHeadTailDelta := originalAllDeltas[index].Bones.Get(originalHeadTailBone.Index())
 
-		originalHeadTailLocalPosition := originalHeadTailDelta.FilledGlobalPosition().Subed(
-			originalHeadDelta.FilledGlobalPosition())
+		originalUpperLocalPosition := originalUpperRootDelta.FilledGlobalMatrix().Inverted().MulVec3(originalHeadTailDelta.FilledGlobalPosition())
+		sizingUpperLocalPosition := originalUpperLocalPosition.MuledScalar(upperScale)
 
-		sizingHeadDelta := sizingHeadIkDeltas[index].Bones.Get(headBone.Index())
-		headPositions[index] = sizingHeadDelta.FilledGlobalPosition().Added(
-			originalHeadTailLocalPosition.Muled(headRatio))
-		sizingHeadIkDeltas[index] = deform.DeformIk(
-			sizingModel, sizingMotion, frame, headIkBone, headPositions[index])
+		sizingUpperRootDelta := vmdDeltas.Bones.Get(sizingUpperRootBone.Index())
+		sizingHeadTailDelta := vmdDeltas.Bones.Get(sizingHeadTailBone.Index())
+		headTailFixGlobalPosition := sizingUpperRootDelta.FilledGlobalMatrix().MulVec3(sizingUpperLocalPosition)
+
+		sizingUpperIkDeltas := deform.DeformIk(sizingModel, sizingMotion, frame, upperIkBone, headTailFixGlobalPosition)
+		sizingUpperRotations[index] = sizingUpperIkDeltas.Bones.Get(sizingUpperBone.Index()).FilledFrameRotation()
+		sizingUpper2Rotations[index] = sizingUpperIkDeltas.Bones.Get(sizingUpper2Bone.Index()).FilledFrameRotation()
+
+		originalUpperRotation := originalAllDeltas[index].Bones.Get(originalUpperBone.Index()).FilledFrameRotation()
+		originalUpper2Rotation := originalAllDeltas[index].Bones.Get(originalUpper2Bone.Index()).FilledFrameRotation()
+		originalLeftShoulderRotation := originalAllDeltas[index].Bones.Get(originalLeftShoulderBone.Index()).FilledFrameRotation()
+		originalRightShoulderRotation := originalAllDeltas[index].Bones.Get(originalRightShoulderBone.Index()).FilledFrameRotation()
+
+		// 肩は逆補正をかける
+		upperDiffRotation := sizingUpper2Rotations[index].Muled(originalUpper2Rotation.Inverted()).Muled(sizingUpperRotations[index].Muled(originalUpperRotation.Inverted())).Inverted()
+		sizingLeftShoulderRotations[index] = originalLeftShoulderRotation.Muled(upperDiffRotation)
+		sizingRightShoulderRotations[index] = originalRightShoulderRotation.Muled(upperDiffRotation)
+
+		mlog.V("上半身補正02[%.0f] originalHeadTailPosition[%v], sizingUpperLocalPosition[%v], sizingHeadTailPosition[%v], headTailFixGlobalPosition[%v]", frame, originalHeadTailDelta.FilledGlobalPosition(), sizingUpperLocalPosition, sizingHeadTailDelta.FilledGlobalPosition(), headTailFixGlobalPosition)
 	})
 
 	// 補正を登録
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
 
-		headBf := sizingMotion.BoneFrames.Get(headBone.Name()).Get(frame)
-		headBf.Rotation = sizingHeadIkDeltas[i].Bones.Get(headBone.Index()).FilledFrameRotation()
-		sizingMotion.InsertRegisteredBoneFrame(headBone.Name(), headBf)
+		upperBf := sizingMotion.BoneFrames.Get(sizingUpperBone.Name()).Get(frame)
+		upperBf.Rotation = sizingUpperRotations[i]
+		sizingMotion.InsertRegisteredBoneFrame(sizingUpperBone.Name(), upperBf)
+
+		upper2Bf := sizingMotion.BoneFrames.Get(sizingUpper2Bone.Name()).Get(frame)
+		upper2Bf.Rotation = sizingUpper2Rotations[i]
+		sizingMotion.InsertRegisteredBoneFrame(sizingUpper2Bone.Name(), upper2Bf)
+
+		leftShoulderBf := sizingMotion.BoneFrames.Get(pmx.SHOULDER.Left()).Get(frame)
+		leftShoulderBf.Rotation = sizingLeftShoulderRotations[i]
+		sizingMotion.InsertRegisteredBoneFrame(pmx.SHOULDER.Left(), leftShoulderBf)
+
+		rightShoulderBf := sizingMotion.BoneFrames.Get(pmx.SHOULDER.Right()).Get(frame)
+		rightShoulderBf.Rotation = sizingRightShoulderRotations[i]
+		sizingMotion.InsertRegisteredBoneFrame(pmx.SHOULDER.Right(), rightShoulderBf)
 	}
 
 	sizingSet.CompletedSizingUpper = true
@@ -306,6 +192,18 @@ func isValidSizingUpper(sizingSet *domain.SizingSet) bool {
 		return false
 	}
 
+	if !originalModel.Bones.ContainsByName(pmx.SHOULDER.Left()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("上半身ボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.SHOULDER.Left()}))
+		return false
+	}
+
+	if !originalModel.Bones.ContainsByName(pmx.SHOULDER.Right()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("上半身ボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.SHOULDER.Right()}))
+		return false
+	}
+
 	// ------------------------------
 
 	if !sizingModel.Bones.ContainsByName(pmx.UPPER_ROOT.String()) {
@@ -341,6 +239,18 @@ func isValidSizingUpper(sizingSet *domain.SizingSet) bool {
 	if !sizingModel.Bones.ContainsByName(pmx.HEAD_TAIL.String()) {
 		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("上半身ボーン不足", map[string]interface{}{
 			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.HEAD_TAIL.String()}))
+		return false
+	}
+
+	if !sizingModel.Bones.ContainsByName(pmx.SHOULDER.Left()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("上半身ボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.SHOULDER.Left()}))
+		return false
+	}
+
+	if !sizingModel.Bones.ContainsByName(pmx.SHOULDER.Right()) {
+		mlog.WT(mi18n.T("ボーン不足"), mi18n.T("上半身ボーン不足", map[string]interface{}{
+			"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.SHOULDER.Right()}))
 		return false
 	}
 

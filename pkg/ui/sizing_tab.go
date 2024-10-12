@@ -1376,8 +1376,8 @@ func execSizing(toolState *ToolState) {
 				usecase.SizingLower(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()
 
-				// usecase.SizingUpper(sizingSet)
-				// sizingSet.OutputVmd.SetRandHash()
+				usecase.SizingUpper(sizingSet)
+				sizingSet.OutputVmd.SetRandHash()
 
 				usecase.SizingArmFingerStance(sizingSet)
 				sizingSet.OutputVmd.SetRandHash()

@@ -12,7 +12,7 @@ import (
 
 var trunk_upper_bone_names = []string{
 	pmx.TRUNK_ROOT.String(), pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
-	pmx.NECK.String(), pmx.HEAD.String(), pmx.HEAD_TAIL.String()}
+	pmx.NECK.String(), pmx.HEAD.String(), pmx.HEAD_TAIL.String(), pmx.SHOULDER.Left(), pmx.SHOULDER.Right()}
 var trunk_lower_bone_names = []string{
 	pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER_ROOT.String(),
 	pmx.LOWER.String(), pmx.LEG_CENTER.String()}

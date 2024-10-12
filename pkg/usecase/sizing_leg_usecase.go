@@ -180,8 +180,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 		groovePositions[index] = originalGrooveBf.Position.Added(&mmath.MVec3{X: 0, Y: ankleDiffY, Z: 0})
 	})
 
-	mlog.I(mi18n.T("足補正03", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	// 補正を登録
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
@@ -196,12 +194,12 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	}
 
 	if mlog.IsVerbose() {
-		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正03_センター補正")
+		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正02_センター補正")
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-		mlog.V("足補正03_センター補正: %s", outputPath)
+		mlog.V("足補正02_センター補正: %s", outputPath)
 	}
 
-	mlog.I(mi18n.T("足補正04", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("足補正03", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
 	rightLegIkPositions := make([]*mmath.MVec3, len(frames))
@@ -340,8 +338,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 		rightLegIkRotations[index] = rightLegFkMat.Muled(rightLegIkMat.Inverted()).Quaternion()
 	})
 
-	mlog.I(mi18n.T("足補正05", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	// 足IKを一旦戻す
 	for _, frame := range originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Indexes.List() {
 		bf := originalMotion.BoneFrames.Get(leftLegIkBone.Name()).Get(frame).Copy().(*vmd.BoneFrame)
@@ -399,12 +395,12 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	if mlog.IsVerbose() {
 		sizingMotion.IkFrames.Delete(0)
 
-		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正05_足IK補正")
+		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正03_足IK補正")
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-		mlog.V("足補正05_足IK補正: %s", outputPath)
+		mlog.V("足補正03_足IK補正: %s", outputPath)
 	}
 
-	mlog.I(mi18n.T("足補正06", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("足補正04", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	leftLegRotations := make([]*mmath.MQuaternion, len(frames))
 	leftKneeRotations := make([]*mmath.MQuaternion, len(frames))
@@ -435,8 +431,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 			rightAnkleRotations[index] = vmdDeltas.Bones.Get(rightAnkleBone.Index()).FilledFrameRotation()
 		}
 	})
-
-	mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// つま先IKを削除
 	sizingMotion.BoneFrames.Delete(pmx.TOE_IK.Left())
@@ -491,9 +485,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	}
 
 	if mlog.IsVerbose() {
-		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正07_FK再計算")
+		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, "足補正04_FK再計算")
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-		mlog.V("Leg_04_FK再計算: %s", outputPath)
+		mlog.V("足補正04_FK再計算: %s", outputPath)
 	}
 
 	sizingSet.CompletedSizingLeg = true
