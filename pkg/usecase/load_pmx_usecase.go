@@ -1425,7 +1425,7 @@ func fixBaseBones(model, baseModel *pmx.PmxModel, fromJson bool, nonExistBoneNam
 			toeIkBone := model.Bones.GetByName(toeIkBoneName)
 			baseToeIkBone := baseModel.Bones.GetByName(toeIkBoneName)
 
-			ankleBone := model.Bones.GetByName(fmt.Sprintf("%s足首", toeIkBone.Direction()))
+			ankleBone := model.Bones.GetByName(pmx.ANKLE.StringFromDirection(toeIkBone.Direction()))
 			baseAnkleBone := baseModel.Bones.GetByName(ankleBone.Name())
 
 			ankleYRatio := ankleBone.Position.Y / baseAnkleBone.Position.Y
@@ -1434,16 +1434,16 @@ func fixBaseBones(model, baseModel *pmx.PmxModel, fromJson bool, nonExistBoneNam
 			toeIkBone.Position.Y = baseToeIkBone.Position.Y * ankleYRatio
 			toeIkBone.Position.Z = baseAnkleBone.Position.Z + (toeIkBone.Position.Z-ankleBone.Position.Z)*toeIkZRatio
 
-			toeBone := model.Bones.GetByName(fmt.Sprintf("%sつま先", toeIkBone.Direction()))
+			toeBone := model.Bones.GetByName(pmx.TOE_T.StringFromDirection(toeIkBone.Direction()))
 			toeBone.Position.Y = toeIkBone.Position.Y
 			toeBone.Position.Z = toeIkBone.Position.Z
-			toeDBone := model.Bones.GetByName(fmt.Sprintf("%sつま先D", toeIkBone.Direction()))
+			toeDBone := model.Bones.GetByName(pmx.TOE_T_D.StringFromDirection(toeIkBone.Direction()))
 			toeDBone.Position.Y = toeIkBone.Position.Y
 			toeDBone.Position.Z = toeIkBone.Position.Z
 
-			heelBone := model.Bones.GetByName(fmt.Sprintf("%sかかと", toeIkBone.Direction()))
+			heelBone := model.Bones.GetByName(pmx.HEEL.StringFromDirection(toeIkBone.Direction()))
 			heelBone.Position.Y = toeIkBone.Position.Y
-			heelDBone := model.Bones.GetByName(fmt.Sprintf("%sかかとD", toeIkBone.Direction()))
+			heelDBone := model.Bones.GetByName(pmx.HEEL.StringFromDirection(toeIkBone.Direction()))
 			heelDBone.Position.Y = toeIkBone.Position.Y
 		}
 	}
