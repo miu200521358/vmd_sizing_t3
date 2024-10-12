@@ -604,16 +604,20 @@
         "translation": "【No.{{.No}}】足IK親統合 - 中間キーフレームのズレチェック"
     },
     {
+        "id": "腕IK親最適化ボーン不足",
+        "translation": "【No.{{.No}}】腕IK統合: {{.ModelType}}に{{.BoneName}}が見つからないため、処理をスキップします"
+    },
+    {
         "id": "腕IK最適化開始",
-        "translation": "【No.{{.No}}】腕IK統合 開始 【腕IKボーン名: {{.LeftBoneName}}, {{.RightBoneName}}】"
+        "translation": "【No.{{.No}}】腕IK統合 開始 【{{.LeftBoneName}}, {{.RightBoneName}}】"
     },
     {
         "id": "腕IK最適化01",
-        "translation": "【No.{{.No}}】腕IK統合 - 腕IKキーフレームの統合"
+        "translation": "【No.{{.No}}】腕IK統合 - 腕IKキーフレームの統合 【{{.BoneName}}】"
     },
     {
         "id": "腕IK最適化02",
-        "translation": "【No.{{.No}}】腕IK統合 - 中間キーフレームのズレチェック"
+        "translation": "【No.{{.No}}】腕IK統合 - 中間キーフレームのズレチェック 【{{.BoneName}}】"
     },
     {
         "id": "下半身補正01",
@@ -633,7 +637,7 @@
     },
     {
         "id": "上半身補正01",
-        "translation": "【No.{{.No}}】上半身補正 - 作成元モデルの上半身変形情報取得 上半身スケール[{{.Scale}}]"
+        "translation": "【No.{{.No}}】上半身補正 - 作成元モデルの上半身変形情報取得 上半身スケール 【{{.Scale}}】"
     },
     {
         "id": "上半身補正02",

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"slices"
+	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
 	"github.com/miu200521358/mlib_go/pkg/domain/miter"
@@ -22,10 +23,8 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 	}
 
 	originalModel := sizingSet.OriginalPmx
-	// originalMotion := sizingSet.OriginalVmd
+	originalMotion := sizingSet.OriginalVmd
 	sizingMotion := sizingSet.OutputVmd
-
-	neckRootBone := originalModel.Bones.GetByName(pmx.NECK.String())
 
 	// 腕IKに相当するボーンがあるか取得
 	armIkLeftBone, armIkRightBone := getArmIkBones(originalModel)
@@ -42,8 +41,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 	mlog.I(mi18n.T("腕IK最適化開始", map[string]interface{}{"No": sizingSet.Index + 1,
 		"LeftBoneName": armIkLeftBone.Name(), "RightBoneName": armIkRightBone.Name()}))
 
-	mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
-
+	allFrames := make([][]int, 2)
 	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
 	allRelativeBoneNames := make([][]string, 2)
 
@@ -55,16 +53,23 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 		case "右":
 			armIkBone = armIkRightBone
 		}
+		shoulderRootBone := originalModel.Bones.GetByName(pmx.SHOULDER_ROOT.StringFromDirection(direction))
+
+		mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
 
 		relativeBoneNames := make([]string, 0)
+		shoulderRootBoneLayerIndex := slices.Index(originalModel.Bones.LayerSortedIndexes, shoulderRootBone.Index())
 		for _, boneIndex := range armIkBone.Extend.RelativeBoneIndexes {
 			bone := originalModel.Bones.Get(boneIndex)
-			if bone != nil {
+			boneLayerIndex := slices.Index(originalModel.Bones.LayerSortedIndexes, bone.Index())
+			if bone != nil && boneLayerIndex > shoulderRootBoneLayerIndex {
+				// 肩根元からの子のみ対象とする
 				relativeBoneNames = append(relativeBoneNames, bone.Name())
 			}
 		}
 		frames := sizingMotion.BoneFrames.RegisteredFrames(relativeBoneNames)
 
+		allFrames[i] = frames
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 		allRelativeBoneNames[i] = relativeBoneNames
 
@@ -79,18 +84,31 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 		})
 	}
 
-	for i, directionVmdDeltas := range allVmdDeltas {
+	// IK関連のボーンを削除
+	for _, direction := range []string{"左", "右"} {
+		var armIkBone *pmx.Bone
+		switch direction {
+		case "左":
+			armIkBone = armIkLeftBone
+		case "右":
+			armIkBone = armIkRightBone
+		}
+
+		sizingMotion.BoneFrames.Delete(armIkBone.Name())
+		sizingMotion.BoneFrames.Delete(originalModel.Bones.Get(armIkBone.Ik.BoneIndex).Name())
+		for _, ikLink := range armIkBone.Ik.Links {
+			sizingMotion.BoneFrames.Delete(originalModel.Bones.Get(ikLink.BoneIndex).Name())
+		}
+	}
+
+	for _, directionVmdDeltas := range allVmdDeltas {
 		for _, vmdDeltas := range directionVmdDeltas {
 			for _, boneDelta := range vmdDeltas.Bones.Data {
 				if boneDelta == nil {
 					continue
 				}
-				if !slices.Contains(boneDelta.Bone.Extend.ParentBoneIndexes, neckRootBone.Index()) {
-					// 首根元の子のみ対象とする
-					continue
-				}
-				if !boneDelta.Bone.IsStandard() {
-					// 準標準までを対象とする
+				if !boneDelta.Bone.IsArm() {
+					// 腕系ボーンのみ対象とする
 					continue
 				}
 
@@ -99,81 +117,85 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 				sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
 			}
 		}
-
-		for _, relativeBoneName := range allRelativeBoneNames[i] {
-			bone := originalModel.Bones.GetByName(relativeBoneName)
-			if bone == nil {
-				continue
-			}
-			if !slices.Contains(bone.Extend.ParentBoneIndexes, neckRootBone.Index()) {
-				// 首根元の子のみ対象とする
-				continue
-			}
-			if !bone.IsStandard() {
-				// 準標準ではないボーンのキーフレを削除する
-				sizingMotion.BoneFrames.Delete(bone.Name())
-			}
-		}
 	}
 
-	mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
+	// 中間キーフレのズレをチェック
+	threshold := 0.02
 
-	// // 中間キーフレのズレをチェック
-	// threshold := 0.02
+	for i, direction := range []string{"左", "右"} {
+		var armIkBone *pmx.Bone
+		switch direction {
+		case "左":
+			armIkBone = armIkLeftBone
+		case "右":
+			armIkBone = armIkRightBone
+		}
 
-	// for i, endFrame := range frames {
-	// 	if i == 0 {
-	// 		continue
-	// 	}
-	// 	startFrame := frames[i-1] + 1
+		mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
 
-	// 	if endFrame-startFrame-1 <= 0 {
-	// 		continue
-	// 	}
+		var wg sync.WaitGroup
 
-	// 	miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
-	// 		frame := float32(startFrame + index + 1)
+		frames := allFrames[i]
+		relativeBoneNames := allRelativeBoneNames[i]
+		relativeArmBones := make([]*pmx.Bone, 0)
+		for _, boneName := range relativeBoneNames {
+			if originalModel.Bones.GetByName(boneName).IsArm() {
+				relativeArmBones = append(relativeArmBones, originalModel.Bones.GetByName(boneName))
+			}
+		}
 
-	// 		wg.Add(2)
-	// 		var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
+		for i, endFrame := range frames {
+			if i == 0 {
+				continue
+			}
+			startFrame := frames[i-1] + 1
 
-	// 		go func() {
-	// 			defer wg.Done()
-	// 			originalVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
-	// 			originalVmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-	// 			originalVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, originalVmdDeltas, false, frame, centerRelativeBoneNames, false)
-	// 		}()
+			if endFrame-startFrame-1 <= 0 {
+				continue
+			}
 
-	// 		go func() {
-	// 			defer wg.Done()
-	// 			cleanVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
-	// 			cleanVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
-	// 			cleanVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, cleanVmdDeltas, false, frame, centerRelativeBoneNames, false)
-	// 		}()
+			miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
+				frame := float32(startFrame + index + 1)
 
-	// 		wg.Wait()
+				wg.Add(2)
+				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
 
-	// 		bone := originalModel.Bones.GetByName(pmx.UPPER.String())
-	// 		originalDelta := originalVmdDeltas.Bones.Get(bone.Index())
-	// 		cleanDelta := cleanVmdDeltas.Bones.Get(bone.Index())
+				go func() {
+					defer wg.Done()
+					originalVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
+					originalVmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
+					originalVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, originalVmdDeltas, true, frame, relativeBoneNames, false)
+				}()
 
-	// 		if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
-	// 			// ボーンの位置がずれている場合、キーを追加
-	// 			localPosition := originalDelta.FilledGlobalPosition().Subed(bone.Position)
+				go func() {
+					defer wg.Done()
+					cleanVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+					cleanVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
+					cleanVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, cleanVmdDeltas, true, frame, relativeBoneNames, false)
+				}()
 
-	// 			{
-	// 				bf := sizingMotion.BoneFrames.Get(pmx.CENTER.String()).Get(frame)
-	// 				bf.Position = &mmath.MVec3{X: localPosition.X, Y: 0, Z: localPosition.Z}
-	// 				sizingMotion.InsertRegisteredBoneFrame(pmx.CENTER.String(), bf)
-	// 			}
-	// 			{
-	// 				bf := sizingMotion.BoneFrames.Get(pmx.GROOVE.String()).Get(frame)
-	// 				bf.Position = &mmath.MVec3{X: 0, Y: localPosition.Y, Z: 0}
-	// 				sizingMotion.InsertRegisteredBoneFrame(pmx.GROOVE.String(), bf)
-	// 			}
-	// 		}
-	// 	})
-	// }
+				wg.Wait()
+
+				for _, bone := range relativeArmBones {
+					originalDelta := originalVmdDeltas.Bones.Get(bone.Index())
+					cleanDelta := cleanVmdDeltas.Bones.Get(bone.Index())
+
+					if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
+						// ボーンの位置がずれている場合、キーを追加
+						for _, b := range relativeArmBones {
+							bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
+							bf.Rotation = originalVmdDeltas.Bones.Get(b.Index()).FilledFrameRotation()
+							sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
+						}
+
+						break
+					}
+				}
+
+				wg.Wait()
+			})
+		}
+	}
 
 	sizingSet.CompletedCleanArmIk = true
 }
@@ -208,8 +230,9 @@ func getArmIkBones(model *pmx.PmxModel) (armIkLeftBone, armIkRightBone *pmx.Bone
 	for _, direction := range []string{"左", "右"} {
 		var armIkBone *pmx.Bone
 
-		for _, standardBoneName := range []pmx.StandardBoneNames{pmx.ARM, pmx.ELBOW, pmx.WRIST} {
-			// 腕・ひじ・手首のいずれかのボーンがリンクもしくはターゲットになっているボーン
+		for _, standardBoneName := range []pmx.StandardBoneNames{
+			pmx.ARM, pmx.ARM_TWIST, pmx.ELBOW, pmx.WRIST_TWIST, pmx.WRIST} {
+			// 腕・腕捩・ひじ・手捩・手首のいずれかのボーンがリンクもしくはターゲットになっているボーン
 			bone := model.Bones.GetByName(standardBoneName.StringFromDirection(direction))
 
 			for _, boneIndex := range bone.Extend.IkTargetBoneIndexes {
