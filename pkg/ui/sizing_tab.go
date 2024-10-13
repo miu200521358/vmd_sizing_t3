@@ -420,15 +420,15 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SizingFingerStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
-								toolState.CleanAllCheck.Checked()
+								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
-								toolState.CleanAllCheck.Checked()
+								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
-								toolState.CleanAllCheck.Checked()
+								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
-								toolState.CleanAllCheck.Checked()
+								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
-								toolState.CleanAllCheck.Checked()
+								toolState.SizingCleanAllCheck.Checked()
 
 							toolState.CleanRootCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
@@ -438,7 +438,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
-							toolState.CleanArmIkCheck.UpdateChecked(
+							toolState.CleanGripCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip)
 
 							go execSizing(toolState)
@@ -514,7 +514,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
-							toolState.CleanArmIkCheck.UpdateChecked(
+							toolState.CleanGripCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip)
 
 							go execSizing(toolState)
