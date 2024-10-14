@@ -85,7 +85,7 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 	mlog.I(mi18n.T("全ての親最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 中間キーフレのズレをチェック
-	threshold := 0.02
+	threshold := 0.01
 	var wg sync.WaitGroup
 
 	for i, endFrame := range frames {

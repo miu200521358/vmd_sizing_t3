@@ -130,7 +130,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 	}
 
 	// 中間キーフレのズレをチェック
-	threshold := 0.02
+	threshold := 0.01
 
 	for i, direction := range []string{"左", "右"} {
 		var armIkBone *pmx.Bone

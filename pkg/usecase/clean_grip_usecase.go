@@ -98,7 +98,7 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 	}
 
 	// 中間キーフレのズレをチェック
-	threshold := 0.02
+	threshold := 0.01
 
 	for i, direction := range []string{"左", "右"} {
 		mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
@@ -174,6 +174,10 @@ func getFixRotationForGrip(
 	fingerBoneName string,
 ) *mmath.MQuaternion {
 	fingerBone := originalModel.Bones.GetByName(fingerBoneName)
+	if fingerBone.IsFingerTail() {
+		return nil
+	}
+
 	boneDelta := vmdDeltas.Bones.Get(fingerBone.Index())
 	if boneDelta == nil {
 		return nil

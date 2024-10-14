@@ -43,7 +43,7 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	legLeftBone := originalModel.Bones.GetByName(pmx.LEG.Left())
 	legRightBone := originalModel.Bones.GetByName(pmx.LEG.Right())
 
-	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.WAIST.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.LOWER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
+	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.WAIST.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.LOWER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(centerRelativeBoneNames)
 
 	centerPositions := make([]*mmath.MVec3, len(frames))
@@ -68,9 +68,10 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 		upperRotations[index] = vmdDeltas.Bones.Get(upperBone.Index()).FilledGlobalBoneRotation()
 		lowerRotations[index] = vmdDeltas.Bones.Get(lowerBone.Index()).FilledGlobalBoneRotation()
 		if isContainsActiveWaist {
+			waistMat := vmdDeltas.Bones.GetByName(pmx.WAIST.String()).FilledGlobalMatrix()
 			// 足は腰がある場合のみ
-			legLeftRotations[index] = vmdDeltas.Bones.Get(legLeftBone.Index()).FilledGlobalBoneRotation().Muled(lowerRotations[index].Inverted())
-			legRightRotations[index] = vmdDeltas.Bones.Get(legRightBone.Index()).FilledGlobalBoneRotation().Muled(lowerRotations[index].Inverted())
+			legLeftRotations[index] = waistMat.Inverted().Muled(vmdDeltas.Bones.Get(legLeftBone.Index()).FilledGlobalMatrix()).Quaternion()
+			legRightRotations[index] = waistMat.Inverted().Muled(vmdDeltas.Bones.Get(legRightBone.Index()).FilledGlobalMatrix()).Quaternion()
 		}
 	})
 
@@ -113,7 +114,7 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 中間キーフレのズレをチェック
-	threshold := 0.02
+	threshold := 0.0005
 	var wg sync.WaitGroup
 
 	for i, endFrame := range frames {
@@ -148,23 +149,25 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 
 			wg.Wait()
 
-			bone := originalModel.Bones.GetByName(pmx.UPPER.String())
-			originalDelta := originalVmdDeltas.Bones.Get(bone.Index())
-			cleanDelta := cleanVmdDeltas.Bones.Get(bone.Index())
+			{
+				bone := originalModel.Bones.GetByName(pmx.UPPER2.String())
+				originalDelta := originalVmdDeltas.Bones.Get(bone.Index())
+				cleanDelta := cleanVmdDeltas.Bones.Get(bone.Index())
 
-			if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
-				// ボーンの位置がずれている場合、キーを追加
-				localPosition := originalDelta.FilledGlobalPosition().Subed(bone.Position)
+				if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
+					// ボーンの位置がずれている場合、キーを追加
+					localPosition := originalDelta.FilledGlobalPosition().Subed(cleanDelta.FilledGlobalPosition())
 
-				{
-					bf := sizingMotion.BoneFrames.Get(pmx.CENTER.String()).Get(frame)
-					bf.Position = &mmath.MVec3{X: localPosition.X, Y: 0, Z: localPosition.Z}
-					sizingMotion.InsertRegisteredBoneFrame(pmx.CENTER.String(), bf)
-				}
-				{
-					bf := sizingMotion.BoneFrames.Get(pmx.GROOVE.String()).Get(frame)
-					bf.Position = &mmath.MVec3{X: 0, Y: localPosition.Y, Z: 0}
-					sizingMotion.InsertRegisteredBoneFrame(pmx.GROOVE.String(), bf)
+					{
+						bf := sizingMotion.BoneFrames.Get(pmx.CENTER.String()).Get(frame)
+						bf.Position.Add(&mmath.MVec3{X: localPosition.X, Y: 0, Z: localPosition.Z})
+						sizingMotion.InsertRegisteredBoneFrame(pmx.CENTER.String(), bf)
+					}
+					{
+						bf := sizingMotion.BoneFrames.Get(pmx.GROOVE.String()).Get(frame)
+						bf.Position.Add(&mmath.MVec3{X: 0, Y: localPosition.Y, Z: 0})
+						sizingMotion.InsertRegisteredBoneFrame(pmx.GROOVE.String(), bf)
+					}
 				}
 			}
 		})
