@@ -106,14 +106,14 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 		}
 	}
 
-	for i := range []string{"左", "右"} {
-		// var armIkBone *pmx.Bone
-		// switch direction {
-		// case "左":
-		// 	armIkBone = armIkLeftBone
-		// case "右":
-		// 	armIkBone = armIkRightBone
-		// }
+	for i, direction := range []string{"左", "右"} {
+		var armIkBone *pmx.Bone
+		switch direction {
+		case "左":
+			armIkBone = armIkLeftBone
+		case "右":
+			armIkBone = armIkRightBone
+		}
 
 		directionVmdDeltas := allVmdDeltas[i]
 
@@ -128,31 +128,20 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 				}
 
 				bf := sizingMotion.BoneFrames.Get(boneDelta.Bone.Name()).Get(boneDelta.Frame)
-				bf.Rotation = boneDelta.FilledFrameRotation()
-
 				if boneDelta.Bone.Name() == pmx.WRIST.Left() || boneDelta.Bone.Name() == pmx.WRIST.Right() {
-					// 手首の場合、現在の手首のベクトルから角度を求め直す
-					wristBone := boneDelta.Bone
-					wristTwistBone := originalModel.Bones.GetByName(
-						pmx.WRIST_TWIST.StringFromDirection(wristBone.Direction()))
-					middle1Bone := originalModel.Bones.GetByName(
-						pmx.MIDDLE1.StringFromDirection(boneDelta.Bone.Direction()))
-
-					if wristTwistBone == nil || middle1Bone == nil {
-						continue
+					armIkTargetDelta := vmdDeltas.Bones.Get(armIkBone.Ik.BoneIndex)
+					parentQuat := mmath.NewMQuaternion()
+					for _, parentIndex := range boneDelta.Bone.Extend.ParentBoneIndexes {
+						parentDelta := vmdDeltas.Bones.Get(parentIndex)
+						if parentDelta.Bone.Index() == armIkBone.Index() {
+							break
+						}
+						parentQuat = parentQuat.Muled(parentDelta.FilledFrameRotation())
 					}
-
-					// 手首に角度が入って無かった場合の手首先のグローバル位置
-					wristTwistGlobalMatrix := vmdDeltas.Bones.Get(wristTwistBone.Index()).FilledGlobalMatrix().Copy()
-					wristTwistGlobalMatrix = wristTwistGlobalMatrix.Muled(wristBone.Extend.RevertOffsetMatrix)
-
-					// 手首先のグローバル位置
-					wristTailGlobalPosition := vmdDeltas.Bones.Get(wristBone.Index()).FilledGlobalMatrix().MulVec3(mmath.MVec3UnitX)
-					wristLocalPosition := wristTwistGlobalMatrix.Inverted().MulVec3(wristTailGlobalPosition).Normalized()
-
-					bf.Rotation = mmath.NewMQuaternionRotate(mmath.MVec3UnitX, wristLocalPosition)
+					bf.Rotation = parentQuat.Inverted().ToMat4().Muled(armIkTargetDelta.FilledGlobalMatrix().Inverted()).Muled(boneDelta.FilledGlobalMatrix()).Quaternion()
+				} else {
+					bf.Rotation = boneDelta.FilledFrameRotation()
 				}
-
 				sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
 			}
 		}
@@ -223,28 +212,20 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 						// ボーンの位置がずれている場合、キーを追加
 						for _, b := range relativeArmBones {
 							bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
-
-							rot := originalVmdDeltas.Bones.Get(b.Index()).FilledFrameRotation()
 							if b.Name() == pmx.WRIST.Left() || b.Name() == pmx.WRIST.Right() {
-								// 手首の場合、IKターゲットとIKの角度を委譲
+								armIkTargetDelta := originalVmdDeltas.Bones.Get(armIkBone.Ik.BoneIndex)
+								parentQuat := mmath.NewMQuaternion()
 								for _, parentIndex := range b.Extend.ParentBoneIndexes {
-									parentBone := originalModel.Bones.Get(parentIndex)
-									// 自分より親の準標準までのボーンはスルー
-									if parentBone.IsStandard() {
-										continue
-									}
-									if parentBone.Position.NearEquals(b.Position, 1e-2) {
-										// ほぼ同じ位置にある場合、回転を加味
-										rot = rot.Muled(originalVmdDeltas.Bones.TotalBoneRotation(parentIndex))
-									}
-									// 腕系じゃなくなったら終了
-									if !parentBone.IsArm() {
+									parentDelta := originalVmdDeltas.Bones.Get(parentIndex)
+									if parentDelta.Bone.Index() == armIkBone.Index() {
 										break
 									}
+									parentQuat = parentQuat.Muled(parentDelta.FilledFrameRotation())
 								}
+								bf.Rotation = parentQuat.Inverted().ToMat4().Muled(armIkTargetDelta.FilledGlobalMatrix().Inverted()).Muled(originalVmdDeltas.Bones.Get(b.Index()).FilledGlobalMatrix()).Quaternion()
+							} else {
+								bf.Rotation = originalVmdDeltas.Bones.Get(b.Index()).FilledFrameRotation()
 							}
-							bf.Rotation = rot
-
 							sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
 						}
 
