@@ -119,30 +119,12 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 
 		for _, vmdDeltas := range directionVmdDeltas {
 			for _, boneDelta := range vmdDeltas.Bones.Data {
-				if boneDelta == nil {
-					continue
+				quat := getFixRotationForArmIk(vmdDeltas, armIkBone, boneDelta)
+				if quat != nil {
+					bf := sizingMotion.BoneFrames.Get(boneDelta.Bone.Name()).Get(boneDelta.Frame)
+					bf.Rotation = quat
+					sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
 				}
-				if !boneDelta.Bone.IsArm() {
-					// 腕系ボーンのみ対象とする
-					continue
-				}
-
-				bf := sizingMotion.BoneFrames.Get(boneDelta.Bone.Name()).Get(boneDelta.Frame)
-				if boneDelta.Bone.Name() == pmx.WRIST.Left() || boneDelta.Bone.Name() == pmx.WRIST.Right() {
-					armIkTargetDelta := vmdDeltas.Bones.Get(armIkBone.Ik.BoneIndex)
-					parentQuat := mmath.NewMQuaternion()
-					for _, parentIndex := range boneDelta.Bone.Extend.ParentBoneIndexes {
-						parentDelta := vmdDeltas.Bones.Get(parentIndex)
-						if parentDelta.Bone.Index() == armIkBone.Index() {
-							break
-						}
-						parentQuat = parentQuat.Muled(parentDelta.FilledFrameRotation())
-					}
-					bf.Rotation = parentQuat.Inverted().ToMat4().Muled(armIkTargetDelta.FilledGlobalMatrix().Inverted()).Muled(boneDelta.FilledGlobalMatrix()).Quaternion()
-				} else {
-					bf.Rotation = boneDelta.FilledFrameRotation()
-				}
-				sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
 			}
 		}
 	}
@@ -211,24 +193,13 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 					if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
 						// ボーンの位置がずれている場合、キーを追加
 						for _, b := range relativeArmBones {
-							bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
-							if b.Name() == pmx.WRIST.Left() || b.Name() == pmx.WRIST.Right() {
-								armIkTargetDelta := originalVmdDeltas.Bones.Get(armIkBone.Ik.BoneIndex)
-								parentQuat := mmath.NewMQuaternion()
-								for _, parentIndex := range b.Extend.ParentBoneIndexes {
-									parentDelta := originalVmdDeltas.Bones.Get(parentIndex)
-									if parentDelta.Bone.Index() == armIkBone.Index() {
-										break
-									}
-									parentQuat = parentQuat.Muled(parentDelta.FilledFrameRotation())
-								}
-								bf.Rotation = parentQuat.Inverted().ToMat4().Muled(armIkTargetDelta.FilledGlobalMatrix().Inverted()).Muled(originalVmdDeltas.Bones.Get(b.Index()).FilledGlobalMatrix()).Quaternion()
-							} else {
-								bf.Rotation = originalVmdDeltas.Bones.Get(b.Index()).FilledFrameRotation()
+							quat := getFixRotationForArmIk(originalVmdDeltas, armIkBone, originalVmdDeltas.Bones.Get(b.Index()))
+							if quat != nil {
+								bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
+								bf.Rotation = quat
+								sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
 							}
-							sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
 						}
-
 						break
 					}
 				}
@@ -239,6 +210,35 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 	}
 
 	sizingSet.CompletedCleanArmIk = true
+}
+
+func getFixRotationForArmIk(
+	vmdDeltas *delta.VmdDeltas,
+	armIkBone *pmx.Bone,
+	boneDelta *delta.BoneDelta,
+) *mmath.MQuaternion {
+	if boneDelta == nil {
+		return nil
+	}
+	if !boneDelta.Bone.IsArm() {
+		// 腕系ボーンのみ対象とする
+		return nil
+	}
+
+	if boneDelta.Bone.Name() == pmx.WRIST.Left() || boneDelta.Bone.Name() == pmx.WRIST.Right() {
+		armIkTargetDelta := vmdDeltas.Bones.Get(armIkBone.Ik.BoneIndex)
+		parentQuat := mmath.NewMQuaternion()
+		for _, parentIndex := range boneDelta.Bone.Extend.ParentBoneIndexes {
+			parentDelta := vmdDeltas.Bones.Get(parentIndex)
+			if parentDelta.Bone.Index() == armIkBone.Index() {
+				break
+			}
+			parentQuat = parentQuat.Muled(parentDelta.FilledFrameRotation())
+		}
+		return parentQuat.Inverted().ToMat4().Muled(armIkTargetDelta.FilledGlobalMatrix().Inverted()).Muled(boneDelta.FilledGlobalMatrix()).Quaternion()
+	} else {
+		return boneDelta.FilledFrameRotation()
+	}
 }
 
 func isValidCleanArmIk(sizingSet *domain.SizingSet) bool {

@@ -86,7 +86,7 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 		directionVmdDeltas := allVmdDeltas[i]
 		for _, vmdDeltas := range directionVmdDeltas {
 			for _, fingerBoneName := range fingerBoneNames {
-				fingerQuat := getFixRotation(originalModel, vmdDeltas, fingerBoneName)
+				fingerQuat := getFixRotationForGrip(originalModel, vmdDeltas, fingerBoneName)
 				if fingerQuat != nil {
 					boneDelta := vmdDeltas.Bones.GetByName(fingerBoneName)
 					bf := sizingMotion.BoneFrames.Get(fingerBoneName).Get(boneDelta.Frame)
@@ -148,7 +148,7 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 					if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
 						// ボーンの位置がずれている場合、キーを追加
 						for _, bn := range fingerBoneNames {
-							fingerQuat := getFixRotation(originalModel, originalVmdDeltas, bn)
+							fingerQuat := getFixRotationForGrip(originalModel, originalVmdDeltas, bn)
 							if fingerQuat != nil {
 								bf := sizingMotion.BoneFrames.Get(bn).Get(frame)
 								bf.Rotation = fingerQuat
@@ -168,7 +168,7 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 	sizingSet.CompletedCleanGrip = true
 }
 
-func getFixRotation(
+func getFixRotationForGrip(
 	originalModel *pmx.PmxModel,
 	vmdDeltas *delta.VmdDeltas,
 	fingerBoneName string,
