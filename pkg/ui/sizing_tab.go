@@ -322,7 +322,12 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
 						// モーション未設定の場合、空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+					} else {
+						// モーション設定済みの場合、出力VMDを読み直す
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd =
+							toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
 					}
+
 					if toolState.SizingSets[toolState.CurrentIndex].OutputVmd == nil {
 						// モーション未設定の場合、サイジングモーフ付き空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")

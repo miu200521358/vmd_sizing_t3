@@ -6,6 +6,7 @@ import (
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
 	"github.com/miu200521358/mlib_go/pkg/domain/miter"
+	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
@@ -70,6 +71,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 				relativeBoneNames = append(relativeBoneNames, bone.Name())
 			}
 		}
+		relativeBoneNames = append(relativeBoneNames, pmx.MIDDLE1.StringFromDirection(direction))
 		frames := sizingMotion.BoneFrames.RegisteredFrames(relativeBoneNames)
 
 		allFrames[i] = frames
@@ -104,14 +106,14 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 		}
 	}
 
-	for i, direction := range []string{"左", "右"} {
-		var armIkBone *pmx.Bone
-		switch direction {
-		case "左":
-			armIkBone = armIkLeftBone
-		case "右":
-			armIkBone = armIkRightBone
-		}
+	for i := range []string{"左", "右"} {
+		// var armIkBone *pmx.Bone
+		// switch direction {
+		// case "左":
+		// 	armIkBone = armIkLeftBone
+		// case "右":
+		// 	armIkBone = armIkRightBone
+		// }
 
 		directionVmdDeltas := allVmdDeltas[i]
 
@@ -129,9 +131,26 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 				bf.Rotation = boneDelta.FilledFrameRotation()
 
 				if boneDelta.Bone.Name() == pmx.WRIST.Left() || boneDelta.Bone.Name() == pmx.WRIST.Right() {
-					// 手首の場合、IKターゲットとIKの角度を委譲
-					bf.Rotation = vmdDeltas.Bones.TotalBoneRotation(armIkBone.Ik.BoneIndex).Muled(
-						vmdDeltas.Bones.TotalBoneRotation(armIkBone.Index())).Muled(bf.Rotation)
+					// 手首の場合、現在の手首のベクトルから角度を求め直す
+					wristBone := boneDelta.Bone
+					wristTwistBone := originalModel.Bones.GetByName(
+						pmx.WRIST_TWIST.StringFromDirection(wristBone.Direction()))
+					middle1Bone := originalModel.Bones.GetByName(
+						pmx.MIDDLE1.StringFromDirection(boneDelta.Bone.Direction()))
+
+					if wristTwistBone == nil || middle1Bone == nil {
+						continue
+					}
+
+					// 手首に角度が入って無かった場合の手首先のグローバル位置
+					wristTwistGlobalMatrix := vmdDeltas.Bones.Get(wristTwistBone.Index()).FilledGlobalMatrix().Copy()
+					wristTwistGlobalMatrix = wristTwistGlobalMatrix.Muled(wristBone.Extend.RevertOffsetMatrix)
+
+					// 手首先のグローバル位置
+					wristTailGlobalPosition := vmdDeltas.Bones.Get(wristBone.Index()).FilledGlobalMatrix().MulVec3(mmath.MVec3UnitX)
+					wristLocalPosition := wristTwistGlobalMatrix.Inverted().MulVec3(wristTailGlobalPosition).Normalized()
+
+					bf.Rotation = mmath.NewMQuaternionRotate(mmath.MVec3UnitX, wristLocalPosition)
 				}
 
 				sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
@@ -204,13 +223,27 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 						// ボーンの位置がずれている場合、キーを追加
 						for _, b := range relativeArmBones {
 							bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
-							bf.Rotation = originalVmdDeltas.Bones.Get(b.Index()).FilledFrameRotation()
 
+							rot := originalVmdDeltas.Bones.Get(b.Index()).FilledFrameRotation()
 							if b.Name() == pmx.WRIST.Left() || b.Name() == pmx.WRIST.Right() {
 								// 手首の場合、IKターゲットとIKの角度を委譲
-								bf.Rotation = originalVmdDeltas.Bones.TotalBoneRotation(armIkBone.Ik.BoneIndex).Muled(
-									originalVmdDeltas.Bones.TotalBoneRotation(armIkBone.Index())).Muled(bf.Rotation)
+								for _, parentIndex := range b.Extend.ParentBoneIndexes {
+									parentBone := originalModel.Bones.Get(parentIndex)
+									// 自分より親の準標準までのボーンはスルー
+									if parentBone.IsStandard() {
+										continue
+									}
+									if parentBone.Position.NearEquals(b.Position, 1e-2) {
+										// ほぼ同じ位置にある場合、回転を加味
+										rot = rot.Muled(originalVmdDeltas.Bones.TotalBoneRotation(parentIndex))
+									}
+									// 腕系じゃなくなったら終了
+									if !parentBone.IsArm() {
+										break
+									}
+								}
 							}
+							bf.Rotation = rot
 
 							sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
 						}

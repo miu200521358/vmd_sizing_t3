@@ -47,7 +47,11 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 					bone := sizingModel.Bones.GetByName(boneName)
 					if bone != nil {
 						if _, ok := stanceQuats[bone.Index()]; ok {
-							sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(sizingBf.Rotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
+							sizingRotation := sizingBf.Rotation
+							if sizingRotation == nil {
+								sizingRotation = mmath.MQuaternionIdent
+							}
+							sizingBf.Rotation = stanceQuats[bone.Index()][0].Muled(sizingRotation.ToMat4()).Muled(stanceQuats[bone.Index()][1]).Quaternion()
 							sizingBfs.Update(sizingBf)
 						}
 					}
