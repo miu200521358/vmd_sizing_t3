@@ -86,29 +86,13 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 		directionVmdDeltas := allVmdDeltas[i]
 		for _, vmdDeltas := range directionVmdDeltas {
 			for _, fingerBoneName := range fingerBoneNames {
-				fingerBone := originalModel.Bones.GetByName(fingerBoneName)
-				boneDelta := vmdDeltas.Bones.Get(fingerBone.Index())
-				if boneDelta == nil {
-					continue
+				fingerQuat := getFixRotation(originalModel, vmdDeltas, fingerBoneName)
+				if fingerQuat != nil {
+					boneDelta := vmdDeltas.Bones.GetByName(fingerBoneName)
+					bf := sizingMotion.BoneFrames.Get(fingerBoneName).Get(boneDelta.Frame)
+					bf.Rotation = fingerQuat
+					sizingMotion.InsertRegisteredBoneFrame(fingerBoneName, bf)
 				}
-
-				var rot *mmath.MQuaternion
-				for _, parentIndex := range fingerBone.Extend.ParentBoneIndexes {
-					// 自分より親の準標準までのボーンに当たったら終了
-					if originalModel.Bones.Get(parentIndex).IsStandard() {
-						break
-					}
-					// 握り拡散の回転を加味していく
-					if rot == nil {
-						rot = vmdDeltas.Bones.TotalBoneRotation(parentIndex)
-					} else {
-						rot = rot.Muled(vmdDeltas.Bones.TotalBoneRotation(parentIndex))
-					}
-				}
-
-				bf := sizingMotion.BoneFrames.Get(fingerBone.Name()).Get(boneDelta.Frame)
-				bf.Rotation = rot
-				sizingMotion.InsertRegisteredBoneFrame(fingerBone.Name(), bf)
 			}
 		}
 	}
@@ -164,25 +148,12 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 					if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
 						// ボーンの位置がずれている場合、キーを追加
 						for _, bn := range fingerBoneNames {
-							b := originalModel.Bones.GetByName(bn)
-							bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
-
-							var rot *mmath.MQuaternion
-							for _, parentIndex := range b.Extend.ParentBoneIndexes {
-								// 自分より親の準標準までのボーンに当たったら終了
-								if originalModel.Bones.Get(parentIndex).IsStandard() {
-									break
-								}
-								// 握り拡散の回転を加味していく
-								if rot == nil {
-									rot = originalVmdDeltas.Bones.TotalBoneRotation(parentIndex)
-								} else {
-									rot = rot.Muled(originalVmdDeltas.Bones.TotalBoneRotation(parentIndex))
-								}
+							fingerQuat := getFixRotation(originalModel, originalVmdDeltas, bn)
+							if fingerQuat != nil {
+								bf := sizingMotion.BoneFrames.Get(bn).Get(frame)
+								bf.Rotation = fingerQuat
+								sizingMotion.InsertRegisteredBoneFrame(bn, bf)
 							}
-
-							bf.Rotation = rot
-							sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
 						}
 
 						break
@@ -195,6 +166,32 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 	}
 
 	sizingSet.CompletedCleanGrip = true
+}
+
+func getFixRotation(
+	originalModel *pmx.PmxModel,
+	vmdDeltas *delta.VmdDeltas,
+	fingerBoneName string,
+) *mmath.MQuaternion {
+	fingerBone := originalModel.Bones.GetByName(fingerBoneName)
+	boneDelta := vmdDeltas.Bones.Get(fingerBone.Index())
+	if boneDelta == nil {
+		return nil
+	}
+
+	var fingerConfigParentBone *pmx.Bone
+	for _, parentName := range fingerBone.Config().ParentBoneNames {
+		if originalModel.Bones.ContainsByName(parentName.StringFromDirection(fingerBone.Direction())) {
+			fingerConfigParentBone = originalModel.Bones.GetByName(parentName.StringFromDirection(fingerBone.Direction()))
+			break
+		}
+	}
+	if fingerConfigParentBone == nil {
+		return nil
+	}
+
+	parentDelta := vmdDeltas.Bones.Get(fingerConfigParentBone.Index())
+	return parentDelta.FilledGlobalMatrix().Inverted().Muled(boneDelta.FilledGlobalMatrix()).Quaternion()
 }
 
 func getGripBones(originalModel *pmx.PmxModel) []*pmx.Bone {

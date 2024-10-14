@@ -45,16 +45,16 @@ var all_finger_bone_names = []string{
 }
 
 var finger_direction_bone_names = [][]string{
-	{pmx.THUMB0.Left(), pmx.THUMB1.Left(), pmx.THUMB2.Left(),
-		pmx.INDEX1.Left(), pmx.INDEX2.Left(), pmx.INDEX3.Left(),
-		pmx.MIDDLE1.Left(), pmx.MIDDLE2.Left(), pmx.MIDDLE3.Left(),
-		pmx.RING1.Left(), pmx.RING2.Left(), pmx.RING3.Left(),
-		pmx.PINKY1.Left(), pmx.PINKY2.Left(), pmx.PINKY3.Left()},
-	{pmx.THUMB0.Right(), pmx.THUMB1.Right(), pmx.THUMB2.Right(),
-		pmx.INDEX1.Right(), pmx.INDEX2.Right(), pmx.INDEX3.Right(),
-		pmx.MIDDLE1.Right(), pmx.MIDDLE2.Right(), pmx.MIDDLE3.Right(),
-		pmx.RING1.Right(), pmx.RING2.Right(), pmx.RING3.Right(),
-		pmx.PINKY1.Right(), pmx.PINKY2.Right(), pmx.PINKY3.Right()},
+	{pmx.THUMB0.Left(), pmx.THUMB1.Left(), pmx.THUMB2.Left(), pmx.THUMB_TAIL.Left(),
+		pmx.INDEX1.Left(), pmx.INDEX2.Left(), pmx.INDEX3.Left(), pmx.INDEX_TAIL.Left(),
+		pmx.MIDDLE1.Left(), pmx.MIDDLE2.Left(), pmx.MIDDLE3.Left(), pmx.MIDDLE_TAIL.Left(),
+		pmx.RING1.Left(), pmx.RING2.Left(), pmx.RING3.Left(), pmx.RING_TAIL.Left(),
+		pmx.PINKY1.Left(), pmx.PINKY2.Left(), pmx.PINKY3.Left(), pmx.PINKY_TAIL.Left()},
+	{pmx.THUMB0.Right(), pmx.THUMB1.Right(), pmx.THUMB2.Right(), pmx.THUMB_TAIL.Right(),
+		pmx.INDEX1.Right(), pmx.INDEX2.Right(), pmx.INDEX3.Right(), pmx.INDEX_TAIL.Right(),
+		pmx.MIDDLE1.Right(), pmx.MIDDLE2.Right(), pmx.MIDDLE3.Right(), pmx.MIDDLE_TAIL.Right(),
+		pmx.RING1.Right(), pmx.RING2.Right(), pmx.RING3.Right(), pmx.RING_TAIL.Right(),
+		pmx.PINKY1.Right(), pmx.PINKY2.Right(), pmx.PINKY3.Right(), pmx.PINKY_TAIL.Right()},
 }
 
 func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
