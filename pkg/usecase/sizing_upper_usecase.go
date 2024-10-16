@@ -23,7 +23,7 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 	}
 
 	originalModel := sizingSet.OriginalPmx
-	originalMotion := sizingSet.OriginalVmd
+	// originalMotion := sizingSet.OriginalVmd
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
@@ -47,15 +47,21 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 	// sizingHeadBone := sizingModel.Bones.GetByName(pmx.HEAD.String())
 	// sizingHeadTailBone := sizingModel.Bones.GetByName(pmx.HEAD_TAIL.String())
 
-	// 足中心から首根元の間に上半身2がどの辺りに位置しているか
+	// 上半身根元から首根元の間に上半身2がどの辺りに位置しているか
 	originalUpperRatio := originalUpper2Bone.Position.Subed(originalUpperRootBone.Position).Length() / originalNeckRootBone.Position.Subed(originalUpperRootBone.Position).Length()
 	sizingUpperRatio := sizingUpper2Bone.Position.Subed(sizingUpperRootBone.Position).Length() / sizingNeckRootBone.Position.Subed(sizingUpperRootBone.Position).Length()
 	upperPositionRatio := sizingUpperRatio / originalUpperRatio
+	originalUpperDirection := originalUpper2Bone.Position.Subed(originalUpperRootBone.Position).Normalized()
+	sizingUpperDirection := sizingUpper2Bone.Position.Subed(sizingUpperRootBone.Position).Normalized()
+	sizingUpperSlopeMat := sizingUpperDirection.ToLocalMat().Muled(originalUpperDirection.ToLocalMat().Inverted())
 
 	// 足中心から首根元の間に上半身2がどの辺りに位置しているか
 	originalUpper2Ratio := originalNeckRootBone.Position.Subed(originalUpper2Bone.Position).Length() / originalNeckRootBone.Position.Subed(originalUpperRootBone.Position).Length()
 	sizingUpper2Ratio := sizingNeckRootBone.Position.Subed(sizingUpper2Bone.Position).Length() / sizingNeckRootBone.Position.Subed(sizingUpperRootBone.Position).Length()
 	upper2PositionRatio := sizingUpper2Ratio / originalUpper2Ratio
+	originalUpper2Direction := originalNeckRootBone.Position.Subed(originalUpper2Bone.Position).Normalized()
+	sizingUpper2Direction := sizingNeckRootBone.Position.Subed(sizingUpper2Bone.Position).Normalized()
+	sizingUpper2SlopeMat := sizingUpper2Direction.ToLocalMat().Muled(originalUpper2Direction.ToLocalMat().Inverted())
 
 	// 上半身全体のサイズ差
 	originalUpperLength := originalNeckRootBone.Position.Subed(originalUpperRootBone.Position).Length()
@@ -105,9 +111,9 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 	// 元モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
+		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	})
 
@@ -129,9 +135,10 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 
 		originalUpperLocalPosition := originalUpperRootDelta.FilledGlobalMatrix().Inverted().MulVec3(originalUpper2Delta.FilledGlobalPosition())
 		sizingUpperLocalPosition := originalUpperLocalPosition.MuledScalar(upperScale)
+		sizingUpperSlopeLocalPosition := sizingUpperSlopeMat.MulVec3(sizingUpperLocalPosition)
 
 		sizingUpperRootDelta := vmdDeltas.Bones.Get(sizingUpperRootBone.Index())
-		upper2FixGlobalPosition := sizingUpperRootDelta.FilledGlobalMatrix().MulVec3(sizingUpperLocalPosition)
+		upper2FixGlobalPosition := sizingUpperRootDelta.FilledGlobalMatrix().MulVec3(sizingUpperSlopeLocalPosition)
 
 		sizingUpperIkDeltas := deform.DeformIk(sizingModel, sizingMotion, frame, upperIkBone, upper2FixGlobalPosition)
 		sizingUpperRotations[index] = sizingUpperIkDeltas.Bones.Get(sizingUpperBone.Index()).FilledFrameRotation()
@@ -175,9 +182,10 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 
 		originalUpper2LocalPosition := originalUpper2Delta.FilledGlobalMatrix().Inverted().MulVec3(originalNeckRootDelta.FilledGlobalPosition())
 		sizingUpper2LocalPosition := originalUpper2LocalPosition.MuledScalar(upper2Scale)
+		sizingUpper2SlopeLocalPosition := sizingUpper2SlopeMat.MulVec3(sizingUpper2LocalPosition)
 
 		sizingUpper2Delta := vmdDeltas.Bones.Get(sizingUpper2Bone.Index())
-		neckRootFixGlobalPosition := sizingUpper2Delta.FilledGlobalMatrix().MulVec3(sizingUpper2LocalPosition)
+		neckRootFixGlobalPosition := sizingUpper2Delta.FilledGlobalMatrix().MulVec3(sizingUpper2SlopeLocalPosition)
 
 		sizingUpper2IkDeltas := deform.DeformIk(sizingModel, sizingMotion, frame, upper2IkBone, neckRootFixGlobalPosition)
 		sizingUpper2Rotations[index] = sizingUpper2IkDeltas.Bones.Get(sizingUpper2Bone.Index()).FilledFrameRotation()
