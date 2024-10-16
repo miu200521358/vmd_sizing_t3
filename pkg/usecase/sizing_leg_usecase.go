@@ -67,9 +67,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	// 元モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, leg_all_bone_names, false)
+		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, leg_all_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	})
 
