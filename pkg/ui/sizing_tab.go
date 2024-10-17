@@ -1430,7 +1430,7 @@ func setOutputPath(toolState *ToolState) {
 
 			suffix := ""
 			if toolState.SizingSets[i].IsSizingLeg {
-				suffix += "G"
+				suffix += "L"
 			}
 			// if toolState.SizingSets[i].IsSizingLower {
 			// 	suffix += "L"

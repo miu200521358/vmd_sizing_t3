@@ -3,8 +3,11 @@ package usecase
 import (
 	"fmt"
 
+	"github.com/miu200521358/mlib_go/pkg/domain/delta"
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
+	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
+	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
@@ -14,8 +17,8 @@ var trunk_upper_bone_names = []string{
 	pmx.TRUNK_ROOT.String(), pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
 	pmx.SHOULDER.Left(), pmx.SHOULDER.Right(), pmx.NECK.String()}
 var trunk_lower_bone_names = []string{
-	pmx.ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER_ROOT.String(),
-	pmx.LOWER.String(), pmx.LEG_CENTER.String()}
+	pmx.ROOT.String(), pmx.TRUNK_ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER_ROOT.String(),
+	pmx.LOWER.String(), pmx.LEG_CENTER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
 var leg_direction_bone_names = [][]string{
 	{pmx.LEG.Left(), pmx.KNEE.Left(), pmx.HEEL.Left(), pmx.ANKLE.Left(), pmx.TOE_T.Left(), pmx.TOE_P.Left(),
 		pmx.TOE_C.Left(), pmx.LEG_D.Left(), pmx.KNEE_D.Left(), pmx.HEEL_D.Left(), pmx.ANKLE_D.Left(),
@@ -133,4 +136,45 @@ func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
 	}
 
 	return scales
+}
+
+func deformIk(
+	index int,
+	frame float32,
+	sizingModel *pmx.PmxModel,
+	sizingMotion *vmd.VmdMotion,
+	originalAllDeltas []*delta.VmdDeltas,
+	sizingDeltas *delta.VmdDeltas,
+	originalSrcBone *pmx.Bone,
+	originalDstBone *pmx.Bone,
+	sizingSrcBone *pmx.Bone,
+	sizingDstBone *pmx.Bone,
+	sizingIkBone *pmx.Bone,
+	sizingSlopeMat *mmath.MMat4,
+	scale float64,
+) (dstIkDeltas *delta.VmdDeltas, diffSrcRotation *mmath.MQuaternion) {
+	// 元から見た先の相対位置を取得
+	originalSrcDelta := originalAllDeltas[index].Bones.Get(originalSrcBone.Index())
+	originalDstDelta := originalAllDeltas[index].Bones.Get(originalDstBone.Index())
+
+	// 元から見た先の相対位置をスケールに合わせる
+	originalSrcLocalPosition := originalSrcDelta.FilledGlobalMatrix().Inverted().MulVec3(originalDstDelta.FilledGlobalPosition())
+	sizingDstLocalPosition := originalSrcLocalPosition.MuledScalar(scale)
+	sizingDstSlopeLocalPosition := sizingSlopeMat.MulVec3(sizingDstLocalPosition)
+
+	// Fixさせた新しい先のグローバル位置を取得
+	sizingSrcDelta := sizingDeltas.Bones.Get(sizingSrcBone.Index())
+	sizingFixDstGlobalPosition := sizingSrcDelta.FilledGlobalMatrix().MulVec3(sizingDstSlopeLocalPosition)
+
+	// IK結果を返す
+	dstIkDeltas = deform.DeformIk(sizingModel, sizingMotion, sizingDeltas, frame, sizingIkBone,
+		sizingFixDstGlobalPosition, []string{sizingSrcBone.Name(), sizingDstBone.Name()})
+
+	originalSrcRotation := originalAllDeltas[index].Bones.Get(originalSrcBone.Index()).FilledFrameRotation()
+	sizingSrcRotation := dstIkDeltas.Bones.Get(sizingSrcBone.Index()).FilledFrameRotation()
+
+	// IK結果の回転差分
+	diffSrcRotation = sizingSrcRotation.Muled(originalSrcRotation.Inverted()).Inverted()
+
+	return dstIkDeltas, diffSrcRotation
 }

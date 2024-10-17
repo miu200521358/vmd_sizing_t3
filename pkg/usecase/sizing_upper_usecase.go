@@ -140,7 +140,7 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 		sizingUpperRootDelta := vmdDeltas.Bones.Get(sizingUpperRootBone.Index())
 		upper2FixGlobalPosition := sizingUpperRootDelta.FilledGlobalMatrix().MulVec3(sizingUpperSlopeLocalPosition)
 
-		sizingUpperIkDeltas := deform.DeformIk(sizingModel, sizingMotion, frame, upperIkBone, upper2FixGlobalPosition)
+		sizingUpperIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, upperIkBone, upper2FixGlobalPosition, []string{sizingUpperBone.Name()})
 		sizingUpperRotations[index] = sizingUpperIkDeltas.Bones.Get(sizingUpperBone.Index()).FilledFrameRotation()
 
 		originalUpperRotation := originalAllDeltas[index].Bones.Get(originalUpperBone.Index()).FilledFrameRotation()
@@ -187,7 +187,7 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 		sizingUpper2Delta := vmdDeltas.Bones.Get(sizingUpper2Bone.Index())
 		neckRootFixGlobalPosition := sizingUpper2Delta.FilledGlobalMatrix().MulVec3(sizingUpper2SlopeLocalPosition)
 
-		sizingUpper2IkDeltas := deform.DeformIk(sizingModel, sizingMotion, frame, upper2IkBone, neckRootFixGlobalPosition)
+		sizingUpper2IkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, upper2IkBone, neckRootFixGlobalPosition, []string{sizingUpper2Bone.Name()})
 		sizingUpper2Rotations[index] = sizingUpper2IkDeltas.Bones.Get(sizingUpper2Bone.Index()).FilledFrameRotation()
 
 		originalUpperRotation := originalAllDeltas[index].Bones.Get(originalUpperBone.Index()).FilledFrameRotation()
