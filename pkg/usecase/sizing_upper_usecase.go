@@ -53,7 +53,7 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 	upperPositionRatio := sizingUpperRatio / originalUpperRatio
 	originalUpperDirection := originalUpper2Bone.Position.Subed(originalUpperRootBone.Position).Normalized()
 	sizingUpperDirection := sizingUpper2Bone.Position.Subed(sizingUpperRootBone.Position).Normalized()
-	sizingUpperSlopeMat := sizingUpperDirection.ToLocalMat().Muled(originalUpperDirection.ToLocalMat().Inverted())
+	sizingUpperSlopeMat := mmath.NewMQuaternionRotate(originalUpperDirection, sizingUpperDirection).ToMat4()
 
 	// 足中心から首根元の間に上半身2がどの辺りに位置しているか
 	originalUpper2Ratio := originalNeckRootBone.Position.Subed(originalUpper2Bone.Position).Length() / originalNeckRootBone.Position.Subed(originalUpperRootBone.Position).Length()
@@ -61,7 +61,7 @@ func SizingUpper(sizingSet *domain.SizingSet) {
 	upper2PositionRatio := sizingUpper2Ratio / originalUpper2Ratio
 	originalUpper2Direction := originalNeckRootBone.Position.Subed(originalUpper2Bone.Position).Normalized()
 	sizingUpper2Direction := sizingNeckRootBone.Position.Subed(sizingUpper2Bone.Position).Normalized()
-	sizingUpper2SlopeMat := sizingUpper2Direction.ToLocalMat().Muled(originalUpper2Direction.ToLocalMat().Inverted())
+	sizingUpper2SlopeMat := mmath.NewMQuaternionRotate(originalUpper2Direction, sizingUpper2Direction).ToMat4()
 
 	// 上半身全体のサイズ差
 	originalUpperLength := originalNeckRootBone.Position.Subed(originalUpperRootBone.Position).Length()
