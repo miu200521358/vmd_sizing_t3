@@ -663,11 +663,13 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						OnCheckedChanged: func() {
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmStance =
 								toolState.SizingArmStanceCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
-								toolState.SizingArmStanceCheck.Checked()
 
-							toolState.CleanArmIkCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
+							if toolState.SizingArmStanceCheck.Checked() {
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
+									toolState.SizingArmStanceCheck.Checked()
+								toolState.CleanArmIkCheck.UpdateChecked(
+									toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
+							}
 
 							go execSizing(toolState)
 							// 出力パス設定
