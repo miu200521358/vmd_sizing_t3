@@ -924,13 +924,13 @@ func deformLegIk(
 	originalDstDelta := originalAllDeltas[index].Bones.Get(originalDstBone.Index())
 
 	// 元から見た先の相対位置をスケールに合わせる
-	originalSrcLocalPosition := originalDstDelta.FilledGlobalPosition().Subed(originalSrcDelta.FilledGlobalPosition())
-	sizingDstLocalPosition := originalSrcLocalPosition.MuledScalar(scale)
+	originalDstLocalPosition := originalSrcDelta.FilledGlobalMatrix().Inverted().MulVec3(originalDstDelta.FilledGlobalPosition())
+	sizingDstLocalPosition := originalDstLocalPosition.MuledScalar(scale)
 	sizingDstSlopeLocalPosition := sizingSlopeMat.MulVec3(sizingDstLocalPosition)
 
 	// Fixさせた新しい先のグローバル位置を取得
 	sizingSrcDelta := sizingDeltas.Bones.Get(sizingSrcBone.Index())
-	sizingFixDstGlobalPosition = sizingSrcDelta.FilledGlobalPosition().Added(sizingDstSlopeLocalPosition)
+	sizingFixDstGlobalPosition = sizingSrcDelta.FilledGlobalMatrix().MulVec3(sizingDstSlopeLocalPosition)
 
 	// IK結果を返す
 	dstIkDeltas = deform.DeformIk(sizingModel, sizingMotion, sizingDeltas, frame, sizingIkBone,
