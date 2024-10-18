@@ -15,7 +15,7 @@ import (
 
 var trunk_upper_bone_names = []string{
 	pmx.TRUNK_ROOT.String(), pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
-	pmx.SHOULDER.Left(), pmx.SHOULDER.Right(), pmx.NECK.String()}
+	pmx.SHOULDER.Left(), pmx.SHOULDER.Right(), pmx.NECK.String(), pmx.HEAD.String()}
 var trunk_lower_bone_names = []string{
 	pmx.ROOT.String(), pmx.TRUNK_ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.LOWER_ROOT.String(),
 	pmx.LOWER.String(), pmx.LEG_CENTER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
@@ -30,7 +30,7 @@ var leg_direction_bone_names = [][]string{
 		pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Right(), pmx.TOE_IK.Right()},
 }
 var leg_all_direction_bone_names = append(leg_direction_bone_names[0], leg_direction_bone_names[1]...)
-var leg_all_bone_names = append(trunk_lower_bone_names, leg_all_direction_bone_names...)
+var all_lower_leg_bone_names = append(trunk_lower_bone_names, leg_all_direction_bone_names...)
 
 var all_arm_bone_names = []string{
 	pmx.ARM.Left(), pmx.ELBOW.Left(), pmx.WRIST.Left(), pmx.ARM.Right(), pmx.ELBOW.Right(), pmx.WRIST.Right()}
@@ -46,6 +46,11 @@ var all_finger_bone_names = []string{
 	pmx.RING1.Right(), pmx.RING2.Right(), pmx.RING3.Right(),
 	pmx.PINKY1.Right(), pmx.PINKY2.Right(), pmx.PINKY3.Right(),
 }
+
+var all_upper_arm_bone_names = append(all_arm_bone_names, trunk_upper_bone_names...)
+
+// 四肢ボーン名（つま先とか指先は入っていない）
+var all_limb_bone_names = append(all_lower_leg_bone_names, all_upper_arm_bone_names...)
 
 var finger_direction_bone_names = [][]string{
 	{pmx.THUMB0.Left(), pmx.THUMB1.Left(), pmx.THUMB2.Left(), pmx.THUMB_TAIL.Left(),
