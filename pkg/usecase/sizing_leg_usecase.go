@@ -46,7 +46,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	// originalLeftHeelBone := originalModel.Bones.GetByName(pmx.HEEL.Left())
 	// originalLeftToeIkBone := originalModel.Bones.GetByName(pmx.TOE_IK.Left())
 	// originalLeftToeBone := originalModel.Bones.GetIkTarget(pmx.TOE_IK.Left())
-	originalLeftToeTailBone := originalModel.Bones.GetByName(pmx.TOE_T.Left())
+	// originalLeftToeTailBone := originalModel.Bones.GetByName(pmx.TOE_T.Left())
 
 	// originalRightLegIkBone := originalModel.Bones.GetByName(pmx.LEG_IK.Right())
 	originalRightLegBone := originalModel.Bones.GetByName(pmx.LEG.Right())
@@ -55,7 +55,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	// originalRightHeelBone := originalModel.Bones.GetByName(pmx.HEEL.Right())
 	// originalRightToeIkBone := originalModel.Bones.GetByName(pmx.TOE_IK.Right())
 	// originalRightToeBone := originalModel.Bones.GetIkTarget(pmx.TOE_IK.Right())
-	originalRightToeTailBone := originalModel.Bones.GetByName(pmx.TOE_T.Right())
+	// originalRightToeTailBone := originalModel.Bones.GetByName(pmx.TOE_T.Right())
 
 	// ------------
 
@@ -74,7 +74,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	// sizingLeftHeelBone := sizingModel.Bones.GetByName(pmx.HEEL.Left())
 	sizingLeftToeIkBone := sizingModel.Bones.GetByName(pmx.TOE_IK.Left())
 	sizingLeftToeBone := sizingModel.Bones.GetIkTarget(pmx.TOE_IK.Left())
-	sizingLeftToeTailBone := sizingModel.Bones.GetByName(pmx.TOE_T.Left())
+	// sizingLeftToeTailBone := sizingModel.Bones.GetByName(pmx.TOE_T.Left())
 
 	// sizingRightLegIkParentBone := sizingModel.Bones.GetByName(pmx.LEG_IK_PARENT.Right())
 	sizingRightLegIkBone := sizingModel.Bones.GetByName(pmx.LEG_IK.Right())
@@ -84,7 +84,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	// sizingRightHeelBone := sizingModel.Bones.GetByName(pmx.HEEL.Right())
 	sizingRightToeIkBone := sizingModel.Bones.GetByName(pmx.TOE_IK.Right())
 	sizingRightToeBone := sizingModel.Bones.GetIkTarget(pmx.TOE_IK.Right())
-	sizingRightToeTailBone := sizingModel.Bones.GetByName(pmx.TOE_T.Right())
+	// sizingRightToeTailBone := sizingModel.Bones.GetByName(pmx.TOE_T.Right())
 
 	// 下半身IK
 	lowerIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingLowerBone.Name()))
@@ -119,16 +119,16 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	leftKneeIkBone.Ik.Links[0] = pmx.NewIkLink()
 	leftKneeIkBone.Ik.Links[0].BoneIndex = sizingLeftKneeBone.Index()
 
-	// 左足首IK
-	leftAnkleIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingLeftAnkleBone.Name()))
-	leftAnkleIkBone.Position = sizingLeftToeTailBone.Position
-	leftAnkleIkBone.Ik = pmx.NewIk()
-	leftAnkleIkBone.Ik.BoneIndex = sizingLeftToeTailBone.Index()
-	leftAnkleIkBone.Ik.LoopCount = 10
-	leftAnkleIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 180, Y: 0, Z: 0})
-	leftAnkleIkBone.Ik.Links = make([]*pmx.IkLink, 1)
-	leftAnkleIkBone.Ik.Links[0] = pmx.NewIkLink()
-	leftAnkleIkBone.Ik.Links[0].BoneIndex = sizingLeftAnkleBone.Index()
+	// // 左足首IK
+	// leftAnkleIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingLeftAnkleBone.Name()))
+	// leftAnkleIkBone.Position = sizingLeftToeTailBone.Position
+	// leftAnkleIkBone.Ik = pmx.NewIk()
+	// leftAnkleIkBone.Ik.BoneIndex = sizingLeftToeTailBone.Index()
+	// leftAnkleIkBone.Ik.LoopCount = 10
+	// leftAnkleIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 180, Y: 0, Z: 0})
+	// leftAnkleIkBone.Ik.Links = make([]*pmx.IkLink, 1)
+	// leftAnkleIkBone.Ik.Links[0] = pmx.NewIkLink()
+	// leftAnkleIkBone.Ik.Links[0].BoneIndex = sizingLeftAnkleBone.Index()
 
 	// 右足IK
 	rightLegIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingRightLegBone.Name()))
@@ -152,16 +152,16 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	rightKneeIkBone.Ik.Links[0] = pmx.NewIkLink()
 	rightKneeIkBone.Ik.Links[0].BoneIndex = sizingRightKneeBone.Index()
 
-	// 右足首IK
-	rightAnkleIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingRightAnkleBone.Name()))
-	rightAnkleIkBone.Position = sizingRightToeTailBone.Position
-	rightAnkleIkBone.Ik = pmx.NewIk()
-	rightAnkleIkBone.Ik.BoneIndex = sizingRightToeTailBone.Index()
-	rightAnkleIkBone.Ik.LoopCount = 10
-	rightAnkleIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 180, Y: 0, Z: 0})
-	rightAnkleIkBone.Ik.Links = make([]*pmx.IkLink, 1)
-	rightAnkleIkBone.Ik.Links[0] = pmx.NewIkLink()
-	rightAnkleIkBone.Ik.Links[0].BoneIndex = sizingRightAnkleBone.Index()
+	// // 右足首IK
+	// rightAnkleIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingRightAnkleBone.Name()))
+	// rightAnkleIkBone.Position = sizingRightToeTailBone.Position
+	// rightAnkleIkBone.Ik = pmx.NewIk()
+	// rightAnkleIkBone.Ik.BoneIndex = sizingRightToeTailBone.Index()
+	// rightAnkleIkBone.Ik.LoopCount = 10
+	// rightAnkleIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 180, Y: 0, Z: 0})
+	// rightAnkleIkBone.Ik.Links = make([]*pmx.IkLink, 1)
+	// rightAnkleIkBone.Ik.Links[0] = pmx.NewIkLink()
+	// rightAnkleIkBone.Ik.Links[0].BoneIndex = sizingRightAnkleBone.Index()
 
 	// // 下半身の傾き度合いの補正
 	// originalLowerDirection := originalLegCenterBone.Position.Subed(originalLowerRootBone.Position).Normalized()
@@ -183,10 +183,10 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	sizingKneeRatio := sizingLeftKneeBone.Position.Y / sizingLowerRootBone.Position.Y
 	kneePositionRatio := sizingKneeRatio / originalKneeRatio
 
-	// 下半身根元から地面の間に足首がどの辺りに位置しているか
-	originalAnkleRatio := originalLeftAnkleBone.Position.Y / originalLowerRootBone.Position.Y
-	sizingAnkleRatio := sizingLeftAnkleBone.Position.Y / sizingLowerRootBone.Position.Y
-	anklePositionRatio := sizingAnkleRatio / originalAnkleRatio
+	// // 下半身根元から地面の間に足首がどの辺りに位置しているか
+	// originalAnkleRatio := originalLeftAnkleBone.Position.Y / originalLowerRootBone.Position.Y
+	// sizingAnkleRatio := sizingLeftAnkleBone.Position.Y / sizingLowerRootBone.Position.Y
+	// anklePositionRatio := sizingAnkleRatio / originalAnkleRatio
 
 	originalLeftLegDirection := originalLeftLegBone.Position.Subed(originalLeftKneeBone.Position).Normalized()
 	sizingLeftLegDirection := sizingLeftLegBone.Position.Subed(sizingLeftKneeBone.Position).Normalized()
@@ -196,9 +196,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	sizingLeftKneeDirection := sizingLeftKneeBone.Position.Subed(sizingLeftAnkleBone.Position).Normalized()
 	sizingLeftKneeSlopeMat := mmath.NewMQuaternionRotate(originalLeftKneeDirection, sizingLeftKneeDirection).ToMat4()
 
-	originalLeftAnkleDirection := originalLeftAnkleBone.Position.Subed(originalLeftToeTailBone.Position).Normalized()
-	sizingLeftAnkleDirection := sizingLeftAnkleBone.Position.Subed(sizingLeftToeTailBone.Position).Normalized()
-	sizingLeftAnkleSlopeMat := mmath.NewMQuaternionRotate(originalLeftAnkleDirection, sizingLeftAnkleDirection).ToMat4()
+	// originalLeftAnkleDirection := originalLeftAnkleBone.Position.Subed(originalLeftToeTailBone.Position).Normalized()
+	// sizingLeftAnkleDirection := sizingLeftAnkleBone.Position.Subed(sizingLeftToeTailBone.Position).Normalized()
+	// sizingLeftAnkleSlopeMat := mmath.NewMQuaternionRotate(originalLeftAnkleDirection, sizingLeftAnkleDirection).ToMat4()
 
 	originalRightLegDirection := originalRightLegBone.Position.Subed(originalRightKneeBone.Position).Normalized()
 	sizingRightLegDirection := sizingRightLegBone.Position.Subed(sizingRightKneeBone.Position).Normalized()
@@ -208,9 +208,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	sizingRightKneeDirection := sizingRightKneeBone.Position.Subed(sizingRightAnkleBone.Position).Normalized()
 	sizingRightKneeSlopeMat := mmath.NewMQuaternionRotate(originalRightKneeDirection, sizingRightKneeDirection).ToMat4()
 
-	originalRightAnkleDirection := originalRightAnkleBone.Position.Subed(originalRightToeTailBone.Position).Normalized()
-	sizingRightAnkleDirection := sizingRightAnkleBone.Position.Subed(sizingRightToeTailBone.Position).Normalized()
-	sizingRightAnkleSlopeMat := mmath.NewMQuaternionRotate(originalRightAnkleDirection, sizingRightAnkleDirection).ToMat4()
+	// originalRightAnkleDirection := originalRightAnkleBone.Position.Subed(originalRightToeTailBone.Position).Normalized()
+	// sizingRightAnkleDirection := sizingRightAnkleBone.Position.Subed(sizingRightToeTailBone.Position).Normalized()
+	// sizingRightAnkleSlopeMat := mmath.NewMQuaternionRotate(originalRightAnkleDirection, sizingRightAnkleDirection).ToMat4()
 
 	// 下半身全体のサイズ差
 	originalLowerLength := originalLowerRootBone.Position.Length()
@@ -232,10 +232,10 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	sizingKneeVector := sizingLeftKneeBone.Position.Subed(sizingLeftAnkleBone.Position).Round(1e-2)
 	kneeScale := sizingKneeVector.Length() / originalKneeVector.Length() * kneePositionRatio * lowerTotalRatio
 
-	// 足首スケール
-	originalAnkleVector := originalLeftAnkleBone.Position.Subed(originalLeftToeTailBone.Position).Round(1e-2)
-	sizingAnkleVector := sizingLeftAnkleBone.Position.Subed(sizingLeftToeTailBone.Position).Round(1e-2)
-	ankleScale := sizingAnkleVector.Length() / originalAnkleVector.Length() * anklePositionRatio * lowerTotalRatio
+	// // 足首スケール
+	// originalAnkleVector := originalLeftAnkleBone.Position.Subed(originalLeftToeTailBone.Position).Round(1e-2)
+	// sizingAnkleVector := sizingLeftAnkleBone.Position.Subed(sizingLeftToeTailBone.Position).Round(1e-2)
+	// ankleScale := sizingAnkleVector.Length() / originalAnkleVector.Length() * anklePositionRatio * lowerTotalRatio
 
 	mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
@@ -427,6 +427,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	sizingRightKneeIkAllDeltas := make([]*delta.VmdDeltas, len(frames))
 	sizingLeftAnkleFixGlobalPositions := make([]*mmath.MVec3, len(frames))
 	sizingRightAnkleFixGlobalPositions := make([]*mmath.MVec3, len(frames))
+	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
+	rightLegIkPositions := make([]*mmath.MVec3, len(frames))
 
 	// 先モデルの足デフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
@@ -455,6 +457,13 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 
 		originalRightAnkleRotation := originalAllDeltas[index].Bones.Get(originalRightAnkleBone.Index()).FilledFrameRotation()
 		sizingRightAnkleRotations[index] = originalRightAnkleRotation.Muled(diffRightKneeRotation)
+
+		leftAnkleDelta := sizingLeftKneeIkAllDeltas[index].Bones.GetByName(pmx.ANKLE.Left())
+		rightAnkleDelta := sizingRightKneeIkAllDeltas[index].Bones.GetByName(pmx.ANKLE.Right())
+
+		// 足IKから見た足首の位置
+		leftLegIkPositions[index] = leftAnkleDelta.FilledGlobalPosition().Subed(sizingLeftLegIkBone.Position)
+		rightLegIkPositions[index] = rightAnkleDelta.FilledGlobalPosition().Subed(sizingRightLegIkBone.Position)
 	})
 
 	// 補正を登録
@@ -476,59 +485,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 		rightAnkleBf := sizingMotion.BoneFrames.Get(sizingRightAnkleBone.Name()).Get(frame)
 		rightAnkleBf.Rotation = sizingRightAnkleRotations[i]
 		sizingMotion.InsertRegisteredBoneFrame(sizingRightAnkleBone.Name(), rightAnkleBf)
-	}
-
-	if mlog.IsVerbose() {
-		title := "足補正04_ひざ補正"
-		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
-		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-		mlog.V("%s: %s", title, outputPath)
-	}
-
-	mlog.I(mi18n.T("足補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", legScale)}))
-
-	sizingLeftAnkleIkAllDeltas := make([]*delta.VmdDeltas, len(frames))
-	sizingRightAnkleIkAllDeltas := make([]*delta.VmdDeltas, len(frames))
-	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
-	rightLegIkPositions := make([]*mmath.MVec3, len(frames))
-
-	// 先モデルの足デフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
-		frame := float32(data)
-
-		// 左足首から見た左つま先の相対位置を取得
-		sizingLeftAnkleIkAllDeltas[index], _, _ = deformLegIk(index, frame, sizingModel, sizingMotion,
-			originalAllDeltas, sizingLeftKneeIkAllDeltas[index], originalLeftAnkleBone, originalLeftToeTailBone,
-			sizingLeftAnkleBone, sizingLeftToeTailBone, leftAnkleIkBone, sizingLeftAnkleSlopeMat, ankleScale)
-
-		sizingLeftAnkleRotations[index] = sizingLeftAnkleIkAllDeltas[index].Bones.Get(sizingLeftAnkleBone.Index()).FilledFrameRotation()
-
-		// 右足首から見た右つま先の相対位置を取得
-		sizingRightAnkleIkAllDeltas[index], _, _ = deformLegIk(index, frame, sizingModel, sizingMotion,
-			originalAllDeltas, sizingRightLegIkAllDeltas[index], originalRightAnkleBone, originalRightToeTailBone,
-			sizingRightAnkleBone, sizingRightToeTailBone, rightAnkleIkBone, sizingRightAnkleSlopeMat, ankleScale)
-
-		sizingRightAnkleRotations[index] = sizingRightAnkleIkAllDeltas[index].Bones.Get(sizingRightAnkleBone.Index()).FilledFrameRotation()
-
-		leftAnkleDelta := sizingLeftAnkleIkAllDeltas[index].Bones.GetByName(pmx.ANKLE.Left())
-		rightAnkleDelta := sizingRightAnkleIkAllDeltas[index].Bones.GetByName(pmx.ANKLE.Right())
-
-		// 足IKから見た足首の位置
-		leftLegIkPositions[index] = leftAnkleDelta.FilledGlobalPosition().Subed(sizingLeftLegIkBone.Position)
-		rightLegIkPositions[index] = rightAnkleDelta.FilledGlobalPosition().Subed(sizingRightLegIkBone.Position)
-	})
-
-	// 補正を登録
-	for i, iFrame := range frames {
-		frame := float32(iFrame)
-
-		leftAnkleBf := sizingMotion.BoneFrames.Get(sizingLeftAnkleBone.Name()).Get(frame)
-		leftAnkleBf.Rotation = sizingLeftAnkleRotations[i]
-		sizingMotion.InsertRegisteredBoneFrame(sizingLeftAnkleBone.Name(), leftAnkleBf)
-
-		rightAnkleBf := sizingMotion.BoneFrames.Get(sizingRightAnkleBone.Name()).Get(frame)
-		rightAnkleBf.Rotation = sizingRightAnkleRotations[i]
-		sizingMotion.InsertRegisteredBoneFrame(sizingRightAnkleBone.Name(), rightAnkleBf)
 
 		rightLegIkBf := sizingMotion.BoneFrames.Get(sizingRightLegIkBone.Name()).Get(frame)
 		rightLegIkBf.Position = rightLegIkPositions[i]
@@ -538,6 +494,50 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 		leftLegIkBf.Position = leftLegIkPositions[i]
 		sizingMotion.InsertRegisteredBoneFrame(sizingLeftLegIkBone.Name(), leftLegIkBf)
 	}
+
+	if mlog.IsVerbose() {
+		title := "足補正04_ひざ補正"
+		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
+		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
+		mlog.V("%s: %s", title, outputPath)
+	}
+
+	// mlog.I(mi18n.T("足補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", legScale)}))
+
+	// sizingLeftAnkleIkAllDeltas := make([]*delta.VmdDeltas, len(frames))
+	// sizingRightAnkleIkAllDeltas := make([]*delta.VmdDeltas, len(frames))
+
+	// // 先モデルの足デフォーム(IK ON)
+	// miter.IterParallelByList(frames, 500, func(data, index int) {
+	// 	frame := float32(data)
+
+	// 	// 左足首から見た左つま先の相対位置を取得
+	// 	sizingLeftAnkleIkAllDeltas[index], _, _ = deformLegIk(index, frame, sizingModel, sizingMotion,
+	// 		originalAllDeltas, sizingLeftKneeIkAllDeltas[index], originalLeftAnkleBone, originalLeftToeTailBone,
+	// 		sizingLeftAnkleBone, sizingLeftToeTailBone, leftAnkleIkBone, sizingLeftAnkleSlopeMat, ankleScale)
+
+	// 	sizingLeftAnkleRotations[index] = sizingLeftAnkleIkAllDeltas[index].Bones.Get(sizingLeftAnkleBone.Index()).FilledFrameRotation()
+
+	// 	// 右足首から見た右つま先の相対位置を取得
+	// 	sizingRightAnkleIkAllDeltas[index], _, _ = deformLegIk(index, frame, sizingModel, sizingMotion,
+	// 		originalAllDeltas, sizingRightLegIkAllDeltas[index], originalRightAnkleBone, originalRightToeTailBone,
+	// 		sizingRightAnkleBone, sizingRightToeTailBone, rightAnkleIkBone, sizingRightAnkleSlopeMat, ankleScale)
+
+	// 	sizingRightAnkleRotations[index] = sizingRightAnkleIkAllDeltas[index].Bones.Get(sizingRightAnkleBone.Index()).FilledFrameRotation()
+	// })
+
+	// // 補正を登録
+	// for i, iFrame := range frames {
+	// 	frame := float32(iFrame)
+
+	// 	leftAnkleBf := sizingMotion.BoneFrames.Get(sizingLeftAnkleBone.Name()).Get(frame)
+	// 	leftAnkleBf.Rotation = sizingLeftAnkleRotations[i]
+	// 	sizingMotion.InsertRegisteredBoneFrame(sizingLeftAnkleBone.Name(), leftAnkleBf)
+
+	// 	rightAnkleBf := sizingMotion.BoneFrames.Get(sizingRightAnkleBone.Name()).Get(frame)
+	// 	rightAnkleBf.Rotation = sizingRightAnkleRotations[i]
+	// 	sizingMotion.InsertRegisteredBoneFrame(sizingRightAnkleBone.Name(), rightAnkleBf)
+	// }
 
 	if mlog.IsVerbose() {
 		title := "足補正05_足首補正"
@@ -643,10 +643,10 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 			sizingCenterTargetDelta = armVmdDeltas.Bones.GetByName(centerTargetBone.Name())
 		} else if centerTargetBone.Direction() == "左" {
 			// 左足系
-			sizingCenterTargetDelta = sizingLeftAnkleIkAllDeltas[index].Bones.GetByName(centerTargetBone.Name())
+			sizingCenterTargetDelta = sizingLeftKneeIkAllDeltas[index].Bones.GetByName(centerTargetBone.Name())
 		} else {
 			// 下半身か右足系
-			sizingCenterTargetDelta = sizingRightAnkleIkAllDeltas[index].Bones.GetByName(centerTargetBone.Name())
+			sizingCenterTargetDelta = sizingRightKneeIkAllDeltas[index].Bones.GetByName(centerTargetBone.Name())
 		}
 
 		originalCenterTargetY := originalCenterTargetDelta.FilledGlobalPosition().Y

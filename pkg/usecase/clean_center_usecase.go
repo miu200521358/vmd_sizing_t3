@@ -40,6 +40,8 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	upperBone := originalModel.Bones.GetByName(pmx.UPPER.String())
 	lowerBone := originalModel.Bones.GetByName(pmx.LOWER.String())
 	// 腰がある場合、腰キャンセルが効いてるので、足も登録する
+	waistCancelLeftBone := originalModel.Bones.GetByName(pmx.WAIST_CANCEL.Left())
+	waistCancelRightBone := originalModel.Bones.GetByName(pmx.WAIST_CANCEL.Right())
 	legLeftBone := originalModel.Bones.GetByName(pmx.LEG.Left())
 	legRightBone := originalModel.Bones.GetByName(pmx.LEG.Right())
 
@@ -58,20 +60,23 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	// 元モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
-		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
-		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, centerRelativeBoneNames, false)
+		ikOnVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+		ikOnVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
+		ikOnVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, ikOnVmdDeltas, true, frame, centerRelativeBoneNames, false)
 
-		upperLocalPosition := vmdDeltas.Bones.Get(upperBone.Index()).FilledGlobalPosition().Subed(upperBone.Position)
+		ikOffVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+		ikOffVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
+		ikOffVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, ikOffVmdDeltas, false, frame, centerRelativeBoneNames, false)
+
+		upperLocalPosition := ikOnVmdDeltas.Bones.Get(upperBone.Index()).FilledGlobalPosition().Subed(upperBone.Position)
 		centerPositions[index] = &mmath.MVec3{X: upperLocalPosition.X, Y: 0, Z: upperLocalPosition.Z}
 		groovePositions[index] = &mmath.MVec3{X: 0, Y: upperLocalPosition.Y, Z: 0}
-		upperRotations[index] = vmdDeltas.Bones.Get(upperBone.Index()).FilledGlobalBoneRotation()
-		lowerRotations[index] = vmdDeltas.Bones.Get(lowerBone.Index()).FilledGlobalBoneRotation()
+		upperRotations[index] = ikOffVmdDeltas.Bones.Get(upperBone.Index()).FilledGlobalBoneRotation()
+		lowerRotations[index] = ikOffVmdDeltas.Bones.Get(lowerBone.Index()).FilledGlobalBoneRotation()
 		if isContainsActiveWaist {
-			waistMat := vmdDeltas.Bones.GetByName(pmx.WAIST.String()).FilledGlobalMatrix()
 			// 足は腰がある場合のみ
-			legLeftRotations[index] = waistMat.Inverted().Muled(vmdDeltas.Bones.Get(legLeftBone.Index()).FilledGlobalMatrix()).Quaternion()
-			legRightRotations[index] = waistMat.Inverted().Muled(vmdDeltas.Bones.Get(legRightBone.Index()).FilledGlobalMatrix()).Quaternion()
+			legLeftRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelLeftBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legLeftBone.Index()).FilledFrameRotation())
+			legRightRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelRightBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legRightBone.Index()).FilledFrameRotation())
 		}
 	})
 
