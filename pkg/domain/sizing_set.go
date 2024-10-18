@@ -103,4 +103,17 @@ func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.CompletedSizingShoulder = false
 	sizingSet.CompletedSizingArmStance = false
 	sizingSet.CompletedSizingFingerStance = false
+
+	sizingSet.IsCleanRoot = false
+	sizingSet.IsCleanCenter = false
+	sizingSet.IsCleanLegIkParent = false
+	sizingSet.IsCleanArmIk = false
+	sizingSet.IsCleanGrip = false
+
+	sizingSet.CompletedCleanRoot = false
+	sizingSet.CompletedCleanCenter = false
+	sizingSet.CompletedCleanLegIkParent = false
+	sizingSet.CompletedCleanWaist = false
+	sizingSet.CompletedCleanArmIk = false
+	sizingSet.CompletedCleanGrip = false
 }
