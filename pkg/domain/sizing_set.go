@@ -90,15 +90,16 @@ func NewSizingSet(index int) *SizingSet {
 
 func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.IsSizingCleanAll = false
+	sizingSet.IsSizingAll = false
+	sizingSet.IsCleanAll = false
+
 	sizingSet.IsSizingLeg = false
-	// sizingSet.IsSizingLower = false
 	sizingSet.IsSizingUpper = false
 	sizingSet.IsSizingShoulder = false
 	sizingSet.IsSizingArmStance = false
 	sizingSet.IsSizingFingerStance = false
 
 	sizingSet.CompletedSizingLeg = false
-	// sizingSet.CompletedSizingLower = false
 	sizingSet.CompletedSizingUpper = false
 	sizingSet.CompletedSizingShoulder = false
 	sizingSet.CompletedSizingArmStance = false

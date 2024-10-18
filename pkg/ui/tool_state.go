@@ -253,17 +253,12 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 }
 
 func (toolState *ToolState) ResetSizingParameter() {
-	toolState.SizingCleanAllCheck.SetChecked(false)
 	if len(toolState.SizingSets) == 0 {
 		toolState.SizingLegCheck.SetChecked(false)
 	} else {
 		toolState.SizingLegCheck.SetChecked(toolState.SizingSets[0].IsSizingLeg)
 	}
-	// toolState.SizingLowerCheck.SetChecked(false)
-	toolState.SizingUpperCheck.SetChecked(false)
-	toolState.SizingShoulderCheck.SetChecked(false)
-	toolState.SizingArmStanceCheck.SetChecked(false)
-	toolState.SizingFingerStanceCheck.SetChecked(false)
+	toolState.ResetSizingCheck()
 }
 
 func (toolState *ToolState) ResetOriginalPmxParameter() {
@@ -378,15 +373,16 @@ func (toolState *ToolState) ResetSizingCheck() {
 	toolState.SizingSets[toolState.CurrentIndex].ResetSizingFlag()
 
 	toolState.SizingCleanAllCheck.UpdateChecked(false)
+	toolState.SizingAllCheck.UpdateChecked(false)
+	toolState.CleanAllCheck.UpdateChecked(false)
+
 	toolState.SizingLegCheck.UpdateChecked(false)
-	// toolState.SizingLowerCheck.UpdateChecked(false)
 	toolState.SizingUpperCheck.UpdateChecked(false)
 	toolState.SizingShoulderCheck.UpdateChecked(false)
 	toolState.SizingArmStanceCheck.UpdateChecked(false)
 	toolState.SizingArmStanceCheck.UpdateChecked(false)
 	toolState.SizingFingerStanceCheck.UpdateChecked(false)
 
-	toolState.CleanAllCheck.UpdateChecked(false)
 	toolState.CleanRootCheck.UpdateChecked(false)
 	toolState.CleanCenterCheck.UpdateChecked(false)
 	toolState.CleanLegIkParentCheck.UpdateChecked(false)
