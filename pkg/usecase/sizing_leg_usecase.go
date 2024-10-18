@@ -755,29 +755,29 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 		originalLeftAnklePosition := originalAllDeltas[i].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition()
 		originalRightAnklePosition := originalAllDeltas[i].Bones.GetByName(pmx.ANKLE.Right()).FilledGlobalPosition()
 
-		if i > 0 {
-			originalLeftAnklePrevPosition := originalAllDeltas[i-1].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition()
-			originalRightAnklePrevPosition := originalAllDeltas[i-1].Bones.GetByName(pmx.ANKLE.Right()).FilledGlobalPosition()
+		if i < len(frames)-1 {
+			originalLeftAnkleNextPosition := originalAllDeltas[i+1].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition()
+			originalRightAnkleNextPosition := originalAllDeltas[i+1].Bones.GetByName(pmx.ANKLE.Right()).FilledGlobalPosition()
 
 			// 前と同じ位置なら同じ位置にする
-			if mmath.NearEquals(originalRightAnklePrevPosition.X, originalRightAnklePosition.X, 1e-2) {
-				rightLegIkPositions[i].X = rightLegIkPositions[i-1].X
+			if mmath.NearEquals(originalRightAnkleNextPosition.X, originalRightAnklePosition.X, 1e-2) {
+				rightLegIkPositions[i].X = rightLegIkPositions[i+1].X
 			}
-			if mmath.NearEquals(originalRightAnklePrevPosition.Y, originalRightAnklePosition.Y, 1e-2) {
-				rightLegIkPositions[i].Y = rightLegIkPositions[i-1].Y
+			if mmath.NearEquals(originalRightAnkleNextPosition.Y, originalRightAnklePosition.Y, 1e-2) {
+				rightLegIkPositions[i].Y = rightLegIkPositions[i+1].Y
 			}
-			if mmath.NearEquals(originalRightAnklePrevPosition.Z, originalRightAnklePosition.Z, 1e-2) {
-				rightLegIkPositions[i].Z = rightLegIkPositions[i-1].Z
+			if mmath.NearEquals(originalRightAnkleNextPosition.Z, originalRightAnklePosition.Z, 1e-2) {
+				rightLegIkPositions[i].Z = rightLegIkPositions[i+1].Z
 			}
 
-			if mmath.NearEquals(originalLeftAnklePrevPosition.X, originalLeftAnklePosition.X, 1e-2) {
-				leftLegIkPositions[i].X = leftLegIkPositions[i-1].X
+			if mmath.NearEquals(originalLeftAnkleNextPosition.X, originalLeftAnklePosition.X, 1e-2) {
+				leftLegIkPositions[i].X = leftLegIkPositions[i+1].X
 			}
-			if mmath.NearEquals(originalLeftAnklePrevPosition.Y, originalLeftAnklePosition.Y, 1e-2) {
-				leftLegIkPositions[i].Y = leftLegIkPositions[i-1].Y
+			if mmath.NearEquals(originalLeftAnkleNextPosition.Y, originalLeftAnklePosition.Y, 1e-2) {
+				leftLegIkPositions[i].Y = leftLegIkPositions[i+1].Y
 			}
-			if mmath.NearEquals(originalLeftAnklePrevPosition.Z, originalLeftAnklePosition.Z, 1e-2) {
-				leftLegIkPositions[i].Z = leftLegIkPositions[i-1].Z
+			if mmath.NearEquals(originalLeftAnkleNextPosition.Z, originalLeftAnklePosition.Z, 1e-2) {
+				leftLegIkPositions[i].Z = leftLegIkPositions[i+1].Z
 			}
 		}
 
