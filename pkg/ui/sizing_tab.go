@@ -150,17 +150,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 					toolState.ResetSizingCheck(false)
 
-					isAdd := false
 					if toolState.SizingPmxPicker.Exists() {
-						for _, boneName := range toolState.SizingSets[toolState.CurrentIndex].SizingAddedBoneNames {
-							if toolState.SizingSets[toolState.CurrentIndex].OutputVmd.BoneFrames.Contains(boneName) && toolState.SizingSets[toolState.CurrentIndex].SizingPmx.Bones.GetByName(boneName).IsStandard() {
-								isAdd = true
-								break
-							}
-						}
-					}
-
-					if toolState.SizingPmxPicker.Exists() && (isAdd || mlog.IsVerbose()) {
 						// 出力モデル
 						sizingModel := toolState.SizingSets[toolState.CurrentIndex].SizingPmx
 						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
@@ -296,31 +286,26 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					if toolState.OriginalVmdPicker.Exists() {
 						for _, boneName := range addBoneNames {
 							nowSizingSet := toolState.SizingSets[toolState.CurrentIndex]
-							if nowSizingSet.OriginalVmd.BoneFrames.Contains(boneName) &&
-								nowSizingSet.OriginalVmd.BoneFrames.Get(boneName).Len() > 1 {
+							if nowSizingSet.OriginalVmd.BoneFrames.ContainsActive(boneName) {
 								isAdd = true
 								break
 							}
 						}
 					}
 
-					if isAdd || mlog.IsVerbose() {
+					if isAdd {
 						mlog.I(mi18n.T("不足ボーンあり", map[string]interface{}{
 							"No":           toolState.SizingSets[toolState.CurrentIndex].Index + 1,
 							"addBoneNames": mutils.JoinSlice(addBoneNames)}))
-
-						// 出力モデル
-						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
-							mutils.CreateOutputPath(path, "sizing")
-
-						toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
-					} else {
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = nil
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath = ""
-						toolState.OutputPmxPicker.SetPath("")
 					}
+
+					// 出力モデル
+					sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
+					toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
+					toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
+						mutils.CreateOutputPath(path, "sizing")
+
+					toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
 
 					if !toolState.OriginalVmdPicker.Exists() {
 						// モーション未設定の場合、空モーションを定義する
@@ -1273,12 +1258,27 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		player.SetOnTriggerPlay(func(playing bool) { toolState.onPlay(playing) })
 		controlWindow.SetPlayer(player)
 
-		toolState.SizingTabSaveButton, err = walk.NewPushButton(playerComposite)
+		walk.NewVSeparator(toolState.SizingTab)
+
+		saveComposite, err := walk.NewComposite(toolState.SizingTab)
 		if err != nil {
 			widget.RaiseError(err)
 		}
-		toolState.SizingTabSaveButton.SetText(mi18n.T("サイジング結果保存"))
-		toolState.SizingTabSaveButton.Clicked().Attach(toolState.onClickSizingTabSave)
+		saveComposite.SetLayout(walk.NewHBoxLayout())
+
+		toolState.SizingTabMotionSaveButton, err = walk.NewPushButton(saveComposite)
+		if err != nil {
+			widget.RaiseError(err)
+		}
+		toolState.SizingTabMotionSaveButton.SetText(mi18n.T("モーション保存"))
+		toolState.SizingTabMotionSaveButton.Clicked().Attach(toolState.onClickSizingTabMotionSave)
+
+		toolState.SizingTabModelSaveButton, err = walk.NewPushButton(saveComposite)
+		if err != nil {
+			widget.RaiseError(err)
+		}
+		toolState.SizingTabModelSaveButton.SetText(mi18n.T("モデル保存"))
+		toolState.SizingTabModelSaveButton.Clicked().Attach(toolState.onClickSizingTabModelSave)
 	}
 }
 
