@@ -13,6 +13,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/usecase"
 	"github.com/miu200521358/walk/pkg/walk"
 )
 
@@ -319,6 +320,9 @@ func (toolState *ToolState) SetSizingCheckEnabled(enabled bool) {
 	toolState.CleanLegIkParentCheck.SetEnabled(enabled)
 	toolState.CleanArmIkCheck.SetEnabled(enabled)
 	toolState.CleanGripCheck.SetEnabled(enabled)
+
+	toolState.SizingTabMotionSaveButton.SetEnabled(enabled)
+	toolState.SizingTabModelSaveButton.SetEnabled(enabled)
 }
 
 // 素体モデルの編集パラメーターの有効/無効を設定
@@ -386,12 +390,24 @@ func (toolState *ToolState) onClickSizingTabMotionSave() {
 func (toolState *ToolState) onClickSizingTabModelSave() {
 	for i, sizingSet := range toolState.SizingSets {
 		rep := repository.NewPmxRepository()
-		if err := rep.Save(sizingSet.OutputPmxPath, sizingSet.OutputPmx, true); err != nil {
+		if data, err := rep.Load(sizingSet.SizingPmxPath); err != nil {
 			mlog.ET(mi18n.T("出力失敗"), mi18n.T("先モデル出力失敗メッセージ",
 				map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
 		} else {
-			mlog.IT(mi18n.T("出力成功"), mi18n.T("先モデル出力成功メッセージ",
-				map[string]interface{}{"Index": i + 1, "Path": sizingSet.OutputPmxPath}))
+			// 出力モデルを作り直して保存
+			model := data.(*pmx.PmxModel)
+			if outputModel, err := usecase.CreateOutputModel(model); err != nil {
+				mlog.ET(mi18n.T("出力失敗"), mi18n.T("先モデル出力失敗メッセージ",
+					map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
+			} else {
+				if err := rep.Save(sizingSet.OutputPmxPath, outputModel, true); err != nil {
+					mlog.ET(mi18n.T("出力失敗"), mi18n.T("先モデル出力失敗メッセージ",
+						map[string]interface{}{"Index": i + 1, "Error": err.Error()}))
+				} else {
+					mlog.IT(mi18n.T("出力成功"), mi18n.T("先モデル出力成功メッセージ",
+						map[string]interface{}{"Index": i + 1, "Path": sizingSet.OutputPmxPath}))
+				}
+			}
 		}
 	}
 

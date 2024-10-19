@@ -32,7 +32,7 @@ func TestUsecase_LoadOriginalPmxByJson(t *testing.T) {
 
 		rep := repository.NewPmxRepository()
 
-		addNonExistBones(model, jsonModel, true)
+		addNonExistBones(model, jsonModel, true, true)
 		rep.Save("C:/MMD/vmd_sizing_t3/test_resources/sizing_model_debug_add.pmx", jsonModel, true)
 	}
 
@@ -108,7 +108,7 @@ func TestUsecase_AdjustPmxForSizing(t *testing.T) {
 	originalModel := data.(*pmx.PmxModel)
 
 	{
-		model, _, err := AdjustPmxForSizing(originalModel)
+		model, _, err := AdjustPmxForSizing(originalModel, true)
 		if err != nil {
 			t.Errorf("Expected error to be nil, got %q", err)
 		}

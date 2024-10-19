@@ -150,21 +150,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
 					toolState.ResetSizingCheck(false)
 
-					if toolState.SizingPmxPicker.Exists() {
-						// 出力モデル
-						sizingModel := toolState.SizingSets[toolState.CurrentIndex].SizingPmx
-						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
-							mutils.CreateOutputPath(path, "sizing")
-
-						toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
-					} else {
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmx = nil
-						toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath = ""
-						toolState.OutputPmxPicker.SetPath("")
-					}
-
 					controlWindow.UpdateMaxFrame(motion.MaxFrame())
 					go execSizing(toolState)
 				} else {
@@ -209,7 +194,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							toolState.SetOriginalPmxParameterEnabled(true)
 						}
 					} else {
-						originalModel, _, err := usecase.AdjustPmxForSizing(model)
+						originalModel, _, err := usecase.AdjustPmxForSizing(model, true)
 						if err != nil {
 							mlog.E(mi18n.T("素体読み込み失敗"), err)
 							return
@@ -268,7 +253,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					}
 
 					model := data.(*pmx.PmxModel)
-					sizingModel, addBoneNames, err := usecase.AdjustPmxForSizing(model)
+					sizingModel, addBoneNames, err := usecase.AdjustPmxForSizing(model, true)
 					if err != nil {
 						mlog.E(mi18n.T("素体読み込み失敗"), err)
 						return
