@@ -83,6 +83,8 @@ func newJsonSaveTab(controlWindow *controller.ControlWindow, toolState *ToolStat
 		} else {
 			mlog.E(mi18n.T("読み込み失敗"), err)
 		}
+
+		widget.Beep()
 	})
 
 }

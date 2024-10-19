@@ -301,6 +301,7 @@ func (toolState *ToolState) SetEnabled(enabled bool) {
 }
 
 func (toolState *ToolState) SetSizingCheckEnabled(enabled bool) {
+	toolState.AdoptSizingCheck.SetEnabled(enabled)
 
 	toolState.SizingCleanAllCheck.SetEnabled(enabled)
 	toolState.SizingAllCheck.SetEnabled(enabled)

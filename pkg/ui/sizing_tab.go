@@ -151,7 +151,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.ResetSizingCheck(false)
 
 					isAdd := false
-					if toolState.SizingSets[toolState.CurrentIndex].SizingPmx != nil {
+					if toolState.SizingPmxPicker.Exists() {
 						for _, boneName := range toolState.SizingSets[toolState.CurrentIndex].SizingAddedBoneNames {
 							if toolState.SizingSets[toolState.CurrentIndex].OutputVmd.BoneFrames.Contains(boneName) && toolState.SizingSets[toolState.CurrentIndex].SizingPmx.Bones.GetByName(boneName).IsStandard() {
 								isAdd = true
@@ -160,7 +160,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						}
 					}
 
-					if toolState.SizingSets[toolState.CurrentIndex].SizingPmx != nil && (isAdd || mlog.IsVerbose()) {
+					if toolState.SizingPmxPicker.Exists() && (isAdd || mlog.IsVerbose()) {
 						// 出力モデル
 						sizingModel := toolState.SizingSets[toolState.CurrentIndex].SizingPmx
 						sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
@@ -238,13 +238,16 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = model.Name()
 					toolState.ResetSizingCheck(false)
 
-					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
+					if !toolState.OriginalVmdPicker.Exists() {
 						// モーション未設定の場合、空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
-					}
-					if toolState.SizingSets[toolState.CurrentIndex].OutputVmd == nil {
-						// モーション未設定の場合、サイジングモーフ付き空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
+					} else {
+						// モーション設定済みの場合、出力VMDを読み直す
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd =
+							toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd =
+							toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
 					}
 
 					// 出力パス設定
@@ -290,7 +293,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					toolState.ResetSizingCheck(false)
 
 					isAdd := false
-					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd != nil {
+					if toolState.OriginalVmdPicker.Exists() {
 						for _, boneName := range addBoneNames {
 							nowSizingSet := toolState.SizingSets[toolState.CurrentIndex]
 							if nowSizingSet.OriginalVmd.BoneFrames.Contains(boneName) &&
@@ -319,18 +322,16 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						toolState.OutputPmxPicker.SetPath("")
 					}
 
-					if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd == nil {
+					if !toolState.OriginalVmdPicker.Exists() {
 						// モーション未設定の場合、空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
 					} else {
 						// モーション設定済みの場合、出力VMDを読み直す
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd =
+							toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd =
 							toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-					}
-
-					if toolState.SizingSets[toolState.CurrentIndex].OutputVmd == nil {
-						// モーション未設定の場合、サイジングモーフ付き空モーションを定義する
-						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
 					}
 
 					// 出力パス設定
