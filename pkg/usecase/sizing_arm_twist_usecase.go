@@ -67,7 +67,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 		armTwistIkBone.Ik.Links[0].BoneIndex = sizingArmTwistBone.Index()
 		armTwistIkBones[i] = armTwistIkBone
 
-		// 腕捩IK
+		// 手捩IK
 		wristTwistIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingWristTwistBone.Name()))
 		wristTwistIkBone.Position = sizingWristTailBone.Position
 		wristTwistIkBone.Ik = pmx.NewIk()
@@ -84,7 +84,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 		wristIkBone.Position = sizingWristTailBone.Position
 		wristIkBone.Ik = pmx.NewIk()
 		wristIkBone.Ik.BoneIndex = sizingWristTailBone.Index()
-		wristIkBone.Ik.LoopCount = 100
+		wristIkBone.Ik.LoopCount = 10
 		wristIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 180, Y: 0, Z: 0})
 		wristIkBone.Ik.Links = make([]*pmx.IkLink, 1)
 		wristIkBone.Ik.Links[0] = pmx.NewIkLink()
