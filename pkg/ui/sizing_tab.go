@@ -734,22 +734,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						Text:        mi18n.T("足IK親最適化"),
 						ToolTipText: mi18n.T("足IK親最適化説明"),
 					},
-					// 肩P最適化
-					declarative.CheckBox{
-						AssignTo: &toolState.CleanShoulderPCheck,
-						OnCheckedChanged: func() {
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
-								toolState.CleanShoulderPCheck.Checked()
-
-							go execSizing(toolState)
-							// 出力パス設定
-							setOutputPath(toolState)
-						},
-						MinSize:     declarative.Size{Width: 150, Height: 20},
-						MaxSize:     declarative.Size{Width: 150, Height: 20},
-						Text:        mi18n.T("肩P最適化"),
-						ToolTipText: mi18n.T("肩P最適化説明"),
-					},
 					// 腕IK最適化
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanArmIkCheck,
@@ -765,6 +749,22 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("腕IK最適化"),
 						ToolTipText: mi18n.T("腕IK最適化説明"),
+					},
+					// 肩P最適化
+					declarative.CheckBox{
+						AssignTo: &toolState.CleanShoulderPCheck,
+						OnCheckedChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
+								toolState.CleanShoulderPCheck.Checked()
+
+							go execSizing(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("肩P最適化"),
+						ToolTipText: mi18n.T("肩P最適化説明"),
 					},
 					// 握り最適化
 					declarative.CheckBox{
@@ -1368,7 +1368,7 @@ func execSizing(toolState *ToolState) {
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.CleanShoulderP(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanArmIk(sizingSet, len(toolState.SizingSets)); err != nil {
 					errorChan <- err
 					return
 				} else {
@@ -1376,7 +1376,7 @@ func execSizing(toolState *ToolState) {
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.CleanArmIk(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanShoulderP(sizingSet, len(toolState.SizingSets)); err != nil {
 					errorChan <- err
 					return
 				} else {

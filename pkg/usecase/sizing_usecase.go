@@ -65,10 +65,14 @@ var all_finger_bone_names = []string{
 	pmx.PINKY1.Right(), pmx.PINKY2.Right(), pmx.PINKY3.Right(),
 }
 
-// var all_upper_arm_bone_names = append(all_arm_bone_names, trunk_upper_bone_names...)
+// 重心計算対象ボーン名（つま先とか指先は入っていない）
+var gravity_bone_names = []string{
+	pmx.HEAD.String(), pmx.NECK_ROOT.String(), pmx.ARM.Left(), pmx.ARM.Right(), pmx.ELBOW.Left(), pmx.ELBOW.Right(),
+	pmx.WRIST.Left(), pmx.WRIST.Right(), pmx.UPPER_ROOT.String(), pmx.LOWER_ROOT.String(), pmx.LEG_CENTER.String(),
+	pmx.LEG_D.Left(), pmx.LEG_D.Right(), pmx.KNEE_D.Left(), pmx.KNEE_D.Right(), pmx.HEEL_D.Left(), pmx.HEEL_D.Right(),
+}
 
-// // 四肢ボーン名（つま先とか指先は入っていない）
-// var all_limb_bone_names = append(all_lower_leg_bone_names, all_upper_arm_bone_names...)
+var all_gravity_lower_leg_bone_names = append(all_lower_leg_bone_names, gravity_bone_names...)
 
 var finger_direction_bone_names = [][]string{
 	{pmx.THUMB0.Left(), pmx.THUMB1.Left(), pmx.THUMB2.Left(), pmx.THUMB_TAIL.Left(),
@@ -131,9 +135,9 @@ func GenerateSizingScales(sizingSets []*domain.SizingSet) []*mmath.MVec3 {
 						originalModel.Bones.GetByName(pmx.ANKLE.Left()).Position))
 			// 足の長さ比率(Y)
 			legHeightRatio := sizingModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
-				sizingModel.Bones.GetByName(pmx.LEG_IK.Left()).Position) /
+				sizingModel.Bones.GetByName(pmx.ANKLE.Left()).Position) /
 				originalModel.Bones.GetByName(pmx.LEG.Left()).Position.Distance(
-					originalModel.Bones.GetByName(pmx.LEG_IK.Left()).Position)
+					originalModel.Bones.GetByName(pmx.ANKLE.Left()).Position)
 
 			scales[i] = &mmath.MVec3{X: legLengthRatio, Y: legHeightRatio, Z: legLengthRatio}
 			meanXZScale += legLengthRatio
