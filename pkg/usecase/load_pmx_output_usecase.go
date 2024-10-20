@@ -132,7 +132,7 @@ func addAdjustBones(model *pmx.PmxModel) {
 			adjustBone.LocalAxisZ = bone.LocalAxisZ.Copy()
 		}
 
-		afterIndex := -1
+		afterIndex := model.Bones.GetByName(pmx.ROOT.String()).Index()
 		adjustBone.ParentIndex = 0
 		for _, parentIndex := range bone.Extend.ParentBoneIndexes {
 			// 親ボーンが存在する場合、該当親ボーンの調整ボーンを親とする
