@@ -34,14 +34,10 @@ var all_lower_leg_bone_names = append(trunk_lower_bone_names, leg_all_direction_
 
 var shoulder_direction_bone_names = [][]string{
 	{
-		pmx.ROOT.String(), pmx.TRUNK_ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.WAIST.String(),
-		pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
-		pmx.SHOULDER.Left(), pmx.ARM.Left(),
+		pmx.NECK_ROOT.String(), pmx.SHOULDER_P.Left(), pmx.SHOULDER.Left(), pmx.ARM.Left(),
 	},
 	{
-		pmx.ROOT.String(), pmx.TRUNK_ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.WAIST.String(),
-		pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
-		pmx.SHOULDER.Right(), pmx.ARM.Right(),
+		pmx.NECK_ROOT.String(), pmx.SHOULDER_P.Right(), pmx.SHOULDER.Right(), pmx.ARM.Right(),
 	},
 }
 
