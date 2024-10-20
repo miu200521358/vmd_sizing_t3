@@ -101,6 +101,7 @@ func SizingUpper(sizingSet *domain.SizingSet) bool {
 	upper2IkBone.Ik.Links[0].BoneIndex = sizingUpper2Bone.Index()
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(trunk_upper_bone_names)
+	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
 		return false
@@ -113,7 +114,7 @@ func SizingUpper(sizingSet *domain.SizingSet) bool {
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
@@ -131,7 +132,7 @@ func SizingUpper(sizingSet *domain.SizingSet) bool {
 	mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScale)}))
 
 	// 先モデルの上半身デフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -187,7 +188,7 @@ func SizingUpper(sizingSet *domain.SizingSet) bool {
 	mlog.I(mi18n.T("上半身補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upper2Scale)}))
 
 	// 先モデルの上半身2デフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)

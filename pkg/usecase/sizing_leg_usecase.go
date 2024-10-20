@@ -244,13 +244,14 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(all_lower_leg_bone_names)
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
+	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
 		return false
 	}
 
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
@@ -340,7 +341,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	// mlog.I(mi18n.T("足補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", lowerScale)}))
 
 	// // 先モデルの足デフォーム(IK ON)
-	// miter.IterParallelByList(frames, 500, func(data, index int) {
+	// miter.IterParallelByList(frames, blockSize, func(data, index int) {
 	// 	frame := float32(data)
 	// 	vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 	// 	vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -392,7 +393,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	// sizingRightLegIkAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	// // 先モデルの足デフォーム(IK ON)
-	// miter.IterParallelByList(frames, 500, func(data, index int) {
+	// miter.IterParallelByList(frames, blockSize, func(data, index int) {
 	// 	frame := float32(data)
 	// 	vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 	// 	vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -459,7 +460,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	// rightLegIkPositions := make([]*mmath.MVec3, len(frames))
 
 	// // 先モデルの足デフォーム(IK ON)
-	// miter.IterParallelByList(frames, 500, func(data, index int) {
+	// miter.IterParallelByList(frames, blockSize, func(data, index int) {
 	// 	frame := float32(data)
 
 	// 	// 左ひざから見た左足首の相対位置を取得
@@ -536,7 +537,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	// sizingRightAnkleIkAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	// // 先モデルの足デフォーム(IK ON)
-	// miter.IterParallelByList(frames, 500, func(data, index int) {
+	// miter.IterParallelByList(frames, blockSize, func(data, index int) {
 	// 	frame := float32(data)
 
 	// 	// 左足首から見た左つま先の相対位置を取得
@@ -580,7 +581,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	// sizingRightFkAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	// // 足IK再計算
-	// miter.IterParallelByList(frames, 500, func(data, index int) {
+	// miter.IterParallelByList(frames, blockSize, func(data, index int) {
 	// 	frame := float32(data)
 
 	// 	sizingLeftFkAllDeltas[index] = deform.DeformIk(
@@ -626,7 +627,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	}
 
 	// 先モデルのデフォーム
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -701,7 +702,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	rightLegIkRotations := make([]*mmath.MQuaternion, len(frames))
 
 	// 先モデルのデフォーム(IK OFF+センター補正済み)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -815,7 +816,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 
 	// 足IK再計算
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())

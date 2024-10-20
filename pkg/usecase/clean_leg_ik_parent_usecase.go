@@ -38,6 +38,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 		pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Left(), pmx.LEG_IK.Right()}
 	legIkBoneNames := []string{pmx.LEG_IK.Left(), pmx.LEG_IK.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(legIkRelativeBoneNames)
+	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
 		return false
@@ -51,7 +52,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 	mlog.I(mi18n.T("足IK親最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 元モデルのデフォーム(IK OFF)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -100,7 +101,6 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
-	var wg sync.WaitGroup
 
 	for i, endFrame := range frames {
 		if i == 0 {
@@ -112,8 +112,10 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 			continue
 		}
 
-		miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
+		miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
 			frame := float32(startFrame + index + 1)
+
+			var wg sync.WaitGroup
 
 			wg.Add(2)
 			var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas

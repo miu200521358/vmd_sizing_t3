@@ -102,6 +102,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 	sizingWristRotations := make([][]*mmath.MQuaternion, 2)
 
 	allFrames := make([][]int, 2)
+	allBlockSizes := make([]int, 2)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -115,6 +116,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 
 			frames := sizingMotion.BoneFrames.RegisteredFrames(arm_direction_bone_names[i])
 			allFrames[i] = frames
+			allBlockSizes[i] = miter.GetBlockSize(len(frames))
 
 			mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
@@ -127,7 +129,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingWristRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -192,7 +194,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingAllDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -219,7 +221,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				elbowGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingElbowBone.Index()).FilledGlobalPosition()
@@ -268,7 +270,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingArmTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				wristGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristBone.Index()).FilledGlobalPosition()
@@ -317,7 +319,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingWristTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				wristTailGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
@@ -367,7 +369,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingWristRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				wristTailGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()

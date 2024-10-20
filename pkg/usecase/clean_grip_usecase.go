@@ -48,6 +48,7 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 
 	allFrames := make([][]int, 2)
 	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
+	allBlockSizes := make([]int, 2)
 
 	for i, direction := range directions {
 		mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
@@ -61,12 +62,13 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 		}
 
 		frames := sizingMotion.BoneFrames.RegisteredFrames(fingerBoneNames)
+		allBlockSizes[i] = miter.GetBlockSize(len(frames))
 
 		allFrames[i] = frames
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 
 		// 元モデルのデフォーム(IK ON)
-		miter.IterParallelByList(frames, 500, func(data, index int) {
+		miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -103,8 +105,6 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 	for i, direction := range directions {
 		mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
-		var wg sync.WaitGroup
-
 		frames := allFrames[i]
 		fingerBoneNames := finger_direction_bone_names[i]
 
@@ -118,8 +118,10 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 				continue
 			}
 
-			miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
+			miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
 				frame := float32(startFrame + index + 1)
+
+				var wg sync.WaitGroup
 
 				wg.Add(2)
 				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas

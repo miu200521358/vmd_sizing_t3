@@ -45,6 +45,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 	allFrames := make([][]int, 2)
 	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
 	allRelativeBoneNames := make([][]string, 2)
+	allBlockSizes := make([]int, 2)
 
 	for i, direction := range directions {
 		var armIkBone *pmx.Bone
@@ -73,13 +74,14 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 		}
 		relativeBoneNames = append(relativeBoneNames, pmx.MIDDLE1.StringFromDirection(direction))
 		frames := sizingMotion.BoneFrames.RegisteredFrames(relativeBoneNames)
+		allBlockSizes[i] = miter.GetBlockSize(len(frames))
 
 		allFrames[i] = frames
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 		allRelativeBoneNames[i] = relativeBoneNames
 
 		// 元モデルのデフォーム(IK ON)
-		miter.IterParallelByList(frames, 500, func(data, index int) {
+		miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -143,8 +145,6 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 
 		mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
 
-		var wg sync.WaitGroup
-
 		frames := allFrames[i]
 		relativeBoneNames := allRelativeBoneNames[i]
 		relativeArmBones := make([]*pmx.Bone, 0)
@@ -164,8 +164,10 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 				continue
 			}
 
-			miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
+			miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
 				frame := float32(startFrame + index + 1)
+
+				var wg sync.WaitGroup
 
 				wg.Add(2)
 				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas

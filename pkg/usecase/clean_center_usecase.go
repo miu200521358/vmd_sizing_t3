@@ -48,6 +48,7 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.WAIST.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.LOWER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(centerRelativeBoneNames)
+	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
 		return false
@@ -63,7 +64,7 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 	mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, 500, func(data, index int) {
+	miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		ikOnVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		ikOnVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -137,7 +138,7 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 			continue
 		}
 
-		miter.IterParallelByCount(endFrame-startFrame-1, 500, func(index int) {
+		miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
 			frame := float32(startFrame + index + 1)
 
 			wg.Add(2)

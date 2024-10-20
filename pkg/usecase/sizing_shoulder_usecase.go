@@ -62,6 +62,7 @@ func SizingShoulder(sizingSet *domain.SizingSet) bool {
 	sizingShoulderRotations := make([][]*mmath.MQuaternion, 2)
 	sizingArmRotations := make([][]*mmath.MQuaternion, 2)
 	allFrames := make([][]int, 2)
+	allBlockSizes := make([]int, 2)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -78,13 +79,14 @@ func SizingShoulder(sizingSet *domain.SizingSet) bool {
 
 			frames := sizingMotion.BoneFrames.RegisteredFrames(shoulder_direction_bone_names[i])
 			allFrames[i] = frames
+			allBlockSizes[i] = miter.GetBlockSize(len(frames))
 
 			mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
 			originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
@@ -99,7 +101,7 @@ func SizingShoulder(sizingSet *domain.SizingSet) bool {
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの上半身デフォーム(IK ON)
-			miter.IterParallelByList(frames, 500, func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
