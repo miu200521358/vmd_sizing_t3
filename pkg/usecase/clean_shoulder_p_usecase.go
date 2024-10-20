@@ -96,7 +96,6 @@ func CleanShoulderP(sizingSet *domain.SizingSet) bool {
 		shoulderRootBone := originalModel.Bones.GetByName(pmx.SHOULDER_ROOT.StringFromDirection(direction))
 		shoulderBone := originalModel.Bones.GetByName(pmx.SHOULDER.StringFromDirection(direction))
 		armBone := originalModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
-		elbowBone := originalModel.Bones.GetByName(pmx.ELBOW.StringFromDirection(direction))
 
 		shoulderBfs := sizingMotion.BoneFrames.Get(shoulderBone.Name())
 		armBfs := sizingMotion.BoneFrames.Get(armBone.Name())
@@ -133,8 +132,8 @@ func CleanShoulderP(sizingSet *domain.SizingSet) bool {
 
 				wg.Wait()
 
-				originalDelta := originalVmdDeltas.Bones.Get(elbowBone.Index())
-				cleanDelta := cleanVmdDeltas.Bones.Get(elbowBone.Index())
+				originalDelta := originalVmdDeltas.Bones.Get(armBone.Index())
+				cleanDelta := cleanVmdDeltas.Bones.Get(armBone.Index())
 
 				if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
 					shoulderRootDelta := originalVmdDeltas.Bones.Get(shoulderRootBone.Index())
