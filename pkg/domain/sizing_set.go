@@ -34,6 +34,7 @@ type SizingSet struct {
 	IsSizingShoulder     bool
 	IsSizingArmStance    bool
 	IsSizingFingerStance bool
+	IsSizingArmTwist     bool
 
 	IsCleanRoot        bool
 	IsCleanCenter      bool
@@ -47,6 +48,7 @@ type SizingSet struct {
 	CompletedSizingShoulder     bool
 	CompletedSizingArmStance    bool
 	CompletedSizingFingerStance bool
+	CompletedSizingArmTwist     bool
 
 	CompletedCleanRoot        bool
 	CompletedCleanCenter      bool
@@ -98,12 +100,14 @@ func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.IsSizingShoulder = false
 	sizingSet.IsSizingArmStance = false
 	sizingSet.IsSizingFingerStance = false
+	sizingSet.IsSizingArmTwist = false
 
 	sizingSet.CompletedSizingLeg = false
 	sizingSet.CompletedSizingUpper = false
 	sizingSet.CompletedSizingShoulder = false
 	sizingSet.CompletedSizingArmStance = false
 	sizingSet.CompletedSizingFingerStance = false
+	sizingSet.CompletedSizingArmTwist = false
 
 	sizingSet.IsCleanRoot = false
 	sizingSet.IsCleanCenter = false

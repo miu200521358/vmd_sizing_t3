@@ -45,6 +45,15 @@ var shoulder_direction_bone_names = [][]string{
 	},
 }
 
+var arm_direction_bone_names = [][]string{
+	{
+		pmx.ARM.Left(), pmx.ARM_TWIST.Left(), pmx.ELBOW.Left(), pmx.WRIST_TWIST.Left(), pmx.WRIST.Left(), pmx.WRIST_TAIL.Left(),
+	},
+	{
+		pmx.ARM.Right(), pmx.ARM_TWIST.Right(), pmx.ELBOW.Right(), pmx.WRIST_TWIST.Right(), pmx.WRIST.Right(), pmx.WRIST_TAIL.Right(),
+	},
+}
+
 var all_arm_bone_names = []string{
 	pmx.ARM.Left(), pmx.ELBOW.Left(), pmx.WRIST.Left(), pmx.ARM.Right(), pmx.ELBOW.Right(), pmx.WRIST.Right()}
 var all_finger_bone_names = []string{
