@@ -2,12 +2,15 @@ package usecase
 
 import (
 	"fmt"
+	"math"
+	"runtime/debug"
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
 	"github.com/miu200521358/mlib_go/pkg/domain/miter"
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
+	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
 	"github.com/miu200521358/mlib_go/pkg/mutils"
@@ -31,7 +34,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	armIkBones := make([]*pmx.Bone, 2)
 	armTwistIkBones := make([]*pmx.Bone, 2)
 	wristTwistIkBones := make([]*pmx.Bone, 2)
-	wristIkBones := make([]*pmx.Bone, 2)
+	// wristIkBones := make([]*pmx.Bone, 2)
 
 	mlog.I(mi18n.T("捩り補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
@@ -79,26 +82,23 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		wristTwistIkBone.Ik.Links[0].BoneIndex = sizingWristTwistBone.Index()
 		wristTwistIkBones[i] = wristTwistIkBone
 
-		// 手首IK
-		wristIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingWristBone.Name()))
-		wristIkBone.Position = sizingWristTailBone.Position
-		wristIkBone.Ik = pmx.NewIk()
-		wristIkBone.Ik.BoneIndex = sizingWristTailBone.Index()
-		wristIkBone.Ik.LoopCount = 10
-		wristIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 180, Y: 0, Z: 0})
-		wristIkBone.Ik.Links = make([]*pmx.IkLink, 1)
-		wristIkBone.Ik.Links[0] = pmx.NewIkLink()
-		wristIkBone.Ik.Links[0].BoneIndex = sizingWristBone.Index()
-		wristIkBones[i] = wristIkBone
+		// // 手首IK
+		// wristIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, sizingWristBone.Name()))
+		// wristIkBone.Position = sizingWristTailBone.Position
+		// wristIkBone.Ik = pmx.NewIk()
+		// wristIkBone.Ik.BoneIndex = sizingWristTailBone.Index()
+		// wristIkBone.Ik.LoopCount = 10
+		// wristIkBone.Ik.UnitRotation = mmath.NewMRotationFromDegrees(&mmath.MVec3{X: 180, Y: 0, Z: 0})
+		// wristIkBone.Ik.Links = make([]*pmx.IkLink, 1)
+		// wristIkBone.Ik.Links[0] = pmx.NewIkLink()
+		// wristIkBone.Ik.Links[0].BoneIndex = sizingWristBone.Index()
+		// wristIkBones[i] = wristIkBone
 	}
 
 	sizingOriginalAllDeltas := make([][]*delta.VmdDeltas, 2)
-	sizingAllDeltas := make([][]*delta.VmdDeltas, 2)
 
 	sizingArmRotations := make([][]*mmath.MQuaternion, 2)
-	sizingArmTwistRotations := make([][]*mmath.MQuaternion, 2)
 	sizingElbowRotations := make([][]*mmath.MQuaternion, 2)
-	sizingWristTwistRotations := make([][]*mmath.MQuaternion, 2)
 	sizingWristRotations := make([][]*mmath.MQuaternion, 2)
 
 	allFrames := make([][]int, 2)
@@ -125,9 +125,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			sizingOriginalAllDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
-			sizingArmTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
 			sizingElbowRotations[i] = make([]*mmath.MQuaternion, len(frames))
-			sizingWristTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
 			sizingWristRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
@@ -142,7 +140,11 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				_, sizingArmRotations[i][index] = nowArmRot.SeparateTwistByAxis(sizingArmBone.Extend.NormalizedLocalAxisX)
 
 				nowElbowRot := vmdDeltas.Bones.Get(sizingElbowBone.Index()).FilledFrameRotation()
-				sizingElbowRotations[i][index] = nowElbowRot.ToFixedAxisRotation(sizingElbowBone.Extend.NormalizedLocalAxisY)
+				angle := math.Abs(nowElbowRot.ToRadian())
+				if nowElbowRot.XYZ().Dot(sizingElbowBone.Extend.NormalizedLocalAxisY) < 0 {
+					angle = -angle
+				}
+				sizingElbowRotations[i][index] = mmath.NewMQuaternionFromAxisAngles(sizingElbowBone.Extend.NormalizedLocalAxisY, angle)
 
 				nowWristRot := vmdDeltas.Bones.Get(sizingWristBone.Index()).FilledFrameRotation()
 				_, sizingWristRotations[i][index] = nowWristRot.SeparateTwistByAxis(sizingWristBone.Extend.NormalizedLocalAxisX)
@@ -196,102 +198,82 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		mlog.V("%s: %s", title, outputPath)
 	}
 
-	errorChan = make(chan error, 2)
-	wg.Add(2)
-	for i, direction := range directions {
-		frames := allFrames[i]
+	// // 腕補正 -----------------------------------------------------
+	// errorChan = make(chan error, 2)
+	// wg.Add(2)
+	// for i, direction := range directions {
+	// 	frames := allFrames[i]
 
-		go func(i int, direction string) {
-			defer wg.Done()
+	// 	go func(i int, direction string, bfs *vmd.BoneNameFrames) {
+	// 		defer wg.Done()
+	// 		defer func() {
+	// 			// recoverによるpanicキャッチ
+	// 			if r := recover(); r != nil {
+	// 				stackTrace := debug.Stack()
 
-			mlog.I(mi18n.T("捩り補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
+	// 				var errMsg string
+	// 				// パニックの値がerror型である場合、エラーメッセージを取得
+	// 				if err, ok := r.(error); ok {
+	// 					errMsg = err.Error()
+	// 				} else {
+	// 					// それ以外の型の場合は、文字列に変換
+	// 					errMsg = fmt.Sprintf("%v", r)
+	// 				}
 
-			sizingAllDeltas[i] = make([]*delta.VmdDeltas, len(frames))
+	// 				errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
+	// 			}
+	// 		}()
 
-			// 元モデルのデフォーム(IK ON)
-			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
-				frame := float32(data)
-				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-				vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
-				sizingAllDeltas[i][index] = vmdDeltas
-			}); err != nil {
-				errorChan <- err
-			}
-		}(i, direction)
-	}
+	// 		mlog.I(mi18n.T("捩り補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
-	// すべてのゴルーチンの完了を待つ
-	wg.Wait()
-	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+	// 		sizingArmBone := sizingModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
+	// 		sizingElbowBone := sizingModel.Bones.GetByName(pmx.ELBOW.StringFromDirection(direction))
 
-	// チャネルからエラーを受け取る
-	for err := range errorChan {
-		if err != nil {
-			return false, err
-		}
-	}
+	// 		// 先モデルの腕デフォーム(IK ON)
+	// 		for j, iFrame := range frames {
+	// 			frame := float32(iFrame)
 
-	// 腕補正 -----------------------------------------------------
-	errorChan = make(chan error, 2)
-	wg.Add(2)
-	for i, direction := range directions {
-		frames := allFrames[i]
+	// 			vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
+	// 			vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
+	// 			vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
 
-		go func(i int, direction string) {
-			defer wg.Done()
+	// 			elbowGlobalPosition := sizingOriginalAllDeltas[i][j].Bones.Get(sizingElbowBone.Index()).FilledGlobalPosition()
 
-			mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
+	// 			sizingArmIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, armIkBones[i], elbowGlobalPosition, arm_direction_bone_names[i])
 
-			sizingArmBone := sizingModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
-			sizingElbowBone := sizingModel.Bones.GetByName(pmx.ELBOW.StringFromDirection(direction))
+	// 			bf := bfs.Get(frame)
+	// 			bf.Rotation = sizingArmIkDeltas.Bones.Get(sizingArmBone.Index()).FilledFrameRotation()
+	// 			bf.Registered = true
+	// 			bfs.Insert(bf)
 
-			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
+	// 			if j < len(frames)-1 {
+	// 				nextFrame := float32(frames[j+1])
+	// 				nextBf := bfs.Get(nextFrame)
+	// 				nextBf.Rotation = bf.Rotation.Copy()
+	// 				nextBf.Registered = true
+	// 				bfs.Insert(nextBf)
+	// 			}
+	// 		}
+	// 	}(i, direction, sizingMotion.BoneFrames.Get(pmx.ARM.StringFromDirection(direction)))
+	// }
 
-			// 先モデルの腕デフォーム(IK ON)
-			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
-				frame := float32(data)
+	// // すべてのゴルーチンの完了を待つ
+	// wg.Wait()
+	// close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
 
-				elbowGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingElbowBone.Index()).FilledGlobalPosition()
+	// // チャネルからエラーを受け取る
+	// for err := range errorChan {
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// }
 
-				sizingArmIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, armIkBones[i], elbowGlobalPosition, arm_direction_bone_names[i])
-				sizingArmRotations[i][index] = sizingArmIkDeltas.Bones.Get(sizingArmBone.Index()).FilledFrameRotation()
-			}); err != nil {
-				errorChan <- err
-			}
-		}(i, direction)
-	}
-
-	// すべてのゴルーチンの完了を待つ
-	wg.Wait()
-	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
-
-	// チャネルからエラーを受け取る
-	for err := range errorChan {
-		if err != nil {
-			return false, err
-		}
-	}
-
-	// 補正を登録
-	for i, frames := range allFrames {
-		armBoneName := pmx.ARM.StringFromDirection(directions[i])
-
-		for j, iFrame := range frames {
-			frame := float32(iFrame)
-
-			armBf := sizingMotion.BoneFrames.Get(armBoneName).Get(frame)
-			armBf.Rotation = sizingArmRotations[i][j]
-			sizingMotion.InsertRegisteredBoneFrame(armBoneName, armBf)
-		}
-	}
-
-	if mlog.IsVerbose() {
-		title := "捩り補正03_腕"
-		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
-		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-		mlog.V("%s: %s", title, outputPath)
-	}
+	// if mlog.IsVerbose() {
+	// 	title := "捩り補正02_腕"
+	// 	outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
+	// 	repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
+	// 	mlog.V("%s: %s", title, outputPath)
+	// }
 
 	// 腕捩り補正 -----------------------------------------------------
 	errorChan = make(chan error, 2)
@@ -299,28 +281,57 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	for i, direction := range directions {
 		frames := allFrames[i]
 
-		go func(i int, direction string) {
+		go func(i int, direction string, bfs *vmd.BoneNameFrames) {
 			defer wg.Done()
+			defer func() {
+				// recoverによるpanicキャッチ
+				if r := recover(); r != nil {
+					stackTrace := debug.Stack()
 
-			mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
+					var errMsg string
+					// パニックの値がerror型である場合、エラーメッセージを取得
+					if err, ok := r.(error); ok {
+						errMsg = err.Error()
+					} else {
+						// それ以外の型の場合は、文字列に変換
+						errMsg = fmt.Sprintf("%v", r)
+					}
+
+					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
+				}
+			}()
+
+			mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
 			sizingArmTwistBone := sizingModel.Bones.GetByName(pmx.ARM_TWIST.StringFromDirection(direction))
 			sizingWristBone := sizingModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
 
-			sizingArmTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
+			// 先モデルの腕捩デフォーム(IK ON)
+			for j, iFrame := range frames {
+				frame := float32(iFrame)
 
-			// 先モデルの腕デフォーム(IK ON)
-			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
-				frame := float32(data)
+				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
+				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
+				vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
 
-				wristGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristBone.Index()).FilledGlobalPosition()
+				wristGlobalPosition := sizingOriginalAllDeltas[i][j].Bones.Get(sizingWristBone.Index()).FilledGlobalPosition()
 
-				sizingArmTwistIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, armTwistIkBones[i], wristGlobalPosition, arm_direction_bone_names[i])
-				sizingArmTwistRotations[i][index] = sizingArmTwistIkDeltas.Bones.Get(sizingArmTwistBone.Index()).FilledFrameRotation()
-			}); err != nil {
-				errorChan <- err
+				sizingArmTwistIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, armTwistIkBones[i], wristGlobalPosition, arm_direction_bone_names[i])
+
+				bf := bfs.Get(frame)
+				bf.Rotation = sizingArmTwistIkDeltas.Bones.Get(sizingArmTwistBone.Index()).FilledFrameRotation()
+				bf.Registered = true
+				bfs.Insert(bf)
+
+				if j < len(frames)-1 {
+					nextFrame := float32(frames[j+1])
+					nextBf := bfs.Get(nextFrame)
+					nextBf.Rotation = bf.Rotation.Copy()
+					nextBf.Registered = true
+					bfs.Insert(nextBf)
+				}
 			}
-		}(i, direction)
+		}(i, direction, sizingMotion.BoneFrames.Get(pmx.ARM_TWIST.StringFromDirection(direction)))
 	}
 
 	// すべてのゴルーチンの完了を待つ
@@ -334,21 +345,8 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}
 	}
 
-	// 補正を登録
-	for i, frames := range allFrames {
-		armTwistBoneName := pmx.ARM_TWIST.StringFromDirection(directions[i])
-
-		for j, iFrame := range frames {
-			frame := float32(iFrame)
-
-			bf := sizingMotion.BoneFrames.Get(armTwistBoneName).Get(frame)
-			bf.Rotation = sizingArmTwistRotations[i][j]
-			sizingMotion.InsertRegisteredBoneFrame(armTwistBoneName, bf)
-		}
-	}
-
 	if mlog.IsVerbose() {
-		title := "捩り補正04_腕捩"
+		title := "捩り補正03_腕捩"
 		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
 		mlog.V("%s: %s", title, outputPath)
@@ -360,28 +358,57 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	for i, direction := range directions {
 		frames := allFrames[i]
 
-		go func(i int, direction string) {
+		go func(i int, direction string, bfs *vmd.BoneNameFrames) {
 			defer wg.Done()
+			defer func() {
+				// recoverによるpanicキャッチ
+				if r := recover(); r != nil {
+					stackTrace := debug.Stack()
 
-			mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
+					var errMsg string
+					// パニックの値がerror型である場合、エラーメッセージを取得
+					if err, ok := r.(error); ok {
+						errMsg = err.Error()
+					} else {
+						// それ以外の型の場合は、文字列に変換
+						errMsg = fmt.Sprintf("%v", r)
+					}
+
+					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
+				}
+			}()
+
+			mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
 			sizingWristTwistBone := sizingModel.Bones.GetByName(pmx.WRIST_TWIST.StringFromDirection(direction))
 			sizingWristTailBone := sizingModel.Bones.GetByName(pmx.WRIST_TAIL.StringFromDirection(direction))
 
-			sizingWristTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
+			// 先モデルの手捩デフォーム(IK ON)
+			for j, iFrame := range frames {
+				frame := float32(iFrame)
 
-			// 先モデルの腕デフォーム(IK ON)
-			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
-				frame := float32(data)
+				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
+				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
+				vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
 
-				wristTailGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
+				wristTailGlobalPosition := sizingOriginalAllDeltas[i][j].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
 
-				sizingWristTwistIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, wristTwistIkBones[i], wristTailGlobalPosition, arm_direction_bone_names[i])
-				sizingWristTwistRotations[i][index] = sizingWristTwistIkDeltas.Bones.Get(sizingWristTwistBone.Index()).FilledFrameRotation()
-			}); err != nil {
-				errorChan <- err
+				sizingWristTwistIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, wristTwistIkBones[i], wristTailGlobalPosition, arm_direction_bone_names[i])
+
+				bf := bfs.Get(frame)
+				bf.Rotation = sizingWristTwistIkDeltas.Bones.Get(sizingWristTwistBone.Index()).FilledFrameRotation()
+				bf.Registered = true
+				bfs.Insert(bf)
+
+				if j < len(frames)-1 {
+					nextFrame := float32(frames[j+1])
+					nextBf := bfs.Get(nextFrame)
+					nextBf.Rotation = bf.Rotation.Copy()
+					nextBf.Registered = true
+					bfs.Insert(nextBf)
+				}
 			}
-		}(i, direction)
+		}(i, direction, sizingMotion.BoneFrames.Get(pmx.WRIST_TWIST.StringFromDirection(direction)))
 	}
 
 	// すべてのゴルーチンの完了を待つ
@@ -395,87 +422,89 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}
 	}
 
-	// 補正を登録
-	for i, frames := range allFrames {
-		wristTwistBoneName := pmx.WRIST_TWIST.StringFromDirection(directions[i])
-
-		for j, iFrame := range frames {
-			frame := float32(iFrame)
-
-			bf := sizingMotion.BoneFrames.Get(wristTwistBoneName).Get(frame)
-			bf.Rotation = sizingWristTwistRotations[i][j]
-			sizingMotion.InsertRegisteredBoneFrame(wristTwistBoneName, bf)
-		}
-	}
-
 	if mlog.IsVerbose() {
-		title := "捩り補正05_手捩"
+		title := "捩り補正04_手捩"
 		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
 		mlog.V("%s: %s", title, outputPath)
 	}
 
-	// 手首補正 -----------------------------------------------------
+	// // 手首補正 -----------------------------------------------------
+	// errorChan = make(chan error, 2)
+	// wg.Add(2)
+	// for i, direction := range directions {
+	// 	frames := allFrames[i]
 
-	errorChan = make(chan error, 2)
-	wg.Add(2)
-	for i, direction := range directions {
-		frames := allFrames[i]
+	// 	go func(i int, direction string, bfs *vmd.BoneNameFrames) {
+	// 		defer wg.Done()
+	// 		defer func() {
+	// 			// recoverによるpanicキャッチ
+	// 			if r := recover(); r != nil {
+	// 				stackTrace := debug.Stack()
 
-		go func(i int, direction string) {
-			defer wg.Done()
+	// 				var errMsg string
+	// 				// パニックの値がerror型である場合、エラーメッセージを取得
+	// 				if err, ok := r.(error); ok {
+	// 					errMsg = err.Error()
+	// 				} else {
+	// 					// それ以外の型の場合は、文字列に変換
+	// 					errMsg = fmt.Sprintf("%v", r)
+	// 				}
 
-			mlog.I(mi18n.T("捩り補正06", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
+	// 				errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
+	// 			}
+	// 		}()
 
-			sizingWristBone := sizingModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
-			sizingWristTailBone := sizingModel.Bones.GetByName(pmx.WRIST_TAIL.StringFromDirection(direction))
+	// 		mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
-			sizingWristRotations[i] = make([]*mmath.MQuaternion, len(frames))
+	// 		sizingWristBone := sizingModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
+	// 		sizingWristTailBone := sizingModel.Bones.GetByName(pmx.WRIST_TAIL.StringFromDirection(direction))
 
-			// 先モデルの腕デフォーム(IK ON)
-			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
-				frame := float32(data)
+	// 		// 先モデルの腕デフォーム(IK ON)
+	// 		for j, iFrame := range frames {
+	// 			frame := float32(iFrame)
 
-				wristTailGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
+	// 			vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
+	// 			vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
+	// 			vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
 
-				sizingWristIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, wristIkBones[i], wristTailGlobalPosition, arm_direction_bone_names[i])
-				sizingWristRotations[i][index] = sizingWristIkDeltas.Bones.Get(sizingWristBone.Index()).FilledFrameRotation()
-			}); err != nil {
-				errorChan <- err
-			}
-		}(i, direction)
-	}
+	// 			wristTailGlobalPosition := sizingOriginalAllDeltas[i][j].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
 
-	// すべてのゴルーチンの完了を待つ
-	wg.Wait()
-	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+	// 			sizingWristIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, wristIkBones[i], wristTailGlobalPosition, arm_direction_bone_names[i])
 
-	// チャネルからエラーを受け取る
-	for err := range errorChan {
-		if err != nil {
-			return false, err
-		}
-	}
+	// 			bf := bfs.Get(frame)
+	// 			bf.Rotation = sizingWristIkDeltas.Bones.Get(sizingWristBone.Index()).FilledFrameRotation()
+	// 			bf.Registered = true
+	// 			bfs.Insert(bf)
 
-	// 補正を登録
-	for i, frames := range allFrames {
-		wristBoneName := pmx.WRIST.StringFromDirection(directions[i])
+	// 			if j < len(frames)-1 {
+	// 				nextFrame := float32(frames[j+1])
+	// 				nextBf := bfs.Get(nextFrame)
+	// 				nextBf.Rotation = bf.Rotation.Copy()
+	// 				nextBf.Registered = true
+	// 				bfs.Insert(nextBf)
+	// 			}
+	// 		}
+	// 	}(i, direction, sizingMotion.BoneFrames.Get(pmx.WRIST_TWIST.StringFromDirection(direction)))
+	// }
 
-		for j, iFrame := range frames {
-			frame := float32(iFrame)
+	// // すべてのゴルーチンの完了を待つ
+	// wg.Wait()
+	// close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
 
-			bf := sizingMotion.BoneFrames.Get(wristBoneName).Get(frame)
-			bf.Rotation = sizingWristRotations[i][j]
-			sizingMotion.InsertRegisteredBoneFrame(wristBoneName, bf)
-		}
-	}
+	// // チャネルからエラーを受け取る
+	// for err := range errorChan {
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// }
 
-	if mlog.IsVerbose() {
-		title := "捩り補正06_手首"
-		outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
-		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-		mlog.V("%s: %s", title, outputPath)
-	}
+	// if mlog.IsVerbose() {
+	// 	title := "捩り補正05_手首"
+	// 	outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
+	// 	repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
+	// 	mlog.V("%s: %s", title, outputPath)
+	// }
 
 	sizingSet.CompletedSizingArmTwist = true
 
