@@ -46,7 +46,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
 	allRelativeBoneNames := make([][]string, 2)
 
-	for i, direction := range []string{"左", "右"} {
+	for i, direction := range directions {
 		var armIkBone *pmx.Bone
 		switch direction {
 		case "左":
@@ -90,7 +90,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 	}
 
 	// IK関連のボーンを削除
-	for _, direction := range []string{"左", "右"} {
+	for _, direction := range directions {
 		var armIkBone *pmx.Bone
 		switch direction {
 		case "左":
@@ -106,7 +106,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 		}
 	}
 
-	for i, direction := range []string{"左", "右"} {
+	for i, direction := range directions {
 		var armIkBone *pmx.Bone
 		switch direction {
 		case "左":
@@ -132,7 +132,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
 
-	for i, direction := range []string{"左", "右"} {
+	for i, direction := range directions {
 		var armIkBone *pmx.Bone
 		switch direction {
 		case "左":
@@ -245,7 +245,7 @@ func getFixRotationForArmIk(
 func isValidCleanArmIk(sizingSet *domain.SizingSet) bool {
 	originalModel := sizingSet.OriginalPmx
 
-	for _, direction := range []string{"左", "右"} {
+	for _, direction := range directions {
 		if !originalModel.Bones.ContainsByName(pmx.ARM.StringFromDirection(direction)) {
 			mlog.WT(mi18n.T("ボーン不足"), mi18n.T("腕IK最適化ボーン不足", map[string]interface{}{
 				"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.ARM.StringFromDirection(direction)}))
@@ -269,7 +269,7 @@ func isValidCleanArmIk(sizingSet *domain.SizingSet) bool {
 }
 
 func getArmIkBones(model *pmx.PmxModel) (armIkLeftBone, armIkRightBone *pmx.Bone) {
-	for _, direction := range []string{"左", "右"} {
+	for _, direction := range directions {
 		var armIkBone *pmx.Bone
 
 		for _, standardBoneName := range []pmx.StandardBoneNames{

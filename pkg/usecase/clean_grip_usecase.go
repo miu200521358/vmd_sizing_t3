@@ -49,7 +49,7 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 	allFrames := make([][]int, 2)
 	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
 
-	for i, direction := range []string{"左", "右"} {
+	for i, direction := range directions {
 		mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
 		fingerBoneNames := make([]string, 0)
@@ -100,7 +100,7 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
 
-	for i, direction := range []string{"左", "右"} {
+	for i, direction := range directions {
 		mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
 		var wg sync.WaitGroup
@@ -203,7 +203,7 @@ func getGripBones(originalModel *pmx.PmxModel) []*pmx.Bone {
 	gripBones := make([]*pmx.Bone, 0)
 	gripBoneIndexes := make([]int, 0)
 
-	for _, direction := range []string{"左", "右"} {
+	for _, direction := range directions {
 		wristBone := originalModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
 		for _, boneName := range []string{pmx.THUMB_TAIL.StringFromDirection(direction),
 			pmx.INDEX_TAIL.StringFromDirection(direction), pmx.MIDDLE_TAIL.StringFromDirection(direction),
@@ -239,7 +239,7 @@ func getGripBones(originalModel *pmx.PmxModel) []*pmx.Bone {
 func isValidCleanGrip(sizingSet *domain.SizingSet) bool {
 	originalModel := sizingSet.OriginalPmx
 
-	for _, direction := range []string{"左", "右"} {
+	for _, direction := range directions {
 		for _, boneName := range []string{pmx.THUMB1.StringFromDirection(direction), pmx.THUMB2.StringFromDirection(direction), pmx.INDEX1.StringFromDirection(direction), pmx.INDEX2.StringFromDirection(direction), pmx.INDEX3.StringFromDirection(direction),
 			pmx.MIDDLE1.StringFromDirection(direction), pmx.MIDDLE2.StringFromDirection(direction), pmx.MIDDLE3.StringFromDirection(direction),
 			pmx.RING1.StringFromDirection(direction), pmx.RING2.StringFromDirection(direction), pmx.RING3.StringFromDirection(direction),

@@ -10,6 +10,8 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
+var directions = []string{"左", "右"}
+
 var trunk_upper_bone_names = []string{
 	pmx.ROOT.String(), pmx.TRUNK_ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.WAIST.String(),
 	pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
@@ -29,6 +31,19 @@ var leg_direction_bone_names = [][]string{
 }
 var leg_all_direction_bone_names = append(leg_direction_bone_names[0], leg_direction_bone_names[1]...)
 var all_lower_leg_bone_names = append(trunk_lower_bone_names, leg_all_direction_bone_names...)
+
+var shoulder_direction_bone_names = [][]string{
+	{
+		pmx.ROOT.String(), pmx.TRUNK_ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.WAIST.String(),
+		pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
+		pmx.SHOULDER.Left(), pmx.ARM.Left(),
+	},
+	{
+		pmx.ROOT.String(), pmx.TRUNK_ROOT.String(), pmx.CENTER.String(), pmx.GROOVE.String(), pmx.WAIST.String(),
+		pmx.UPPER_ROOT.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.NECK_ROOT.String(),
+		pmx.SHOULDER.Right(), pmx.ARM.Right(),
+	},
+}
 
 var all_arm_bone_names = []string{
 	pmx.ARM.Left(), pmx.ELBOW.Left(), pmx.WRIST.Left(), pmx.ARM.Right(), pmx.ELBOW.Right(), pmx.WRIST.Right()}

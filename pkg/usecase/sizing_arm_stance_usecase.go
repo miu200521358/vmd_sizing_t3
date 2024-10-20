@@ -83,7 +83,7 @@ func createArmFingerStanceQuats(
 ) map[int][]*mmath.MMat4 {
 	stanceQuats := make(map[int][]*mmath.MMat4)
 
-	for _, direction := range []string{"左", "右"} {
+	for _, direction := range directions {
 		stanceBoneNames := make([][]string, 0)
 
 		if isArmStance {

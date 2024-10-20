@@ -13,7 +13,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) {
 func isValidCleanArmTwist(sizingSet *domain.SizingSet) bool {
 	originalModel := sizingSet.OriginalPmx
 
-	for _, direction := range []string{"左", "右"} {
+	for _, direction := range directions {
 		if !originalModel.Bones.ContainsByName(pmx.ARM.StringFromDirection(direction)) {
 			mlog.WT(mi18n.T("ボーン不足"), mi18n.T("捩り最適化ボーン不足", map[string]interface{}{
 				"No": sizingSet.Index + 1, "ModelType": mi18n.T("元モデル"), "BoneName": pmx.ARM.StringFromDirection(direction)}))

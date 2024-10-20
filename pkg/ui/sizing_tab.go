@@ -1343,6 +1343,9 @@ func execSizing(toolState *ToolState) {
 				isExec = usecase.SizingUpper(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
+				isExec = usecase.SizingShoulder(sizingSet) || isExec
+				sizingSet.OutputVmd.SetRandHash()
+
 				isExec = usecase.SizingArmFingerStance(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 			}(sizingSet)
