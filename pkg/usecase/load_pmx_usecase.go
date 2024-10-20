@@ -439,26 +439,43 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 			// 必要に応じて親を切り替える
 			var parentBone *pmx.Bone
 			if !baseModel.Bones.ContainsByName(parentName) {
+				nowParentBone := model.Bones.GetByName(parentName)
+				var baseParentBone *pmx.Bone
 				if bone.Config() != nil {
 					for _, configParentBoneName := range bone.Config().ParentBoneNames {
 						parentBoneName := configParentBoneName.StringFromDirection(bone.Direction())
 						if model.Bones.ContainsByName(parentBoneName) {
 							// 親ボーンが先モデルに存在する場合、そのボーンを親にする
-							parentBone = model.Bones.GetByName(parentBoneName)
+							baseParentBone = model.Bones.GetByName(parentBoneName)
 							break
 						}
 						if _, ok := nonExistBones[parentBoneName]; ok {
 							// 既に追加したボーンの場合、そのボーンを親にする
-							parentBone = nonExistBones[parentBoneName]
+							baseParentBone = nonExistBones[parentBoneName]
 							break
 						}
 					}
 				}
-				if parentBone == nil {
-					// 素体モデルに存在しないボーン名が親の場合、その親を使用する
-					parentBone = model.Bones.GetByName(parentName)
+
+				// 先モデルの子ボーンの親と、素体モデル同名親ボーンのうち、もっとも変形階層が大きいボーンを親にする
+				boneIndexes := make([]int, 0)
+				if nowParentBone != nil {
+					boneIndexes = append(boneIndexes, nowParentBone.Index())
 				}
-			} else {
+				if baseParentBone != nil {
+					boneIndexes = append(boneIndexes, baseParentBone.Index())
+				}
+
+				if len(boneIndexes) > 0 {
+					parentBoneIndex := model.Bones.MaxBoneIndex(boneIndexes)
+					parentBone = model.Bones.Get(parentBoneIndex)
+					if parentBone == nil {
+						parentBone = nonExistBones[baseParentBone.Name()]
+					}
+				}
+			}
+
+			if parentBone == nil {
 				// それ以外は素体モデルの親を使用する
 				for _, boneIndex := range baseBone.Extend.ParentBoneIndexes {
 					baseParentBone := baseModel.Bones.Get(boneIndex)
@@ -547,8 +564,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 			// 親からの相対位置から比率で求める
 			newBone.Position = parentBone.Position.Added(baseBone.Extend.ParentRelativePosition.MuledScalar(ratio))
 
-			if !newBone.IsStandard() && !includeSystem &&
-				!(newBone.Name() == pmx.TOE_T.Left() || newBone.Name() == pmx.TOE_T.Right()) {
+			if !includeSystem && !newBone.IsStandard() && !newBone.IsTail() {
 				// システムボーンを含めない場合はスルー(つま先先だけ含める)
 				continue
 			}
@@ -811,14 +827,6 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 				newBone.Position.X = ankleBone.Position.X
 				newBone.Position.Y = 0
 				newBone.IsSystem = true
-			} else if strings.Contains(baseBone.Name(), "指先") {
-				// 指先ボーンは親ボーンの相対表示先位置
-				baseParentBoneName := baseBone.ConfigParentBoneNames()[0]
-				parentBone := model.Bones.GetByName(baseParentBoneName)
-				if parentBone != nil {
-					newBone.Position = parentBone.Position.Added(parentBone.Extend.ChildRelativePosition)
-				}
-				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.HEEL.Left(), pmx.HEEL.Right()}, baseBone.Name()) {
 				// かかとはもっとも+Z方向にある足首の位置
 				if allBoneVertices == nil {
@@ -918,6 +926,14 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 					continue
 				}
 				newBone.Position = toePBone.Position.Copy()
+				newBone.IsSystem = true
+			} else if baseBone.IsTail() {
+				// // 先ボーンは親ボーンの相対表示先位置
+				// baseParentBoneName := baseBone.ConfigParentBoneNames()[0]
+				// parentBone := model.Bones.GetByName(baseParentBoneName)
+				// if parentBone != nil {
+				// 	newBone.Position = parentBone.Position.Added(parentBone.Extend.ChildRelativePosition)
+				// }
 				newBone.IsSystem = true
 			}
 		}

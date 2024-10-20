@@ -6,17 +6,20 @@ import (
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
+	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 )
 
 func CreateOutputModel(model *pmx.PmxModel) (*pmx.PmxModel, error) {
-	if sizingModel, _, err := AdjustPmxForSizing(model, false); err != nil {
+	if sizingModel, _, err := AdjustPmxForSizing(model, !mlog.IsVerbose()); err != nil {
 		return nil, err
 	} else {
-		// 調整ボーン追加
-		addAdjustBones(sizingModel)
+		if !mlog.IsVerbose() {
+			// 調整ボーン追加
+			addAdjustBones(sizingModel)
 
-		// 調整モーフ追加
-		addAdjustMorphs(sizingModel)
+			// 調整モーフ追加
+			addAdjustMorphs(sizingModel)
+		}
 
 		return sizingModel, nil
 	}
