@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
+func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) (bool, error) {
 	if !sizingSet.IsSizingLeg || (sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) {
-		return false
+		return false, nil
 	}
 
 	if !isValidSizingLower(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -247,17 +247,19 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
-		return false
+		return false, nil
 	}
 
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_lower_leg_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	// サイジング先にFKを焼き込み
 	for _, vmdDeltas := range originalAllDeltas {
@@ -627,7 +629,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	}
 
 	// 先モデルのデフォーム
-	miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -672,7 +674,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 
 		sizingGrooveBf := sizingMotion.BoneFrames.Get(sizingGrooveBone.Name()).Get(frame)
 		groovePositions[index] = sizingGrooveBf.Position.Added(&mmath.MVec3{X: 0, Y: yDiff, Z: 0})
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	// 補正を登録
 	for i, iFrame := range frames {
@@ -702,7 +706,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	rightLegIkRotations := make([]*mmath.MQuaternion, len(frames))
 
 	// 先モデルのデフォーム(IK OFF+センター補正済み)
-	miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -751,7 +755,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 		rightLegFkMat := sizingRightToeDelta.FilledGlobalPosition().Subed(
 			sizingRightAnkleDelta.FilledGlobalPosition()).Normalize().ToLocalMat()
 		rightLegIkRotations[index] = rightLegFkMat.Muled(rightLegIkMat.Inverted()).Quaternion()
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
@@ -816,7 +822,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 
 	// 足IK再計算
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -830,7 +836,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 		rightLegRotations[index] = vmdDeltas.Bones.Get(sizingRightLegBone.Index()).FilledFrameRotation()
 		rightKneeRotations[index] = vmdDeltas.Bones.Get(sizingRightKneeBone.Index()).FilledFrameRotation()
 		rightAnkleRotations[index] = vmdDeltas.Bones.Get(sizingRightAnkleBone.Index()).FilledFrameRotation()
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	registerLegFk(frames, sizingMotion, sizingLeftLegBone, sizingLeftKneeBone, sizingLeftAnkleBone, sizingRightLegBone,
 		sizingRightKneeBone, sizingRightAnkleBone, leftLegRotations, leftKneeRotations, leftAnkleRotations,
@@ -846,7 +854,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	}
 
 	sizingSet.CompletedSizingLeg = true
-	return true
+	return true, nil
 }
 
 func calcLegIkPositionY(

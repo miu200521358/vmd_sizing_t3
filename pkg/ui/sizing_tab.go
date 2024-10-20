@@ -1376,39 +1376,82 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedCleanGrip = false
 				}
 
-				isExec = usecase.CleanRoot(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.CleanRoot(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.CleanCenter(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.CleanCenter(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.CleanLegIkParent(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.CleanLegIkParent(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.CleanShoulderP(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.CleanShoulderP(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.CleanArmIk(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.CleanArmIk(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.CleanGrip(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.CleanGrip(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.SizingLeg(sizingSet, allScales[sizingSet.Index]) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index]); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.SizingUpper(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.SizingUpper(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.SizingShoulder(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.SizingShoulder(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.SizingArmFingerStance(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
+				if res, err := usecase.SizingArmFingerStance(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 
-				isExec = usecase.SizingArmTwist(sizingSet) || isExec
-				sizingSet.OutputVmd.SetRandHash()
-
+				if res, err := usecase.SizingArmTwist(sizingSet); err != nil {
+					widget.RaiseError(err)
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+				}
 			}(sizingSet)
 		}
 	}

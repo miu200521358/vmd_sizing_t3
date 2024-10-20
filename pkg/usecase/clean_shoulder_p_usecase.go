@@ -13,13 +13,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanShoulderP(sizingSet *domain.SizingSet) bool {
+func CleanShoulderP(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsCleanShoulderP || (sizingSet.IsCleanShoulderP && sizingSet.CompletedCleanShoulderP) {
-		return false
+		return false, nil
 	}
 
 	if !isValidCleanShoulderP(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -48,7 +48,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet) bool {
 		armBone := originalModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
 
 		// 元モデルのデフォーム(IK ON)
-		miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+		if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -60,7 +60,9 @@ func CleanShoulderP(sizingSet *domain.SizingSet) bool {
 
 			shoulderRotations[i][index] = shoulderRootDelta.FilledGlobalMatrix().Inverted().Muled(shoulderDelta.FilledGlobalMatrix()).Quaternion()
 			armRotations[i][index] = shoulderDelta.FilledGlobalMatrix().Inverted().Muled(armBoneDelta.FilledGlobalMatrix()).Quaternion()
-		})
+		}); err != nil {
+			return false, err
+		}
 	}
 
 	for i, direction := range directions {
@@ -110,7 +112,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet) bool {
 				continue
 			}
 
-			miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
+			if err := miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
 				frame := float32(startFrame + index + 1)
 
 				var wg sync.WaitGroup
@@ -155,12 +157,14 @@ func CleanShoulderP(sizingSet *domain.SizingSet) bool {
 					armBf.Registered = true
 					armBfs.Insert(armBf)
 				}
-			})
+			}); err != nil {
+				return false, err
+			}
 		}
 	}
 
 	sizingSet.CompletedCleanShoulderP = true
-	return true
+	return true, nil
 }
 
 func isValidCleanShoulderP(sizingSet *domain.SizingSet) bool {

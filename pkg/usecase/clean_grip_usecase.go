@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanGrip(sizingSet *domain.SizingSet) bool {
+func CleanGrip(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsCleanGrip || (sizingSet.IsCleanGrip && sizingSet.CompletedCleanGrip) {
-		return false
+		return false, nil
 	}
 
 	if !isValidCleanGrip(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -31,7 +31,7 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 	gripBones := getGripBones(originalModel)
 
 	if len(gripBones) == 0 {
-		return false
+		return false, nil
 	}
 
 	hasGripBoneFrame := false
@@ -43,7 +43,7 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 	}
 
 	if !hasGripBoneFrame {
-		return false
+		return false, nil
 	}
 
 	allFrames := make([][]int, 2)
@@ -68,14 +68,16 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 
 		// 元モデルのデフォーム(IK ON)
-		miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+		if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
 			vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, fingerBoneNames, false)
 
 			allVmdDeltas[i][index] = vmdDeltas
-		})
+		}); err != nil {
+			return false, err
+		}
 	}
 
 	for _, gripBone := range gripBones {
@@ -118,7 +120,7 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 				continue
 			}
 
-			miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
+			if err := miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
 				frame := float32(startFrame + index + 1)
 
 				var wg sync.WaitGroup
@@ -163,12 +165,14 @@ func CleanGrip(sizingSet *domain.SizingSet) bool {
 				}
 
 				wg.Wait()
-			})
+			}); err != nil {
+				return false, err
+			}
 		}
 	}
 
 	sizingSet.CompletedCleanGrip = true
-	return true
+	return true, nil
 }
 
 func getFixRotationForGrip(

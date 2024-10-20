@@ -16,13 +16,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingArmTwist(sizingSet *domain.SizingSet) bool {
+func SizingArmTwist(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsSizingArmTwist || (sizingSet.IsSizingArmTwist && sizingSet.CompletedSizingArmTwist) {
-		return false
+		return false, nil
 	}
 
 	if !isValidCleanArmTwist(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	sizingModel := sizingSet.SizingPmx
@@ -104,6 +104,8 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 	allFrames := make([][]int, 2)
 	allBlockSizes := make([]int, 2)
 
+	errorChan := make(chan error, 2)
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 	for i, direction := range directions {
@@ -129,7 +131,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingWristRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -144,10 +146,22 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 
 				nowWristRot := vmdDeltas.Bones.Get(sizingWristBone.Index()).FilledFrameRotation()
 				_, sizingWristRotations[i][index] = nowWristRot.SeparateTwistByAxis(sizingWristBone.Extend.NormalizedLocalAxisX)
-			})
+			}); err != nil {
+				errorChan <- err
+			}
 		}(i, direction)
 	}
+
+	// すべてのゴルーチンの完了を待つ
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 補正を登録
 	for i, frames := range allFrames {
@@ -182,6 +196,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 		mlog.V("%s: %s", title, outputPath)
 	}
 
+	errorChan = make(chan error, 2)
 	wg.Add(2)
 	for i, direction := range directions {
 		frames := allFrames[i]
@@ -194,18 +209,31 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingAllDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
 				vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
 				sizingAllDeltas[i][index] = vmdDeltas
-			})
+			}); err != nil {
+				errorChan <- err
+			}
 		}(i, direction)
 	}
+
+	// すべてのゴルーチンの完了を待つ
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 腕補正 -----------------------------------------------------
+	errorChan = make(chan error, 2)
 	wg.Add(2)
 	for i, direction := range directions {
 		frames := allFrames[i]
@@ -221,18 +249,29 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				elbowGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingElbowBone.Index()).FilledGlobalPosition()
 
 				sizingArmIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, armIkBones[i], elbowGlobalPosition, arm_direction_bone_names[i])
 				sizingArmRotations[i][index] = sizingArmIkDeltas.Bones.Get(sizingArmBone.Index()).FilledFrameRotation()
-			})
-
+			}); err != nil {
+				errorChan <- err
+			}
 		}(i, direction)
 	}
+
+	// すべてのゴルーチンの完了を待つ
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 補正を登録
 	for i, frames := range allFrames {
@@ -255,6 +294,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 	}
 
 	// 腕捩り補正 -----------------------------------------------------
+	errorChan = make(chan error, 2)
 	wg.Add(2)
 	for i, direction := range directions {
 		frames := allFrames[i]
@@ -270,18 +310,29 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingArmTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				wristGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristBone.Index()).FilledGlobalPosition()
 
 				sizingArmTwistIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, armTwistIkBones[i], wristGlobalPosition, arm_direction_bone_names[i])
 				sizingArmTwistRotations[i][index] = sizingArmTwistIkDeltas.Bones.Get(sizingArmTwistBone.Index()).FilledFrameRotation()
-			})
-
+			}); err != nil {
+				errorChan <- err
+			}
 		}(i, direction)
 	}
+
+	// すべてのゴルーチンの完了を待つ
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 補正を登録
 	for i, frames := range allFrames {
@@ -304,6 +355,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 	}
 
 	// 手捩り補正 -----------------------------------------------------
+	errorChan = make(chan error, 2)
 	wg.Add(2)
 	for i, direction := range directions {
 		frames := allFrames[i]
@@ -319,18 +371,29 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingWristTwistRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				wristTailGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
 
 				sizingWristTwistIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, wristTwistIkBones[i], wristTailGlobalPosition, arm_direction_bone_names[i])
 				sizingWristTwistRotations[i][index] = sizingWristTwistIkDeltas.Bones.Get(sizingWristTwistBone.Index()).FilledFrameRotation()
-			})
-
+			}); err != nil {
+				errorChan <- err
+			}
 		}(i, direction)
 	}
+
+	// すべてのゴルーチンの完了を待つ
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 補正を登録
 	for i, frames := range allFrames {
@@ -354,6 +417,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 
 	// 手首補正 -----------------------------------------------------
 
+	errorChan = make(chan error, 2)
 	wg.Add(2)
 	for i, direction := range directions {
 		frames := allFrames[i]
@@ -369,18 +433,29 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 			sizingWristRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの腕デフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 
 				wristTailGlobalPosition := sizingOriginalAllDeltas[i][index].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
 
 				sizingWristIkDeltas := deform.DeformIk(sizingModel, sizingMotion, sizingAllDeltas[i][index], frame, wristIkBones[i], wristTailGlobalPosition, arm_direction_bone_names[i])
 				sizingWristRotations[i][index] = sizingWristIkDeltas.Bones.Get(sizingWristBone.Index()).FilledFrameRotation()
-			})
-
+			}); err != nil {
+				errorChan <- err
+			}
 		}(i, direction)
 	}
+
+	// すべてのゴルーチンの完了を待つ
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 補正を登録
 	for i, frames := range allFrames {
@@ -404,7 +479,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) bool {
 
 	sizingSet.CompletedSizingArmTwist = true
 
-	return true
+	return true, nil
 }
 
 func isValidCleanArmTwist(sizingSet *domain.SizingSet) bool {

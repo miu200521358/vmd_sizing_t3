@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanRoot(sizingSet *domain.SizingSet) bool {
+func CleanRoot(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsCleanRoot || (sizingSet.IsCleanRoot && sizingSet.CompletedCleanRoot) {
-		return false
+		return false, nil
 	}
 
 	if !isValidCleanRoot(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -28,7 +28,7 @@ func CleanRoot(sizingSet *domain.SizingSet) bool {
 	sizingMotion := sizingSet.OutputVmd
 
 	if !sizingMotion.BoneFrames.ContainsActive(pmx.ROOT.String()) {
-		return false
+		return false, nil
 	}
 
 	mlog.I(mi18n.T("全ての親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -38,7 +38,7 @@ func CleanRoot(sizingSet *domain.SizingSet) bool {
 	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
-		return false
+		return false, nil
 	}
 
 	childLocalPositions := make([][]*mmath.MVec3, originalModel.Bones.Len())
@@ -53,7 +53,7 @@ func CleanRoot(sizingSet *domain.SizingSet) bool {
 	mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -69,7 +69,9 @@ func CleanRoot(sizingSet *domain.SizingSet) bool {
 			childLocalRotations[bone.Index()][index] =
 				vmdDeltas.Bones.Get(bone.Index()).FilledGlobalBoneRotation()
 		}
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	for _, boneName := range rootRelativeBoneNames {
 		if boneName == pmx.ROOT.String() {
@@ -102,7 +104,7 @@ func CleanRoot(sizingSet *domain.SizingSet) bool {
 			continue
 		}
 
-		miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
+		if err := miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
 			frame := float32(startFrame + index + 1)
 
 			var wg sync.WaitGroup
@@ -152,11 +154,13 @@ func CleanRoot(sizingSet *domain.SizingSet) bool {
 			}
 
 			wg.Wait()
-		})
+		}); err != nil {
+			return false, err
+		}
 	}
 
 	sizingSet.CompletedCleanRoot = true
-	return true
+	return true, nil
 }
 
 func isValidCleanRoot(sizingSet *domain.SizingSet) bool {

@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingShoulder(sizingSet *domain.SizingSet) bool {
+func SizingShoulder(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsSizingShoulder || (sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) {
-		return false
+		return false, nil
 	}
 
 	if !isValidSizingShoulder(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -64,6 +64,8 @@ func SizingShoulder(sizingSet *domain.SizingSet) bool {
 	allFrames := make([][]int, 2)
 	allBlockSizes := make([]int, 2)
 
+	errorChan := make(chan error, 2)
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 	for i, direction := range directions {
@@ -101,7 +103,7 @@ func SizingShoulder(sizingSet *domain.SizingSet) bool {
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの上半身デフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -126,12 +128,22 @@ func SizingShoulder(sizingSet *domain.SizingSet) bool {
 				// 腕は逆補正をかける
 				upperDiffRotation := nowShoulderBf.Rotation.Inverted().Muled(sizingShoulderRotations[i][index]).Inverted()
 				sizingArmRotations[i][index] = upperDiffRotation.Muled(nowArmBf.Rotation)
-			})
-
+			}); err != nil {
+				errorChan <- err
+			}
 		}(i, direction)
 	}
 
+	// すべてのゴルーチンの完了を待つ
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 補正を登録
 	for i, frames := range allFrames {
@@ -153,7 +165,7 @@ func SizingShoulder(sizingSet *domain.SizingSet) bool {
 
 	sizingSet.CompletedSizingShoulder = true
 
-	return true
+	return true, nil
 }
 
 func isValidSizingShoulder(sizingSet *domain.SizingSet) bool {

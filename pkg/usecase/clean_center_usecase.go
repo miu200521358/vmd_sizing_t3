@@ -13,13 +13,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanCenter(sizingSet *domain.SizingSet) bool {
+func CleanCenter(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsCleanCenter || (sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) {
-		return false
+		return false, nil
 	}
 
 	if !isValidCleanCenter(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -30,7 +30,7 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 
 	if !(sizingMotion.BoneFrames.ContainsActive(pmx.CENTER.String()) ||
 		isContainsActiveWaist) {
-		return false
+		return false, nil
 	}
 
 	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -51,7 +51,7 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
-		return false
+		return false, nil
 	}
 
 	centerPositions := make([]*mmath.MVec3, len(frames))
@@ -64,7 +64,7 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 	mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 元モデルのデフォーム(IK ON)
-	miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		ikOnVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		ikOnVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -84,7 +84,9 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 			legLeftRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelLeftBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legLeftBone.Index()).FilledFrameRotation())
 			legRightRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelRightBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legRightBone.Index()).FilledFrameRotation())
 		}
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
@@ -138,7 +140,7 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 			continue
 		}
 
-		miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
+		if err := miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
 			frame := float32(startFrame + index + 1)
 
 			wg.Add(2)
@@ -181,11 +183,13 @@ func CleanCenter(sizingSet *domain.SizingSet) bool {
 					}
 				}
 			}
-		})
+		}); err != nil {
+			return false, err
+		}
 	}
 
 	sizingSet.CompletedCleanCenter = true
-	return true
+	return true, nil
 }
 
 func isValidCleanCenter(sizingSet *domain.SizingSet) bool {

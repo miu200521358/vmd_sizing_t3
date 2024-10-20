@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanArmIk(sizingSet *domain.SizingSet) bool {
+func CleanArmIk(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsCleanArmIk || (sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) {
-		return false
+		return false, nil
 	}
 
 	if !isValidCleanArmIk(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -31,12 +31,12 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 	armIkLeftBone, armIkRightBone := getArmIkBones(originalModel)
 
 	if armIkLeftBone == nil && armIkRightBone == nil {
-		return false
+		return false, nil
 	}
 
 	if !(sizingMotion.BoneFrames.ContainsActive(armIkLeftBone.Name()) ||
 		sizingMotion.BoneFrames.ContainsActive(armIkRightBone.Name())) {
-		return false
+		return false, nil
 	}
 
 	mlog.I(mi18n.T("腕IK最適化開始", map[string]interface{}{"No": sizingSet.Index + 1,
@@ -81,14 +81,16 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 		allRelativeBoneNames[i] = relativeBoneNames
 
 		// 元モデルのデフォーム(IK ON)
-		miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+		if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
 			vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, relativeBoneNames, false)
 
 			allVmdDeltas[i][index] = vmdDeltas
-		})
+		}); err != nil {
+			return false, err
+		}
 	}
 
 	// IK関連のボーンを削除
@@ -164,7 +166,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 				continue
 			}
 
-			miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
+			if err := miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
 				frame := float32(startFrame + index + 1)
 
 				var wg sync.WaitGroup
@@ -207,12 +209,14 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 				}
 
 				wg.Wait()
-			})
+			}); err != nil {
+				return false, err
+			}
 		}
 	}
 
 	sizingSet.CompletedCleanArmIk = true
-	return true
+	return true, nil
 }
 
 func getFixRotationForArmIk(

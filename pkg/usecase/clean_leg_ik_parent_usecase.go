@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
+func CleanLegIkParent(sizingSet *domain.SizingSet) (bool, error) {
 	if !sizingSet.IsCleanLegIkParent || (sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) {
-		return false
+		return false, nil
 	}
 
 	if !isValidCleanLegIkParent(sizingSet) {
-		return false
+		return false, nil
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -29,7 +29,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 
 	if !(sizingMotion.BoneFrames.ContainsActive(pmx.LEG_IK_PARENT.Left()) ||
 		sizingMotion.BoneFrames.ContainsActive(pmx.LEG_IK_PARENT.Right())) {
-		return false
+		return false, nil
 	}
 
 	mlog.I(mi18n.T("足IK親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -41,7 +41,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 	blockSize := miter.GetBlockSize(len(frames))
 
 	if len(frames) == 0 {
-		return false
+		return false, nil
 	}
 
 	legIkLeftPositions := make([]*mmath.MVec3, len(frames))
@@ -52,7 +52,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 	mlog.I(mi18n.T("足IK親最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 元モデルのデフォーム(IK OFF)
-	miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -73,7 +73,9 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 				legIkRightRotations[index] = legIkLocalRotation
 			}
 		}
-	})
+	}); err != nil {
+		return false, err
+	}
 
 	for i, iFrame := range frames {
 		frame := float32(iFrame)
@@ -112,7 +114,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 			continue
 		}
 
-		miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
+		if err := miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
 			frame := float32(startFrame + index + 1)
 
 			var wg sync.WaitGroup
@@ -158,11 +160,13 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 			}
 
 			wg.Wait()
-		})
+		}); err != nil {
+			return false, err
+		}
 	}
 
 	sizingSet.CompletedCleanLegIkParent = true
-	return true
+	return true, nil
 }
 
 func isValidCleanLegIkParent(sizingSet *domain.SizingSet) bool {
