@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanLegIkParent(sizingSet *domain.SizingSet) {
+func CleanLegIkParent(sizingSet *domain.SizingSet) bool {
 	if !sizingSet.IsCleanLegIkParent || (sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) {
-		return
+		return false
 	}
 
 	if !isValidCleanLegIkParent(sizingSet) {
-		return
+		return false
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -29,7 +29,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) {
 
 	if !(sizingMotion.BoneFrames.ContainsActive(pmx.LEG_IK_PARENT.Left()) ||
 		sizingMotion.BoneFrames.ContainsActive(pmx.LEG_IK_PARENT.Right())) {
-		return
+		return false
 	}
 
 	mlog.I(mi18n.T("足IK親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -38,6 +38,10 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) {
 		pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Left(), pmx.LEG_IK.Right()}
 	legIkBoneNames := []string{pmx.LEG_IK.Left(), pmx.LEG_IK.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(legIkRelativeBoneNames)
+
+	if len(frames) == 0 {
+		return false
+	}
 
 	legIkLeftPositions := make([]*mmath.MVec3, len(frames))
 	legIkRightPositions := make([]*mmath.MVec3, len(frames))
@@ -156,6 +160,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) {
 	}
 
 	sizingSet.CompletedCleanLegIkParent = true
+	return true
 }
 
 func isValidCleanLegIkParent(sizingSet *domain.SizingSet) bool {

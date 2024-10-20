@@ -11,18 +11,18 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingArmFingerStance(sizingSet *domain.SizingSet) {
+func SizingArmFingerStance(sizingSet *domain.SizingSet) bool {
 	originalModel := sizingSet.OriginalPmx
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
 	if (!sizingSet.IsSizingArmStance || (sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance)) &&
 		(!sizingSet.IsSizingFingerStance || (sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance)) {
-		return
+		return false
 	}
 
 	if !isValidSizingArm(sizingSet) {
-		return
+		return false
 	}
 
 	mlog.I(mi18n.T("腕指スタンス補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -74,6 +74,8 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet) {
 	// 腕スタンス補正だけしているときとかあるので、Completeは補正対象のフラグを受け継ぐ
 	sizingSet.CompletedSizingArmStance = sizingSet.IsSizingArmStance
 	sizingSet.CompletedSizingFingerStance = sizingSet.IsSizingFingerStance
+
+	return true
 }
 
 func createArmFingerStanceQuats(

@@ -1282,6 +1282,7 @@ func execSizing(toolState *ToolState) {
 	})
 
 	allScales := usecase.GenerateSizingScales(toolState.SizingSets)
+	isExec := false
 
 	var wg sync.WaitGroup
 	for _, sizingSet := range toolState.SizingSets {
@@ -1291,7 +1292,6 @@ func execSizing(toolState *ToolState) {
 			go func(sizingSet *domain.SizingSet) {
 				defer wg.Done()
 				if (!sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) ||
-					// (!sizingSet.IsSizingLower && sizingSet.CompletedSizingLower) ||
 					(!sizingSet.IsSizingUpper && sizingSet.CompletedSizingUpper) ||
 					(!sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) ||
 					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
@@ -1310,7 +1310,6 @@ func execSizing(toolState *ToolState) {
 					sizingSet.OutputVmd = sizingMotion.(*vmd.VmdMotion)
 
 					sizingSet.CompletedSizingLeg = false
-					// sizingSet.CompletedSizingLower = false
 					sizingSet.CompletedSizingUpper = false
 					sizingSet.CompletedSizingShoulder = false
 					sizingSet.CompletedSizingArmStance = false
@@ -1323,31 +1322,28 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedCleanGrip = false
 				}
 
-				usecase.CleanRoot(sizingSet)
+				isExec = usecase.CleanRoot(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.CleanCenter(sizingSet)
+				isExec = usecase.CleanCenter(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.CleanLegIkParent(sizingSet)
+				isExec = usecase.CleanLegIkParent(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.CleanArmIk(sizingSet)
+				isExec = usecase.CleanArmIk(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.CleanGrip(sizingSet)
+				isExec = usecase.CleanGrip(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.SizingLeg(sizingSet, allScales[sizingSet.Index])
+				isExec = usecase.SizingLeg(sizingSet, allScales[sizingSet.Index]) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
-				// usecase.SizingLower(sizingSet)
-				// sizingSet.OutputVmd.SetRandHash()
-
-				usecase.SizingUpper(sizingSet)
+				isExec = usecase.SizingUpper(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
-				usecase.SizingArmFingerStance(sizingSet)
+				isExec = usecase.SizingArmFingerStance(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 			}(sizingSet)
 		}
@@ -1359,7 +1355,11 @@ func execSizing(toolState *ToolState) {
 		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 	})
 
-	mlog.I(mi18n.T("サイジング終了"))
+	if isExec {
+		mlog.ILT(mi18n.T("サイジング終了"), mi18n.T("サイジング終了メッセージ"))
+	} else {
+		mlog.I(mi18n.T("サイジング終了"))
+	}
 
 	widget.Beep()
 }

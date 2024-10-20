@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
+func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) bool {
 	if !sizingSet.IsSizingLeg || (sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) {
-		return
+		return false
 	}
 
 	if !isValidSizingLower(sizingSet) {
-		return
+		return false
 	}
 
 	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -245,13 +245,16 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	frames := sizingMotion.BoneFrames.RegisteredFrames(all_lower_leg_bone_names)
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
+	if len(frames) == 0 {
+		return false
+	}
+
 	// 元モデルのデフォーム(IK ON)
 	miter.IterParallelByList(frames, 500, func(data, index int) {
 		frame := float32(data)
-		// 最適化結果のサイジングモーションを使用する
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_limb_bone_names, false)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_lower_leg_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	})
 
@@ -842,6 +845,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) {
 	}
 
 	sizingSet.CompletedSizingLeg = true
+	return true
 }
 
 func calcLegIkPositionY(

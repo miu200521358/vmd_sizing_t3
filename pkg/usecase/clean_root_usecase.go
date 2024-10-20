@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanRoot(sizingSet *domain.SizingSet) {
+func CleanRoot(sizingSet *domain.SizingSet) bool {
 	if !sizingSet.IsCleanRoot || (sizingSet.IsCleanRoot && sizingSet.CompletedCleanRoot) {
-		return
+		return false
 	}
 
 	if !isValidCleanRoot(sizingSet) {
-		return
+		return false
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -28,13 +28,17 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 	sizingMotion := sizingSet.OutputVmd
 
 	if !sizingMotion.BoneFrames.ContainsActive(pmx.ROOT.String()) {
-		return
+		return false
 	}
 
 	mlog.I(mi18n.T("全ての親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	rootRelativeBoneNames := []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(rootRelativeBoneNames)
+
+	if len(frames) == 0 {
+		return false
+	}
 
 	childLocalPositions := make([][]*mmath.MVec3, originalModel.Bones.Len())
 	childLocalRotations := make([][]*mmath.MQuaternion, originalModel.Bones.Len())
@@ -150,6 +154,7 @@ func CleanRoot(sizingSet *domain.SizingSet) {
 	}
 
 	sizingSet.CompletedCleanRoot = true
+	return true
 }
 
 func isValidCleanRoot(sizingSet *domain.SizingSet) bool {

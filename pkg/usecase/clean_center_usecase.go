@@ -13,13 +13,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanCenter(sizingSet *domain.SizingSet) {
+func CleanCenter(sizingSet *domain.SizingSet) bool {
 	if !sizingSet.IsCleanCenter || (sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) {
-		return
+		return false
 	}
 
 	if !isValidCleanCenter(sizingSet) {
-		return
+		return false
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -30,7 +30,7 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 
 	if !(sizingMotion.BoneFrames.ContainsActive(pmx.CENTER.String()) ||
 		isContainsActiveWaist) {
-		return
+		return false
 	}
 
 	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
@@ -46,7 +46,12 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	legRightBone := originalModel.Bones.GetByName(pmx.LEG.Right())
 
 	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.WAIST.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.LOWER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
+
 	frames := sizingMotion.BoneFrames.RegisteredFrames(centerRelativeBoneNames)
+
+	if len(frames) == 0 {
+		return false
+	}
 
 	centerPositions := make([]*mmath.MVec3, len(frames))
 	groovePositions := make([]*mmath.MVec3, len(frames))
@@ -179,6 +184,7 @@ func CleanCenter(sizingSet *domain.SizingSet) {
 	}
 
 	sizingSet.CompletedCleanCenter = true
+	return true
 }
 
 func isValidCleanCenter(sizingSet *domain.SizingSet) bool {

@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanArmIk(sizingSet *domain.SizingSet) {
+func CleanArmIk(sizingSet *domain.SizingSet) bool {
 	if !sizingSet.IsCleanArmIk || (sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) {
-		return
+		return false
 	}
 
 	if !isValidCleanArmIk(sizingSet) {
-		return
+		return false
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -31,12 +31,12 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 	armIkLeftBone, armIkRightBone := getArmIkBones(originalModel)
 
 	if armIkLeftBone == nil && armIkRightBone == nil {
-		return
+		return false
 	}
 
 	if !(sizingMotion.BoneFrames.ContainsActive(armIkLeftBone.Name()) ||
 		sizingMotion.BoneFrames.ContainsActive(armIkRightBone.Name())) {
-		return
+		return false
 	}
 
 	mlog.I(mi18n.T("腕IK最適化開始", map[string]interface{}{"No": sizingSet.Index + 1,
@@ -210,6 +210,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) {
 	}
 
 	sizingSet.CompletedCleanArmIk = true
+	return true
 }
 
 func getFixRotationForArmIk(

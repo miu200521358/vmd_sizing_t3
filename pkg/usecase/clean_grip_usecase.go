@@ -14,13 +14,13 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanGrip(sizingSet *domain.SizingSet) {
+func CleanGrip(sizingSet *domain.SizingSet) bool {
 	if !sizingSet.IsCleanGrip || (sizingSet.IsCleanGrip && sizingSet.CompletedCleanGrip) {
-		return
+		return false
 	}
 
 	if !isValidCleanGrip(sizingSet) {
-		return
+		return false
 	}
 
 	originalModel := sizingSet.OriginalPmx
@@ -31,7 +31,7 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 	gripBones := getGripBones(originalModel)
 
 	if len(gripBones) == 0 {
-		return
+		return false
 	}
 
 	hasGripBoneFrame := false
@@ -43,7 +43,7 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 	}
 
 	if !hasGripBoneFrame {
-		return
+		return false
 	}
 
 	allFrames := make([][]int, 2)
@@ -166,6 +166,7 @@ func CleanGrip(sizingSet *domain.SizingSet) {
 	}
 
 	sizingSet.CompletedCleanGrip = true
+	return true
 }
 
 func getFixRotationForGrip(

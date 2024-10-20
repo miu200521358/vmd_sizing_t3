@@ -23,7 +23,7 @@ func addAdjustBones(model *pmx.PmxModel) {
 	addedBones := make(map[string]*pmx.Bone, 0)
 	for _, boneIndex := range model.Bones.LayerSortedIndexes {
 		bone := model.Bones.Get(boneIndex)
-		if !(bone.IsStandard() && bone.CanManipulate() && !bone.IsEffectorRotation() && !bone.IsEffectorTranslation() && len(bone.Extend.IkLinkBoneIndexes) == 0 && len(bone.Extend.IkTargetBoneIndexes) == 0) {
+		if !(bone.IsStandard() && bone.Name() != pmx.ROOT.String() && bone.CanManipulate() && !bone.IsEffectorRotation() && !bone.IsEffectorTranslation() && len(bone.Extend.IkLinkBoneIndexes) == 0 && len(bone.Extend.IkTargetBoneIndexes) == 0) {
 			continue
 		}
 
@@ -53,6 +53,7 @@ func addAdjustBones(model *pmx.PmxModel) {
 		}
 
 		afterIndex := -1
+		adjustBone.ParentIndex = 0
 		for _, parentIndex := range bone.Extend.ParentBoneIndexes {
 			// 親ボーンが存在する場合、該当親ボーンの調整ボーンを親とする
 			parentBone := model.Bones.Get(parentIndex)
