@@ -103,6 +103,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
+	var wg sync.WaitGroup
 
 	for i, direction := range directions {
 		mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
@@ -120,10 +121,8 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				continue
 			}
 
-			if err := miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
-				frame := float32(startFrame + index + 1)
-
-				var wg sync.WaitGroup
+			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+				frame := float32(iFrame)
 
 				wg.Add(2)
 				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
@@ -163,10 +162,6 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 						break
 					}
 				}
-
-				wg.Wait()
-			}); err != nil {
-				return false, err
 			}
 		}
 	}
@@ -181,7 +176,7 @@ func getFixRotationForGrip(
 	fingerBoneName string,
 ) *mmath.MQuaternion {
 	fingerBone := originalModel.Bones.GetByName(fingerBoneName)
-	if fingerBone.IsFingerTail() {
+	if fingerBone.IsTail() {
 		return nil
 	}
 
@@ -234,6 +229,24 @@ func getGripBones(originalModel *pmx.PmxModel) []*pmx.Bone {
 						gripBones = append(gripBones, originalModel.Bones.Get(parentBone.EffectIndex))
 						gripBoneIndexes = append(gripBoneIndexes, parentBone.EffectIndex)
 					}
+				}
+			}
+		}
+		for _, boneIndex := range wristBone.Extend.ChildBoneIndexes {
+			bone := originalModel.Bones.Get(boneIndex)
+			if len(bone.Extend.EffectiveBoneIndexes) > 0 {
+				for _, effectiveBoneIndex := range bone.Extend.EffectiveBoneIndexes {
+					effectiveBone := originalModel.Bones.Get(effectiveBoneIndex)
+					if !slices.Contains(gripBoneIndexes, effectiveBone.Index()) {
+						// 手首からのボーンで付与親が付いてるである場合、握り拡散とみなす
+						gripBones = append(gripBones, effectiveBone)
+						gripBoneIndexes = append(gripBoneIndexes, effectiveBone.Index())
+					}
+				}
+				if !slices.Contains(gripBoneIndexes, bone.Index()) {
+					// 手首からのボーンで付与親が付いてるである場合、握り拡散とみなす
+					gripBones = append(gripBones, bone)
+					gripBoneIndexes = append(gripBoneIndexes, bone.Index())
 				}
 			}
 		}
