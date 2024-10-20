@@ -15,7 +15,87 @@ func CreateOutputModel(model *pmx.PmxModel) (*pmx.PmxModel, error) {
 		// 調整ボーン追加
 		addAdjustBones(sizingModel)
 
+		// 調整モーフ追加
+		addAdjustMorphs(sizingModel)
+
 		return sizingModel, nil
+	}
+}
+
+func addAdjustMorphs(model *pmx.PmxModel) {
+	displaySlot := model.DisplaySlots.GetByName("表情")
+
+	for n := range 2 {
+		var morphName string
+		var morphEnglishName string
+		var leftAngle float64
+		var rightAngle float64
+
+		switch n {
+		case 0:
+			morphName = "m_内股"
+			morphEnglishName = "m_InnerThigh"
+			leftAngle = -20
+			rightAngle = 20
+		case 1:
+			morphName = "m_がに股"
+			morphEnglishName = "m_OuterThigh"
+			leftAngle = 20
+			rightAngle = -20
+		}
+
+		{
+			offsets := make([]pmx.IMorphOffset, 0)
+			{
+				legBone := model.Bones.GetByName(pmx.LEG.Left())
+				rotVector := mmath.NewMQuaternionFromDegrees(1, 0, 0).MulVec3(
+					legBone.Extend.NormalizedLocalAxisX.MuledScalar(leftAngle))
+				{
+					offset := pmx.NewBoneMorphOffset(legBone.Index())
+					offset.Rotation = mmath.NewMQuaternionFromDegrees(rotVector.X, rotVector.Y, rotVector.Z)
+					offsets = append(offsets, offset)
+
+				}
+
+				legIkBone := model.Bones.GetByName(pmx.LEG_IK.Left())
+				{
+					offset := pmx.NewBoneMorphOffset(legIkBone.Index())
+					offset.Rotation = mmath.NewMQuaternionFromDegrees(rotVector.X, rotVector.Y, rotVector.Z)
+					offsets = append(offsets, offset)
+				}
+			}
+			{
+				legBone := model.Bones.GetByName(pmx.LEG.Right())
+				rotVector := mmath.NewMQuaternionFromDegrees(1, 0, 0).MulVec3(
+					legBone.Extend.NormalizedLocalAxisX.MuledScalar(rightAngle))
+				{
+					offset := pmx.NewBoneMorphOffset(legBone.Index())
+					offset.Rotation = mmath.NewMQuaternionFromDegrees(rotVector.X, rotVector.Y, rotVector.Z)
+					offsets = append(offsets, offset)
+
+				}
+
+				legIkBone := model.Bones.GetByName(pmx.LEG_IK.Right())
+				{
+					offset := pmx.NewBoneMorphOffset(legIkBone.Index())
+					offset.Rotation = mmath.NewMQuaternionFromDegrees(rotVector.X, rotVector.Y, rotVector.Z)
+					offsets = append(offsets, offset)
+				}
+			}
+
+			morph := pmx.NewMorph()
+			morph.SetIndex(model.Morphs.Len())
+			morph.SetName(morphName)
+			morph.SetEnglishName(morphEnglishName)
+			morph.Offsets = offsets
+			morph.MorphType = pmx.MORPH_TYPE_BONE
+			morph.Panel = pmx.MORPH_PANEL_OTHER_LOWER_RIGHT
+			morph.IsSystem = true
+			model.Morphs.Append(morph)
+
+			displaySlot.References = append(displaySlot.References,
+				&pmx.Reference{DisplayType: pmx.DISPLAY_TYPE_MORPH, DisplayIndex: morph.Index()})
+		}
 	}
 }
 
