@@ -154,11 +154,11 @@ func CleanArmIk(sizingSet *domain.SizingSet) bool {
 			}
 		}
 
-		for i, endFrame := range frames {
-			if i == 0 {
+		for j, endFrame := range frames {
+			if j == 0 {
 				continue
 			}
-			startFrame := frames[i-1] + 1
+			startFrame := frames[j-1] + 1
 
 			if endFrame-startFrame-1 <= 0 {
 				continue

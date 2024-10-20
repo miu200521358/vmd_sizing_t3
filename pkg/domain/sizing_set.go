@@ -28,7 +28,7 @@ type SizingSet struct {
 	IsSizingCleanAll bool
 	IsSizingAll      bool
 	IsCleanAll       bool
-	// IsSizingLower        bool
+
 	IsSizingLeg          bool
 	IsSizingUpper        bool
 	IsSizingShoulder     bool
@@ -39,10 +39,10 @@ type SizingSet struct {
 	IsCleanRoot        bool
 	IsCleanCenter      bool
 	IsCleanLegIkParent bool
+	IsCleanShoulderP   bool
 	IsCleanArmIk       bool
 	IsCleanGrip        bool
 
-	// CompletedSizingLower        bool
 	CompletedSizingLeg          bool
 	CompletedSizingUpper        bool
 	CompletedSizingShoulder     bool
@@ -54,6 +54,7 @@ type SizingSet struct {
 	CompletedCleanCenter      bool
 	CompletedCleanLegIkParent bool
 	CompletedCleanWaist       bool
+	CompletedCleanShoulderP   bool
 	CompletedCleanArmIk       bool
 	CompletedCleanGrip        bool
 
@@ -112,6 +113,7 @@ func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.IsCleanRoot = false
 	sizingSet.IsCleanCenter = false
 	sizingSet.IsCleanLegIkParent = false
+	sizingSet.IsCleanShoulderP = false
 	sizingSet.IsCleanArmIk = false
 	sizingSet.IsCleanGrip = false
 
@@ -119,6 +121,7 @@ func (sizingSet *SizingSet) ResetSizingFlag() {
 	sizingSet.CompletedCleanCenter = false
 	sizingSet.CompletedCleanLegIkParent = false
 	sizingSet.CompletedCleanWaist = false
+	sizingSet.CompletedCleanShoulderP = false
 	sizingSet.CompletedCleanArmIk = false
 	sizingSet.CompletedCleanGrip = false
 }

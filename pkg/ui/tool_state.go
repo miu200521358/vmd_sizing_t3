@@ -42,6 +42,7 @@ type ToolState struct {
 	CleanRootCheck                *walk.CheckBox      // 全親クリーニングチェック
 	CleanCenterCheck              *walk.CheckBox      // センタークリーニングチェック
 	CleanLegIkParentCheck         *walk.CheckBox      // 足IK親クリーニングチェック
+	CleanShoulderPCheck           *walk.CheckBox      // 肩Pクリーニングチェック
 	CleanArmIkCheck               *walk.CheckBox      // 腕IKクリーニングチェック
 	CleanGripCheck                *walk.CheckBox      // 握り拡散クリーニングチェック
 	OriginalPmxRatioEdit          *walk.NumberEdit    // オリジナルモデル比率編集
@@ -233,6 +234,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.CleanRootCheck.UpdateChecked(sizingSet.IsCleanRoot)
 	toolState.CleanCenterCheck.UpdateChecked(sizingSet.IsCleanCenter)
 	toolState.CleanLegIkParentCheck.UpdateChecked(sizingSet.IsCleanLegIkParent)
+	toolState.CleanShoulderPCheck.UpdateChecked(sizingSet.IsCleanShoulderP)
 	toolState.CleanArmIkCheck.UpdateChecked(sizingSet.IsCleanArmIk)
 	toolState.CleanGripCheck.UpdateChecked(sizingSet.IsCleanGrip)
 
@@ -321,6 +323,7 @@ func (toolState *ToolState) SetSizingCheckEnabled(enabled bool) {
 	toolState.CleanRootCheck.SetEnabled(enabled)
 	toolState.CleanCenterCheck.SetEnabled(enabled)
 	toolState.CleanLegIkParentCheck.SetEnabled(enabled)
+	toolState.CleanShoulderPCheck.SetEnabled(enabled)
 	toolState.CleanArmIkCheck.SetEnabled(enabled)
 	toolState.CleanGripCheck.SetEnabled(enabled)
 
@@ -434,6 +437,7 @@ func (toolState *ToolState) ResetSizingCheck(value bool) {
 	toolState.CleanRootCheck.UpdateChecked(value)
 	toolState.CleanCenterCheck.UpdateChecked(value)
 	toolState.CleanLegIkParentCheck.UpdateChecked(value)
+	toolState.CleanShoulderPCheck.UpdateChecked(value)
 	toolState.CleanArmIkCheck.UpdateChecked(value)
 	toolState.CleanGripCheck.UpdateChecked(value)
 }

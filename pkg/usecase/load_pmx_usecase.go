@@ -439,9 +439,25 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 			// 必要に応じて親を切り替える
 			var parentBone *pmx.Bone
 			if !baseModel.Bones.ContainsByName(parentName) {
-				// 素体モデルに存在しないボーン名が親の場合、その親を使用する
-				// システムボーンを含めない場合は、そのままモデルの親を使用する
-				parentBone = model.Bones.GetByName(parentName)
+				if bone.Config() != nil {
+					for _, configParentBoneName := range bone.Config().ParentBoneNames {
+						parentBoneName := configParentBoneName.StringFromDirection(bone.Direction())
+						if model.Bones.ContainsByName(parentBoneName) {
+							// 親ボーンが先モデルに存在する場合、そのボーンを親にする
+							parentBone = model.Bones.GetByName(parentBoneName)
+							break
+						}
+						if _, ok := nonExistBones[parentBoneName]; ok {
+							// 既に追加したボーンの場合、そのボーンを親にする
+							parentBone = nonExistBones[parentBoneName]
+							break
+						}
+					}
+				}
+				if parentBone == nil {
+					// 素体モデルに存在しないボーン名が親の場合、その親を使用する
+					parentBone = model.Bones.GetByName(parentName)
+				}
 			} else {
 				// それ以外は素体モデルの親を使用する
 				for _, boneIndex := range baseBone.Extend.ParentBoneIndexes {
@@ -480,7 +496,40 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 			}
 		} else {
 			baseParentBone := baseModel.Bones.Get(baseBone.ParentIndex)
-			parentBone := model.Bones.GetByName(baseParentBone.Name())
+			var parentBone *pmx.Bone
+			parentBone = model.Bones.GetByName(baseParentBone.Name())
+			if parentBone == nil {
+				parentBone = nonExistBones[baseParentBone.Name()]
+			}
+			if newBone.Config() != nil {
+				for _, configChildBoneName := range newBone.Config().ChildBoneNames {
+					childBoneName := configChildBoneName.StringFromDirection(newBone.Direction())
+					if model.Bones.ContainsByName(childBoneName) {
+						// 子ボーンが先モデルに存在する場合、そのボーンの親を対象候補にする
+						childBone := model.Bones.GetByName(childBoneName)
+						childParentBone := model.Bones.Get(childBone.ParentIndex)
+
+						// 先モデルの子ボーンの親と、素体モデル同名親ボーンのうち、もっとも変形階層が大きいボーンを親にする
+						boneIndexes := make([]int, 0)
+						if childParentBone != nil {
+							boneIndexes = append(boneIndexes, childParentBone.Index())
+						}
+						if parentBone != nil {
+							boneIndexes = append(boneIndexes, parentBone.Index())
+						}
+
+						if len(boneIndexes) > 0 {
+							parentBoneIndex := model.Bones.MaxBoneIndex(boneIndexes)
+							parentBone = model.Bones.Get(parentBoneIndex)
+							if parentBone == nil {
+								parentBone = nonExistBones[baseParentBone.Name()]
+							}
+						}
+
+						break
+					}
+				}
+			}
 			if parentBone == nil {
 				for _, boneIndex := range baseParentBone.Extend.ParentBoneIndexes {
 					baseParentBone = baseModel.Bones.Get(boneIndex)
@@ -489,11 +538,10 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 						break
 					}
 				}
-				if parentBone == nil {
-					continue
-				}
 			}
-
+			if parentBone == nil {
+				continue
+			}
 			newBone.ParentIndex = parentBone.Index()
 
 			// 親からの相対位置から比率で求める

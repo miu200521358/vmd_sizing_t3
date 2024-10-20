@@ -401,6 +401,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
 								toolState.SizingCleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
+								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
 								toolState.SizingCleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
@@ -412,6 +414,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
 							toolState.CleanLegIkParentCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
+							toolState.CleanShoulderPCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP)
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
 							toolState.CleanGripCheck.UpdateChecked(
@@ -477,6 +481,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.CleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
 								toolState.CleanAllCheck.Checked()
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
+								toolState.CleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
 								toolState.CleanAllCheck.Checked()
 							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
@@ -488,6 +494,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
 							toolState.CleanLegIkParentCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
+							toolState.CleanShoulderPCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP)
 							toolState.CleanArmIkCheck.UpdateChecked(
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
 							toolState.CleanGripCheck.UpdateChecked(
@@ -586,6 +594,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						OnCheckedChanged: func() {
 							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
 								toolState.SizingShoulderCheck.Checked()
+
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
+								toolState.SizingShoulderCheck.Checked()
+							toolState.CleanShoulderPCheck.UpdateChecked(
+								toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP)
 
 							go execSizing(toolState)
 							// 出力パス設定
@@ -754,6 +767,22 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						MaxSize:     declarative.Size{Width: 150, Height: 20},
 						Text:        mi18n.T("足IK親最適化"),
 						ToolTipText: mi18n.T("足IK親最適化説明"),
+					},
+					// 肩P最適化
+					declarative.CheckBox{
+						AssignTo: &toolState.CleanShoulderPCheck,
+						OnCheckedChanged: func() {
+							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
+								toolState.CleanShoulderPCheck.Checked()
+
+							go execSizing(toolState)
+							// 出力パス設定
+							setOutputPath(toolState)
+						},
+						MinSize:     declarative.Size{Width: 150, Height: 20},
+						MaxSize:     declarative.Size{Width: 150, Height: 20},
+						Text:        mi18n.T("肩P最適化"),
+						ToolTipText: mi18n.T("肩P最適化説明"),
 					},
 					// 腕IK最適化
 					declarative.CheckBox{
@@ -1321,6 +1350,7 @@ func execSizing(toolState *ToolState) {
 					(!sizingSet.IsCleanRoot && sizingSet.CompletedCleanRoot) ||
 					(!sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) ||
 					(!sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) ||
+					(!sizingSet.IsCleanShoulderP && sizingSet.CompletedCleanShoulderP) ||
 					(!sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) ||
 					(!sizingSet.IsCleanGrip && sizingSet.CompletedCleanGrip) {
 					// チェックを外したら読み直し
@@ -1341,6 +1371,7 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedCleanRoot = false
 					sizingSet.CompletedCleanCenter = false
 					sizingSet.CompletedCleanLegIkParent = false
+					sizingSet.CompletedCleanShoulderP = false
 					sizingSet.CompletedCleanArmIk = false
 					sizingSet.CompletedCleanGrip = false
 				}
@@ -1352,6 +1383,9 @@ func execSizing(toolState *ToolState) {
 				sizingSet.OutputVmd.SetRandHash()
 
 				isExec = usecase.CleanLegIkParent(sizingSet) || isExec
+				sizingSet.OutputVmd.SetRandHash()
+
+				isExec = usecase.CleanShoulderP(sizingSet) || isExec
 				sizingSet.OutputVmd.SetRandHash()
 
 				isExec = usecase.CleanArmIk(sizingSet) || isExec
