@@ -89,6 +89,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.02
+	var wg sync.WaitGroup
 
 	for i, direction := range directions {
 		mlog.I(mi18n.T("肩P最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
@@ -112,10 +113,8 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				continue
 			}
 
-			if err := miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
-				frame := float32(startFrame + index + 1)
-
-				var wg sync.WaitGroup
+			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+				frame := float32(iFrame)
 
 				wg.Add(2)
 				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
@@ -157,8 +156,6 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 					armBf.Registered = true
 					armBfs.Insert(armBf)
 				}
-			}); err != nil {
-				return false, err
 			}
 		}
 	}

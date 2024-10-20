@@ -43,9 +43,9 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		"LeftBoneName": armIkLeftBone.Name(), "RightBoneName": armIkRightBone.Name()}))
 
 	allFrames := make([][]int, 2)
-	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
 	allRelativeBoneNames := make([][]string, 2)
 	allBlockSizes := make([]int, 2)
+	armRotations := make([][]*mmath.MQuaternion, originalModel.Bones.Len())
 
 	for i, direction := range directions {
 		var armIkBone *pmx.Bone
@@ -77,7 +77,6 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
 
 		allFrames[i] = frames
-		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 		allRelativeBoneNames[i] = relativeBoneNames
 
 		// 元モデルのデフォーム(IK ON)
@@ -87,7 +86,15 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
 			vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, relativeBoneNames, false)
 
-			allVmdDeltas[i][index] = vmdDeltas
+			for _, boneDelta := range vmdDeltas.Bones.Data {
+				quat := getFixRotationForArmIk(vmdDeltas, armIkBone, boneDelta)
+				if quat != nil {
+					if armRotations[boneDelta.Bone.Index()] == nil {
+						armRotations[boneDelta.Bone.Index()] = make([]*mmath.MQuaternion, len(frames))
+					}
+					armRotations[boneDelta.Bone.Index()][index] = quat
+				}
+			}
 		}); err != nil {
 			return false, err
 		}
@@ -110,31 +117,29 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}
 	}
 
-	for i, direction := range directions {
-		var armIkBone *pmx.Bone
-		switch direction {
-		case "左":
-			armIkBone = armIkLeftBone
-		case "右":
-			armIkBone = armIkRightBone
-		}
-
-		directionVmdDeltas := allVmdDeltas[i]
-
-		for _, vmdDeltas := range directionVmdDeltas {
-			for _, boneDelta := range vmdDeltas.Bones.Data {
-				quat := getFixRotationForArmIk(vmdDeltas, armIkBone, boneDelta)
-				if quat != nil {
-					bf := sizingMotion.BoneFrames.Get(boneDelta.Bone.Name()).Get(boneDelta.Frame)
-					bf.Rotation = quat
-					sizingMotion.InsertRegisteredBoneFrame(boneDelta.Bone.Name(), bf)
-				}
+	for i, rotations := range armRotations {
+		for j, rot := range rotations {
+			if rot == nil {
+				continue
 			}
+
+			bone := originalModel.Bones.Get(i)
+			var frame float32
+			if bone.Direction() == "左" {
+				frame = float32(allFrames[0][j])
+			} else {
+				frame = float32(allFrames[1][j])
+			}
+
+			bf := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame)
+			bf.Rotation = rot
+			sizingMotion.InsertRegisteredBoneFrame(bone.Name(), bf)
 		}
 	}
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
+	var wg sync.WaitGroup
 
 	for i, direction := range directions {
 		var armIkBone *pmx.Bone
@@ -166,10 +171,8 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				continue
 			}
 
-			if err := miter.IterParallelByCount(endFrame-startFrame-1, allBlockSizes[i], func(index int) {
-				frame := float32(startFrame + index + 1)
-
-				var wg sync.WaitGroup
+			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+				frame := float32(iFrame)
 
 				wg.Add(2)
 				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
@@ -207,10 +210,6 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 						break
 					}
 				}
-
-				wg.Wait()
-			}); err != nil {
-				return false, err
 			}
 		}
 	}
@@ -243,9 +242,9 @@ func getFixRotationForArmIk(
 			parentQuat = parentQuat.Muled(parentDelta.FilledFrameRotation())
 		}
 		return parentQuat.Inverted().ToMat4().Muled(armIkTargetDelta.FilledGlobalMatrix().Inverted()).Muled(boneDelta.FilledGlobalMatrix()).Quaternion()
-	} else {
-		return boneDelta.FilledFrameRotation()
 	}
+
+	return boneDelta.FilledFrameRotation()
 }
 
 func isValidCleanArmIk(sizingSet *domain.SizingSet) bool {

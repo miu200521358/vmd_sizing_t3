@@ -127,7 +127,8 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 中間キーフレのズレをチェック
-	threshold := 0.0005
+	threshold := 0.001
+	var wg sync.WaitGroup
 
 	for i, endFrame := range frames {
 		if i == 0 {
@@ -139,10 +140,9 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			continue
 		}
 
-		if err := miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
-			frame := float32(startFrame + index + 1)
+		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+			frame := float32(iFrame)
 
-			var wg sync.WaitGroup
 			wg.Add(2)
 			var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
 
@@ -183,8 +183,6 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 					}
 				}
 			}
-		}); err != nil {
-			return false, err
 		}
 	}
 

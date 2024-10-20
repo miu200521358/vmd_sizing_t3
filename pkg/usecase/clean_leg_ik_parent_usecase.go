@@ -103,6 +103,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
+	var wg sync.WaitGroup
 
 	for i, endFrame := range frames {
 		if i == 0 {
@@ -114,10 +115,8 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			continue
 		}
 
-		if err := miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
-			frame := float32(startFrame + index + 1)
-
-			var wg sync.WaitGroup
+		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+			frame := float32(iFrame)
 
 			wg.Add(2)
 			var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
@@ -158,10 +157,6 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 					}
 				}(boneName, sizingMotion.BoneFrames.Get(boneName))
 			}
-
-			wg.Wait()
-		}); err != nil {
-			return false, err
 		}
 	}
 
