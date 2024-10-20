@@ -13,7 +13,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingUpper(sizingSet *domain.SizingSet) (bool, error) {
+func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsSizingUpper || (sizingSet.IsSizingUpper && sizingSet.CompletedSizingUpper) {
 		return false, nil
 	}
@@ -101,7 +101,7 @@ func SizingUpper(sizingSet *domain.SizingSet) (bool, error) {
 	upper2IkBone.Ik.Links[0].BoneIndex = sizingUpper2Bone.Index()
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(trunk_upper_bone_names)
-	blockSize := miter.GetBlockSize(len(frames))
+	blockSize := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil

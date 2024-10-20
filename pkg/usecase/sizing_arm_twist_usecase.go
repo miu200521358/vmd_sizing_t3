@@ -16,7 +16,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingArmTwist(sizingSet *domain.SizingSet) (bool, error) {
+func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsSizingArmTwist || (sizingSet.IsSizingArmTwist && sizingSet.CompletedSizingArmTwist) {
 		return false, nil
 	}
@@ -118,7 +118,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet) (bool, error) {
 
 			frames := sizingMotion.BoneFrames.RegisteredFrames(arm_direction_bone_names[i])
 			allFrames[i] = frames
-			allBlockSizes[i] = miter.GetBlockSize(len(frames))
+			allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
 
 			mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 

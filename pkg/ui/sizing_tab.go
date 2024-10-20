@@ -372,54 +372,36 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						AssignTo: &toolState.SizingCleanAllCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingCleanAll = toolState.SizingCleanAllCheck.Checked()
+
 								sizingSet.IsSizingLeg = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsSizingUpper = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsSizingShoulder = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsSizingArmStance = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsSizingFingerStance = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsSizingArmTwist = toolState.SizingCleanAllCheck.Checked()
+
+								sizingSet.IsCleanRoot = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsCleanCenter = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsCleanLegIkParent = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsCleanShoulderP = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsCleanArmIk = toolState.SizingCleanAllCheck.Checked()
+								sizingSet.IsCleanGrip = toolState.SizingCleanAllCheck.Checked()
 							}
+
 							toolState.SizingLegCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
-
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingCleanAll =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmStance =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmTwist =
-								toolState.SizingCleanAllCheck.Checked()
-
 							toolState.SizingUpperCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 							toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 							toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 							toolState.SizingFingerStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 							toolState.SizingArmTwistCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
-								toolState.SizingCleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
-								toolState.SizingCleanAllCheck.Checked()
-
-							toolState.CleanRootCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
-							toolState.CleanCenterCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
-							toolState.CleanLegIkParentCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
-							toolState.CleanShoulderPCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP)
-							toolState.CleanArmIkCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
-							toolState.CleanGripCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip)
+							toolState.CleanRootCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.CleanCenterCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.CleanLegIkParentCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.CleanShoulderPCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.CleanArmIkCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+							toolState.CleanGripCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 
 							go execSizing(toolState)
 
@@ -436,23 +418,17 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						AssignTo: &toolState.SizingAllCheck,
 						OnCheckedChanged: func() {
 							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsSizingAll = toolState.SizingAllCheck.Checked()
+
 								sizingSet.IsSizingLeg = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingUpper = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingShoulder = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingArmStance = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingFingerStance = toolState.SizingAllCheck.Checked()
+								sizingSet.IsSizingArmTwist = toolState.SizingAllCheck.Checked()
 							}
+
 							toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
-
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingAll =
-								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingUpper =
-								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
-								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmStance =
-								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
-								toolState.SizingAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsSizingArmTwist =
-								toolState.SizingAllCheck.Checked()
-
 							toolState.SizingUpperCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingShoulderCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 							toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
@@ -473,33 +449,23 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					declarative.CheckBox{
 						AssignTo: &toolState.CleanAllCheck,
 						OnCheckedChanged: func() {
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanAll =
-								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
-								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
-								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
-								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
-								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
-								toolState.CleanAllCheck.Checked()
-							toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
-								toolState.CleanAllCheck.Checked()
+							for _, sizingSet := range toolState.SizingSets {
+								sizingSet.IsCleanAll = toolState.CleanAllCheck.Checked()
 
-							toolState.CleanRootCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
-							toolState.CleanCenterCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
-							toolState.CleanLegIkParentCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
-							toolState.CleanShoulderPCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP)
-							toolState.CleanArmIkCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
-							toolState.CleanGripCheck.UpdateChecked(
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip)
+								sizingSet.IsCleanRoot = toolState.CleanAllCheck.Checked()
+								sizingSet.IsCleanCenter = toolState.CleanAllCheck.Checked()
+								sizingSet.IsCleanLegIkParent = toolState.CleanAllCheck.Checked()
+								sizingSet.IsCleanShoulderP = toolState.CleanAllCheck.Checked()
+								sizingSet.IsCleanArmIk = toolState.CleanAllCheck.Checked()
+								sizingSet.IsCleanGrip = toolState.CleanAllCheck.Checked()
+							}
+
+							toolState.CleanRootCheck.UpdateChecked(toolState.CleanAllCheck.Checked())
+							toolState.CleanCenterCheck.UpdateChecked(toolState.CleanAllCheck.Checked())
+							toolState.CleanLegIkParentCheck.UpdateChecked(toolState.CleanAllCheck.Checked())
+							toolState.CleanShoulderPCheck.UpdateChecked(toolState.CleanAllCheck.Checked())
+							toolState.CleanArmIkCheck.UpdateChecked(toolState.CleanAllCheck.Checked())
+							toolState.CleanGripCheck.UpdateChecked(toolState.CleanAllCheck.Checked())
 
 							go execSizing(toolState)
 
@@ -1334,6 +1300,8 @@ func execSizing(toolState *ToolState) {
 	allScales := usecase.GenerateSizingScales(toolState.SizingSets)
 	isExec := false
 
+	errorChan := make(chan error, len(toolState.SizingSets))
+
 	var wg sync.WaitGroup
 	for _, sizingSet := range toolState.SizingSets {
 		if sizingSet.OriginalPmx != nil && sizingSet.SizingPmx != nil &&
@@ -1376,78 +1344,89 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedCleanGrip = false
 				}
 
-				if res, err := usecase.CleanRoot(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.CleanRoot(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.CleanCenter(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.CleanCenter(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.CleanLegIkParent(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.CleanLegIkParent(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.CleanShoulderP(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.CleanShoulderP(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.CleanArmIk(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.CleanArmIk(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.CleanGrip(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.CleanGrip(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index]); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index], len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.SizingUpper(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.SizingUpper(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.SizingShoulder(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.SizingShoulder(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.SizingArmFingerStance(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.SizingArmFingerStance(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
 				}
 
-				if res, err := usecase.SizingArmTwist(sizingSet); err != nil {
-					widget.RaiseError(err)
+				if res, err := usecase.SizingArmTwist(sizingSet, len(toolState.SizingSets)); err != nil {
+					errorChan <- err
+					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
@@ -1456,6 +1435,14 @@ func execSizing(toolState *ToolState) {
 		}
 	}
 	wg.Wait()
+	close(errorChan)
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			widget.RaiseError(err)
+		}
+	}
 
 	toolState.ControlWindow.Synchronize(func() {
 		toolState.SetEnabled(true)

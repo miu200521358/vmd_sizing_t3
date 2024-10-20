@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanRoot(sizingSet *domain.SizingSet) (bool, error) {
+func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsCleanRoot || (sizingSet.IsCleanRoot && sizingSet.CompletedCleanRoot) {
 		return false, nil
 	}
@@ -35,7 +35,7 @@ func CleanRoot(sizingSet *domain.SizingSet) (bool, error) {
 
 	rootRelativeBoneNames := []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(rootRelativeBoneNames)
-	blockSize := miter.GetBlockSize(len(frames))
+	blockSize := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil

@@ -13,7 +13,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanCenter(sizingSet *domain.SizingSet) (bool, error) {
+func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsCleanCenter || (sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) {
 		return false, nil
 	}
@@ -48,7 +48,7 @@ func CleanCenter(sizingSet *domain.SizingSet) (bool, error) {
 	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.WAIST.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.LOWER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(centerRelativeBoneNames)
-	blockSize := miter.GetBlockSize(len(frames))
+	blockSize := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil
@@ -128,7 +128,6 @@ func CleanCenter(sizingSet *domain.SizingSet) (bool, error) {
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.0005
-	var wg sync.WaitGroup
 
 	for i, endFrame := range frames {
 		if i == 0 {
@@ -143,6 +142,7 @@ func CleanCenter(sizingSet *domain.SizingSet) (bool, error) {
 		if err := miter.IterParallelByCount(endFrame-startFrame-1, blockSize, func(index int) {
 			frame := float32(startFrame + index + 1)
 
+			var wg sync.WaitGroup
 			wg.Add(2)
 			var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
 

@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanLegIkParent(sizingSet *domain.SizingSet) (bool, error) {
+func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsCleanLegIkParent || (sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) {
 		return false, nil
 	}
@@ -38,7 +38,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet) (bool, error) {
 		pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Left(), pmx.LEG_IK.Right()}
 	legIkBoneNames := []string{pmx.LEG_IK.Left(), pmx.LEG_IK.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(legIkRelativeBoneNames)
-	blockSize := miter.GetBlockSize(len(frames))
+	blockSize := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil

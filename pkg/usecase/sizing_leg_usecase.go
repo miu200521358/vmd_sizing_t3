@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) (bool, error) {
+func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bool, error) {
 	if !sizingSet.IsSizingLeg || (sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) {
 		return false, nil
 	}
@@ -244,7 +244,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3) (bool, error) {
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(all_lower_leg_bone_names)
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
-	blockSize := miter.GetBlockSize(len(frames))
+	blockSize := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil

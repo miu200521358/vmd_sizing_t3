@@ -378,6 +378,10 @@ func (toolState *ToolState) IsOriginalJson() bool {
 }
 
 func (toolState *ToolState) onClickSizingTabMotionSave() {
+	toolState.ControlWindow.Synchronize(func() {
+		toolState.SetEnabled(false)
+	})
+
 	for i, sizingSet := range toolState.SizingSets {
 		rep := repository.NewVmdRepository()
 		sizingSet.OutputVmd.SetName(sizingSet.SizingPmx.Name())
@@ -390,10 +394,19 @@ func (toolState *ToolState) onClickSizingTabMotionSave() {
 		}
 	}
 
+	toolState.ControlWindow.Synchronize(func() {
+		toolState.SetEnabled(true)
+		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
+	})
+
 	widget.Beep()
 }
 
 func (toolState *ToolState) onClickSizingTabModelSave() {
+	toolState.ControlWindow.Synchronize(func() {
+		toolState.SetEnabled(false)
+	})
+
 	for i, sizingSet := range toolState.SizingSets {
 		rep := repository.NewPmxRepository()
 		if data, err := rep.Load(sizingSet.SizingPmxPath); err != nil {
@@ -416,6 +429,11 @@ func (toolState *ToolState) onClickSizingTabModelSave() {
 			}
 		}
 	}
+
+	toolState.ControlWindow.Synchronize(func() {
+		toolState.SetEnabled(true)
+		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
+	})
 
 	widget.Beep()
 }

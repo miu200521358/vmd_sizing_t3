@@ -13,7 +13,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanShoulderP(sizingSet *domain.SizingSet) (bool, error) {
+func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsCleanShoulderP || (sizingSet.IsCleanShoulderP && sizingSet.CompletedCleanShoulderP) {
 		return false, nil
 	}
@@ -37,7 +37,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet) (bool, error) {
 		mlog.I(mi18n.T("肩P最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
 		frames := sizingMotion.BoneFrames.RegisteredFrames(shoulder_direction_bone_names[i])
-		allBlockSizes[i] = miter.GetBlockSize(len(frames))
+		allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
 
 		allFrames[i] = frames
 		shoulderRotations[i] = make([]*mmath.MQuaternion, len(frames))

@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanArmIk(sizingSet *domain.SizingSet) (bool, error) {
+func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsCleanArmIk || (sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) {
 		return false, nil
 	}
@@ -74,7 +74,7 @@ func CleanArmIk(sizingSet *domain.SizingSet) (bool, error) {
 		}
 		relativeBoneNames = append(relativeBoneNames, pmx.MIDDLE1.StringFromDirection(direction))
 		frames := sizingMotion.BoneFrames.RegisteredFrames(relativeBoneNames)
-		allBlockSizes[i] = miter.GetBlockSize(len(frames))
+		allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
 
 		allFrames[i] = frames
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))

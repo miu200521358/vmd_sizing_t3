@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanGrip(sizingSet *domain.SizingSet) (bool, error) {
+func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	if !sizingSet.IsCleanGrip || (sizingSet.IsCleanGrip && sizingSet.CompletedCleanGrip) {
 		return false, nil
 	}
@@ -62,7 +62,7 @@ func CleanGrip(sizingSet *domain.SizingSet) (bool, error) {
 		}
 
 		frames := sizingMotion.BoneFrames.RegisteredFrames(fingerBoneNames)
-		allBlockSizes[i] = miter.GetBlockSize(len(frames))
+		allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
 
 		allFrames[i] = frames
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
