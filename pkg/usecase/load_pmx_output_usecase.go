@@ -50,10 +50,6 @@ func addAdjustBones(model *pmx.PmxModel) {
 			adjustBone.BoneFlag |= pmx.BONE_FLAG_HAS_LOCAL_AXIS
 			adjustBone.LocalAxisX = bone.LocalAxisX.Copy()
 			adjustBone.LocalAxisZ = bone.LocalAxisZ.Copy()
-		} else {
-			adjustBone.BoneFlag |= pmx.BONE_FLAG_HAS_LOCAL_AXIS
-			adjustBone.LocalAxisX = bone.Extend.NormalizedLocalAxisX.Copy()
-			adjustBone.LocalAxisZ = bone.Extend.NormalizedLocalAxisZ.Copy()
 		}
 
 		afterIndex := -1
