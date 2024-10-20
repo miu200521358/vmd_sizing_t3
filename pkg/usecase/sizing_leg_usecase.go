@@ -30,6 +30,24 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
 
+	// Aスタンス重心計算
+	var originalInitialGravityPos, sizingInitialGravityPos *mmath.MVec3
+	initialMotion := vmd.NewVmdMotion("")
+
+	{
+		vmdDeltas := delta.NewVmdDeltas(0, originalModel.Bones, originalModel.Hash(), initialMotion.Hash())
+		vmdDeltas.Morphs = deform.DeformMorph(originalModel, initialMotion.MorphFrames, 0, nil)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, initialMotion, vmdDeltas, true, 0, gravity_bone_names, false)
+		originalInitialGravityPos = calcGravity(vmdDeltas)
+	}
+	{
+		vmdDeltas := delta.NewVmdDeltas(0, sizingModel.Bones, sizingModel.Hash(), initialMotion.Hash())
+		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, initialMotion.MorphFrames, 0, nil)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, initialMotion, vmdDeltas, true, 0, gravity_bone_names, false)
+		sizingInitialGravityPos = calcGravity(vmdDeltas)
+	}
+	gravityRatio := sizingInitialGravityPos.Y / originalInitialGravityPos.Y
+
 	// ------------
 
 	originalLeftAnkleBone := originalModel.Bones.GetIkTarget(pmx.LEG_IK.Left())
@@ -69,7 +87,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_lower_leg_bone_names, false)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_gravity_lower_leg_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	}); err != nil {
 		return false, err
@@ -149,11 +167,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	centerPositions := make([]*mmath.MVec3, len(frames))
 	groovePositions := make([]*mmath.MVec3, len(frames))
 
-	centerTargetBones := []*pmx.Bone{
-		sizingModel.Bones.GetByName(pmx.ANKLE.Right()), sizingModel.Bones.GetByName(pmx.ANKLE.Left()),
-		sizingModel.Bones.GetByName(pmx.KNEE.Right()), sizingModel.Bones.GetByName(pmx.KNEE.Left()),
-		sizingModel.Bones.GetByName(pmx.LEG.Right()), sizingModel.Bones.GetByName(pmx.LEG.Left()),
-		sizingModel.Bones.GetByName(pmx.LOWER.String()),
+	var gravityMotion *vmd.VmdMotion
+	if mlog.IsVerbose() {
+		gravityMotion = vmd.NewVmdMotion("")
 	}
 
 	// 先モデルのデフォーム
@@ -162,39 +178,31 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, all_lower_leg_bone_names, false)
+		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, false, frame, gravity_bone_names, false)
 
-		// 各関節の最も地面に近い位置からセンターを計算する
-		centerTargetYs := []float64{
-			mmath.Round(originalAllDeltas[index].Bones.GetByName(pmx.ANKLE.Right()).FilledGlobalPosition().Y, 0.1),
-			mmath.Round(originalAllDeltas[index].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition().Y, 0.1),
-			mmath.Round(originalAllDeltas[index].Bones.GetByName(pmx.KNEE.Right()).FilledGlobalPosition().Y, 0.1),
-			mmath.Round(originalAllDeltas[index].Bones.GetByName(pmx.KNEE.Left()).FilledGlobalPosition().Y, 0.1),
-			mmath.Round(originalAllDeltas[index].Bones.GetByName(pmx.LEG.Right()).FilledGlobalPosition().Y, 0.1),
-			mmath.Round(originalAllDeltas[index].Bones.GetByName(pmx.LEG.Left()).FilledGlobalPosition().Y, 0.1),
-			mmath.Round(originalAllDeltas[index].Bones.GetByName(pmx.LOWER.String()).FilledGlobalPosition().Y, 0.1),
-		}
-
-		// 最もY位置が低い関節を処理対象とする(優先度が高いものが上)
-		centerTargetBone := centerTargetBones[mmath.ArgMin(centerTargetYs)]
-		originalCenterTargetDelta := originalAllDeltas[index].Bones.GetByName(centerTargetBone.Name())
-
-		sizingCenterTargetDelta := vmdDeltas.Bones.GetByName(centerTargetBone.Name())
-
-		originalCenterTargetY := originalCenterTargetDelta.FilledGlobalPosition().Y
-		sizingCenterTargetY := sizingCenterTargetDelta.FilledGlobalPosition().Y
-
-		if centerTargetBone.Name() == pmx.ANKLE.Left() || centerTargetBone.Name() == pmx.ANKLE.Right() {
-			originalCenterTargetY -= originalModel.Bones.GetByName(centerTargetBone.Name()).Position.Y
-			sizingCenterTargetY -= centerTargetBone.Position.Y
-		}
+		// 重心計算
+		originalGravityPos := calcGravity(originalAllDeltas[index])
+		sizingGravityPos := calcGravity(vmdDeltas)
 
 		// 元モデルの対象ボーンのY位置*スケールから補正後のY位置を計算
-		sizingFixCenterTargetY := originalCenterTargetY * scale.Y
-		yDiff := sizingFixCenterTargetY - sizingCenterTargetY
+		sizingFixCenterTargetY := originalGravityPos.Y * gravityRatio
+		yDiff := sizingFixCenterTargetY - sizingGravityPos.Y
 
-		mlog.V("足補正07[%.0f][%s] originalY[%.4f], sizingY[%.4f], sizingFixY[%.4f], diff[%.4f]",
-			frame, centerTargetBone.Name(), originalCenterTargetY, sizingCenterTargetY, sizingFixCenterTargetY, yDiff)
+		mlog.V("足補正07[%.0f] originalY[%.4f], sizingY[%.4f], sizingFixY[%.4f], diff[%.4f]",
+			frame, originalGravityPos.Y, sizingGravityPos.Y, sizingFixCenterTargetY, yDiff)
+
+		if mlog.IsVerbose() && gravityMotion != nil {
+			{
+				bf := vmd.NewBoneFrame(frame)
+				bf.Position = originalGravityPos
+				gravityMotion.InsertRegisteredBoneFrame("元重心", bf)
+			}
+			{
+				bf := vmd.NewBoneFrame(frame)
+				bf.Position = sizingGravityPos
+				gravityMotion.InsertRegisteredBoneFrame("先重心", bf)
+			}
+		}
 
 		// センターの位置をスケールに合わせる
 		sizingCenterBf := sizingMotion.BoneFrames.Get(sizingCenterBone.Name()).Get(frame)
@@ -204,6 +212,12 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		groovePositions[index] = sizingGrooveBf.Position.Added(&mmath.MVec3{X: 0, Y: yDiff, Z: 0})
 	}); err != nil {
 		return false, err
+	}
+
+	if mlog.IsVerbose() && gravityMotion != nil {
+		rep := repository.NewVmdRepository()
+		path := mutils.CreateOutputPath(sizingSet.OutputVmdPath, "gravity")
+		rep.Save(path, gravityMotion, true)
 	}
 
 	// 補正を登録
@@ -704,4 +718,31 @@ func isValidSizingLower(sizingSet *domain.SizingSet) bool {
 	}
 
 	return true
+}
+
+func calcGravity(vmdDeltas *delta.VmdDeltas) *mmath.MVec3 {
+	gravityPos := mmath.NewMVec3()
+
+	for _, boneName := range gravity_bone_names {
+		fromBoneDelta := vmdDeltas.Bones.GetByName(boneName)
+		if fromBoneDelta == nil || fromBoneDelta.Bone == nil {
+			continue
+		}
+		gravityBoneNames := fromBoneDelta.Bone.Config().CenterOfGravityBoneNames
+		if len(gravityBoneNames) == 0 {
+			continue
+		}
+		toBoneName := gravityBoneNames[0].StringFromDirection(
+			fromBoneDelta.Bone.Direction())
+		toBoneDelta := vmdDeltas.Bones.GetByName(toBoneName)
+		if toBoneDelta == nil || toBoneDelta.Bone == nil {
+			continue
+		}
+		gravity := fromBoneDelta.Bone.Config().CenterOfGravity
+
+		gravityPos.Add(toBoneDelta.FilledGlobalPosition().Added(
+			fromBoneDelta.FilledGlobalPosition()).MuledScalar(0.5 * gravity))
+	}
+
+	return gravityPos
 }
