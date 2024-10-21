@@ -153,7 +153,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					controlWindow.UpdateMaxFrame(motion.MaxFrame())
 					go execSizing(toolState)
 				} else {
-					mlog.E(mi18n.T("読み込み失敗"), err)
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
 				}
 			})
 		}
@@ -228,7 +228,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// 出力パス設定
 					setOutputPath(toolState)
 				} else {
-					mlog.E(mi18n.T("読み込み失敗"), err)
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
 				}
 			})
 		}
@@ -307,7 +307,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// 出力パス設定
 					setOutputPath(toolState)
 				} else {
-					mlog.E(mi18n.T("読み込み失敗"), err)
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
 				}
 			})
 		}
@@ -1324,7 +1324,7 @@ func execSizing(toolState *ToolState) {
 					// チェックを外したら読み直し
 					sizingMotion, err := repository.NewVmdVpdRepository().Load(sizingSet.OriginalVmdPath)
 					if err != nil {
-						mlog.E(mi18n.T("読み込み失敗"), err)
+						mlog.ET(mi18n.T("読み込み失敗"), err.Error())
 						return
 					}
 					sizingSet.OutputVmd = sizingMotion.(*vmd.VmdMotion)
