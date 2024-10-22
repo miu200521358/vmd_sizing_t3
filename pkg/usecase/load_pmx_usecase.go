@@ -728,8 +728,8 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 				}
 
 				newBone.Position = legBone.Position.Copy()
-			} else if slices.Contains([]string{pmx.TRUNK_ROOT.String(), pmx.UPPER_ROOT.String(), pmx.LOWER_ROOT.String()}, baseBone.Name()) {
-				// 体幹中心・上半身根元・下半身根元は上半身と下半身の間
+			} else if pmx.TRUNK_ROOT.String() == baseBone.Name() {
+				// 体幹中心は上半身と下半身の間
 				upperBone := model.Bones.GetByName(pmx.UPPER.String())
 				lowerBone := model.Bones.GetByName(pmx.LOWER.String())
 				if upperBone == nil || lowerBone == nil {
@@ -737,6 +737,24 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 				}
 
 				newBone.Position = upperBone.Position.Lerp(lowerBone.Position, 0.5)
+				newBone.IsSystem = true
+			} else if pmx.UPPER_ROOT.String() == baseBone.Name() {
+				// 上半身根元は上半身
+				upperBone := model.Bones.GetByName(pmx.UPPER.String())
+				if upperBone == nil {
+					continue
+				}
+
+				newBone.Position = upperBone.Position.Copy()
+				newBone.IsSystem = true
+			} else if pmx.LOWER_ROOT.String() == baseBone.Name() {
+				// 下半身根元は下半身
+				lowerBone := model.Bones.GetByName(pmx.LOWER.String())
+				if lowerBone == nil {
+					continue
+				}
+
+				newBone.Position = lowerBone.Position.Copy()
 				newBone.IsSystem = true
 			} else if slices.Contains([]string{pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}, baseBone.Name()) {
 				// 足IK親 は 足IKのYを0にした位置
