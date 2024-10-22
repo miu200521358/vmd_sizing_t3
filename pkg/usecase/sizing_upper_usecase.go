@@ -151,7 +151,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	sizingRightShoulderRotations := make([]*mmath.MQuaternion, len(frames))
 	sizingNeckRotations := make([]*mmath.MQuaternion, len(frames))
 
-	mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%v", upperScales)}))
+	mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScales.Y)}))
 
 	// 先モデルの上半身デフォーム(IK ON)
 	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
@@ -203,7 +203,12 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			nowUpperBf := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame)
 
 			// 首・肩は逆補正をかける
-			upperDiffRotation := nowUpperBf.Rotation.Inverted().Muled(sizingUpperRotations[n][index]).Inverted()
+			var upperDiffRotation *mmath.MQuaternion
+			if nowUpperBf.Rotation != nil {
+				upperDiffRotation = nowUpperBf.Rotation.Inverted().Muled(sizingUpperRotations[n][index]).Inverted()
+			} else {
+				upperDiffRotation = mmath.MQuaternionIdent.Inverted().Muled(sizingUpperRotations[n][index]).Inverted()
+			}
 
 			sizingLeftShoulderRotations[index] = upperDiffRotation.Muled(sizingLeftShoulderRotations[index])
 			sizingRightShoulderRotations[index] = upperDiffRotation.Muled(sizingRightShoulderRotations[index])
