@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
@@ -89,74 +91,97 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.02
+	errorChan := make(chan error, 2)
 	var wg sync.WaitGroup
+	wg.Add(2)
 
 	for i, direction := range directions {
-		mlog.I(mi18n.T("肩P最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
+		go func(i int, direction string) {
+			defer wg.Done()
+			defer func() {
+				// recoverによるpanicキャッチ
+				if r := recover(); r != nil {
+					stackTrace := debug.Stack()
 
-		frames := allFrames[i]
+					var errMsg string
+					// パニックの値がerror型である場合、エラーメッセージを取得
+					if err, ok := r.(error); ok {
+						errMsg = err.Error()
+					} else {
+						// それ以外の型の場合は、文字列に変換
+						errMsg = fmt.Sprintf("%v", r)
+					}
 
-		shoulderRootBone := originalModel.Bones.GetByName(pmx.SHOULDER_ROOT.StringFromDirection(direction))
-		shoulderBone := originalModel.Bones.GetByName(pmx.SHOULDER.StringFromDirection(direction))
-		armBone := originalModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
+					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
+				}
+			}()
 
-		shoulderBfs := sizingMotion.BoneFrames.Get(shoulderBone.Name())
-		armBfs := sizingMotion.BoneFrames.Get(armBone.Name())
+			mlog.I(mi18n.T("肩P最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
 
-		for j, endFrame := range frames {
-			if j == 0 {
-				continue
-			}
-			startFrame := frames[j-1] + 1
+			frames := allFrames[i]
 
-			if endFrame-startFrame-1 <= 0 {
-				continue
-			}
+			shoulderRootBone := originalModel.Bones.GetByName(pmx.SHOULDER_ROOT.StringFromDirection(direction))
+			shoulderBone := originalModel.Bones.GetByName(pmx.SHOULDER.StringFromDirection(direction))
+			armBone := originalModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
 
-			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
-				frame := float32(iFrame)
+			shoulderBfs := sizingMotion.BoneFrames.Get(shoulderBone.Name())
+			armBfs := sizingMotion.BoneFrames.Get(armBone.Name())
 
-				wg.Add(2)
-				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
+			for j, endFrame := range frames {
+				if j == 0 {
+					continue
+				}
+				startFrame := frames[j-1] + 1
 
-				go func() {
-					defer wg.Done()
-					originalVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
+				if endFrame-startFrame-1 <= 0 {
+					continue
+				}
+
+				for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+					frame := float32(iFrame)
+
+					originalVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 					originalVmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 					originalVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, originalVmdDeltas, true, frame, shoulder_direction_bone_names[i], false)
-				}()
 
-				go func() {
-					defer wg.Done()
-					cleanVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+					cleanVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 					cleanVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
 					cleanVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, cleanVmdDeltas, true, frame, shoulder_direction_bone_names[i], false)
-				}()
 
-				wg.Wait()
+					originalDelta := originalVmdDeltas.Bones.Get(armBone.Index())
+					cleanDelta := cleanVmdDeltas.Bones.Get(armBone.Index())
 
-				originalDelta := originalVmdDeltas.Bones.Get(armBone.Index())
-				cleanDelta := cleanVmdDeltas.Bones.Get(armBone.Index())
+					if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
+						shoulderRootDelta := originalVmdDeltas.Bones.Get(shoulderRootBone.Index())
+						shoulderDelta := originalVmdDeltas.Bones.Get(shoulderBone.Index())
+						armBoneDelta := originalVmdDeltas.Bones.Get(armBone.Index())
 
-				if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
-					shoulderRootDelta := originalVmdDeltas.Bones.Get(shoulderRootBone.Index())
-					shoulderDelta := originalVmdDeltas.Bones.Get(shoulderBone.Index())
-					armBoneDelta := originalVmdDeltas.Bones.Get(armBone.Index())
+						shoulderRotation := shoulderRootDelta.FilledGlobalMatrix().Inverted().Muled(shoulderDelta.FilledGlobalMatrix()).Quaternion()
+						armRotation := shoulderDelta.FilledGlobalMatrix().Inverted().Muled(armBoneDelta.FilledGlobalMatrix()).Quaternion()
 
-					shoulderRotation := shoulderRootDelta.FilledGlobalMatrix().Inverted().Muled(shoulderDelta.FilledGlobalMatrix()).Quaternion()
-					armRotation := shoulderDelta.FilledGlobalMatrix().Inverted().Muled(armBoneDelta.FilledGlobalMatrix()).Quaternion()
+						shoulderBf := shoulderBfs.Get(frame)
+						shoulderBf.Rotation = shoulderRotation
+						shoulderBf.Registered = true
+						shoulderBfs.Insert(shoulderBf)
 
-					shoulderBf := shoulderBfs.Get(frame)
-					shoulderBf.Rotation = shoulderRotation
-					shoulderBf.Registered = true
-					shoulderBfs.Insert(shoulderBf)
-
-					armBf := armBfs.Get(frame)
-					armBf.Rotation = armRotation
-					armBf.Registered = true
-					armBfs.Insert(armBf)
+						armBf := armBfs.Get(frame)
+						armBf.Rotation = armRotation
+						armBf.Registered = true
+						armBfs.Insert(armBf)
+					}
 				}
 			}
+		}(i, direction)
+	}
+
+	// すべてのゴルーチンの完了を待つ
+	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
 		}
 	}
 
