@@ -28,7 +28,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	sizingMotion := sizingSet.OutputVmd
 
 	originalUpperRootBone := originalModel.Bones.GetByName(pmx.UPPER_ROOT.String())
-	// originalUpperBone := originalModel.Bones.GetByName(pmx.UPPER.String())
+	originalUpperBone := originalModel.Bones.GetByName(pmx.UPPER.String())
 	// originalUpper2Bone := originalModel.Bones.GetByName(pmx.UPPER2.String())
 	// originalLeftShoulderBone := originalModel.Bones.GetByName(pmx.SHOULDER.Left())
 	// originalRightShoulderBone := originalModel.Bones.GetByName(pmx.SHOULDER.Right())
@@ -38,7 +38,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// originalHeadTailBone := originalModel.Bones.GetByName(pmx.HEAD_TAIL.String())
 
 	sizingUpperRootBone := sizingModel.Bones.GetByName(pmx.UPPER_ROOT.String())
-	// sizingUpperBone := sizingModel.Bones.GetByName(pmx.UPPER.String())
+	sizingUpperBone := sizingModel.Bones.GetByName(pmx.UPPER.String())
 	// sizingUpper2Bone := sizingModel.Bones.GetByName(pmx.UPPER2.String())
 	sizingNeckRootBone := sizingModel.Bones.GetByName(pmx.NECK_ROOT.String())
 	// sizingLeftShoulderBone := sizingModel.Bones.GetByName(pmx.SHOULDER.Left())
@@ -47,20 +47,27 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// sizingHeadBone := sizingModel.Bones.GetByName(pmx.HEAD.String())
 	// sizingHeadTailBone := sizingModel.Bones.GetByName(pmx.HEAD_TAIL.String())
 
-	// 上半身根元から見た首根元の相対位置
-	originalNeckRootLocalPosition := originalNeckRootBone.Position.Subed(originalUpperRootBone.Position)
-	sizingNeckRootLocalPosition := sizingNeckRootBone.Position.Subed(sizingUpperRootBone.Position)
+	// upperScaleY := math.Abs(sizingNeckRootLocalPosition.Y / originalNeckRootLocalPosition.Y)
+	// upperScaleZ := math.Abs(sizingNeckRootLocalPosition.Z / originalNeckRootLocalPosition.Z)
 
-	// 上半身全体のサイズ差
-	originalUpperLength := originalNeckRootLocalPosition.Length()
-	sizingUpperLength := sizingNeckRootLocalPosition.Length()
-	upperScale := sizingUpperLength / originalUpperLength
+	// // 上半身全体のサイズ差
+	// originalUpperLength2 := originalNeckRootLocalPosition.Length()
+	// sizingUpperLength2 := sizingNeckRootLocalPosition.Length()
+	// upperScale2 := sizingUpperLength2 / originalUpperLength2
+	// mlog.V("upperScale2: %.4f", upperScale2)
 
-	// // 上半身根元から見た首根元の角度差
-	// originalUpperDirection := originalNeckRootLocalPosition.Normalized()
-	// sizingUpperDirection := sizingNeckRootLocalPosition.Normalized()
-	// sizingUpperSlopeMat := mmath.NewMQuaternionRotate(originalUpperDirection, sizingUpperDirection).ToMat4()
+	// // 上半身全体のサイズ差
+	// originalUpperLength := 0.0
+	// for _, boneIndex := range originalNeckRootBone.Extend.ParentBoneIndexes {
+	// 	bone := originalModel.Bones.Get(boneIndex)
+	// 	if bone.Name() == pmx.UPPER_ROOT.String() {
+	// 		break
+	// 	}
+	// 	originalUpperLength += math.Abs(bone.Extend.ParentRelativePosition.Y) + math.Abs(bone.Extend.ParentRelativePosition.Z)
+	// }
 
+	// upperScale := 1.0
+	// sizingUpperLength := 0.0
 	upperBoneNames := make([]string, 0)
 	upperBones := make([]*pmx.Bone, 0)
 	for _, boneIndex := range sizingNeckRootBone.Extend.ParentBoneIndexes {
@@ -68,14 +75,35 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		if bone.Name() == pmx.UPPER_ROOT.String() {
 			break
 		}
+		// sizingUpperLength += math.Abs(bone.Extend.ParentRelativePosition.Y) + math.Abs(bone.Extend.ParentRelativePosition.Z)
 		if bone.IsEffectorRotation() || bone.IsEffectorTranslation() || bone.IsIK() || !bone.CanManipulate() {
 			// 付与親あり・Ik・操作不可は無視
 			continue
 		}
 		upperBones = append(upperBones, bone)
 		upperBoneNames = append(upperBoneNames, bone.Name())
+
+		// if originalModel.Bones.ContainsByName(bone.Name()) && bone.Extend.ParentRelativePosition.Y > 0 &&
+		// 	originalModel.Bones.GetByName(bone.Name()).Extend.ParentRelativePosition.Y > 0 {
+		// 	upperScale *= bone.Extend.ParentRelativePosition.Y / originalModel.Bones.GetByName(bone.Name()).Extend.ParentRelativePosition.Y
+		// }
 	}
 	upperBoneNames = append(upperBoneNames, sizingNeckRootBone.Name())
+	// upperScale *= upperTotalScale
+
+	// 上半身根元から見た首根元の相対位置
+	originalNeckRootLocalPosition := originalNeckRootBone.Position.Subed(originalUpperRootBone.Position)
+	sizingNeckRootLocalPosition := sizingNeckRootBone.Position.Subed(sizingUpperRootBone.Position)
+	upperScales := &mmath.MVec3{
+		X: 1.0,
+		Y: sizingNeckRootLocalPosition.Length() / originalNeckRootLocalPosition.Length(),
+		Z: 1.0,
+	}
+
+	// 上半身根元から見た首根元の角度差
+	originalUpperDirection := originalNeckRootLocalPosition.Normalized()
+	sizingUpperDirection := sizingNeckRootLocalPosition.Normalized()
+	sizingUpperSlopeMat := mmath.NewMQuaternionRotate(originalUpperDirection, sizingUpperDirection).ToMat4()
 
 	// 上半身IK
 	upperIkBone := pmx.NewBoneByName(fmt.Sprintf("%s%sIk", pmx.MLIB_PREFIX, pmx.UPPER.String()))
@@ -123,7 +151,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	sizingRightShoulderRotations := make([]*mmath.MQuaternion, len(frames))
 	sizingNeckRotations := make([]*mmath.MQuaternion, len(frames))
 
-	mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScale)}))
+	mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%v", upperScales)}))
 
 	// 先モデルの上半身デフォーム(IK ON)
 	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
@@ -132,16 +160,21 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
 
-		// 上半身根元から見た首根元の相対位置を取得
-		originalUpperRootDelta := originalAllDeltas[index].Bones.Get(originalUpperRootBone.Index())
+		// 上半身から見た首根元の相対位置を取得
+		originalUpperDelta := originalAllDeltas[index].Bones.Get(originalUpperBone.Index())
 		originalNeckRootDelta := originalAllDeltas[index].Bones.Get(originalNeckRootBone.Index())
 
-		originalUpperLocalPosition := originalUpperRootDelta.FilledGlobalMatrix().Inverted().MulVec3(originalNeckRootDelta.FilledGlobalPosition())
-		sizingUpperLocalPosition := originalUpperLocalPosition.MuledScalar(upperScale)
-		// sizingUpperSlopeLocalPosition := sizingUpperSlopeMat.MulVec3(sizingUpperLocalPosition)
+		originalUpperLocalPosition := originalUpperDelta.FilledGlobalMatrix().Inverted().MulVec3(originalNeckRootDelta.FilledGlobalPosition())
+		// sizingUpperLocalPosition := &mmath.MVec3{
+		// 	X: originalUpperLocalPosition.X,
+		// 	Y: originalUpperLocalPosition.Y * upperScaleY,
+		// 	Z: originalUpperLocalPosition.Z * upperScaleZ,
+		// }
+		sizingUpperLocalPosition := originalUpperLocalPosition.Muled(upperScales)
+		sizingUpperSlopeLocalPosition := sizingUpperSlopeMat.MulVec3(sizingUpperLocalPosition)
 
-		sizingUpperRootDelta := vmdDeltas.Bones.Get(sizingUpperRootBone.Index())
-		neckRootFixGlobalPosition := sizingUpperRootDelta.FilledGlobalMatrix().MulVec3(sizingUpperLocalPosition)
+		sizingUpperDelta := vmdDeltas.Bones.Get(sizingUpperBone.Index())
+		neckRootFixGlobalPosition := sizingUpperDelta.FilledGlobalMatrix().MulVec3(sizingUpperSlopeLocalPosition)
 
 		sizingUpperIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, upperIkBone, neckRootFixGlobalPosition, upperBoneNames)
 
