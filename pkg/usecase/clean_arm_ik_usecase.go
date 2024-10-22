@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"fmt"
+	"runtime/debug"
 	"slices"
 	"sync"
 
@@ -139,78 +141,101 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
+	errorChan := make(chan error, 2)
 	var wg sync.WaitGroup
+	wg.Add(2)
 
 	for i, direction := range directions {
-		var armIkBone *pmx.Bone
-		switch direction {
-		case "左":
-			armIkBone = armIkLeftBone
-		case "右":
-			armIkBone = armIkRightBone
-		}
+		go func(i int, direction string) {
+			defer wg.Done()
+			defer func() {
+				// recoverによるpanicキャッチ
+				if r := recover(); r != nil {
+					stackTrace := debug.Stack()
 
-		mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
+					var errMsg string
+					// パニックの値がerror型である場合、エラーメッセージを取得
+					if err, ok := r.(error); ok {
+						errMsg = err.Error()
+					} else {
+						// それ以外の型の場合は、文字列に変換
+						errMsg = fmt.Sprintf("%v", r)
+					}
 
-		frames := allFrames[i]
-		relativeBoneNames := allRelativeBoneNames[i]
-		relativeArmBones := make([]*pmx.Bone, 0)
-		for _, boneName := range relativeBoneNames {
-			if originalModel.Bones.GetByName(boneName).IsArm() {
-				relativeArmBones = append(relativeArmBones, originalModel.Bones.GetByName(boneName))
+					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
+				}
+			}()
+
+			var armIkBone *pmx.Bone
+			switch direction {
+			case "左":
+				armIkBone = armIkLeftBone
+			case "右":
+				armIkBone = armIkRightBone
 			}
-		}
 
-		for j, endFrame := range frames {
-			if j == 0 {
-				continue
+			mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
+
+			frames := allFrames[i]
+			relativeBoneNames := allRelativeBoneNames[i]
+			relativeArmBones := make([]*pmx.Bone, 0)
+			for _, boneName := range relativeBoneNames {
+				if originalModel.Bones.GetByName(boneName).IsArm() {
+					relativeArmBones = append(relativeArmBones, originalModel.Bones.GetByName(boneName))
+				}
 			}
-			startFrame := frames[j-1] + 1
 
-			if endFrame-startFrame-1 <= 0 {
-				continue
-			}
+			for j, endFrame := range frames {
+				if j == 0 {
+					continue
+				}
+				startFrame := frames[j-1] + 1
 
-			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
-				frame := float32(iFrame)
+				if endFrame-startFrame-1 <= 0 {
+					continue
+				}
 
-				wg.Add(2)
-				var originalVmdDeltas, cleanVmdDeltas *delta.VmdDeltas
+				for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+					frame := float32(iFrame)
 
-				go func() {
-					defer wg.Done()
-					originalVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
+					originalVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 					originalVmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 					originalVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, originalVmdDeltas, true, frame, relativeBoneNames, false)
-				}()
 
-				go func() {
-					defer wg.Done()
-					cleanVmdDeltas = delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
+					cleanVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 					cleanVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
 					cleanVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, cleanVmdDeltas, true, frame, relativeBoneNames, false)
-				}()
 
-				wg.Wait()
+					for _, bone := range relativeArmBones {
+						originalDelta := originalVmdDeltas.Bones.Get(bone.Index())
+						cleanDelta := cleanVmdDeltas.Bones.Get(bone.Index())
 
-				for _, bone := range relativeArmBones {
-					originalDelta := originalVmdDeltas.Bones.Get(bone.Index())
-					cleanDelta := cleanVmdDeltas.Bones.Get(bone.Index())
-
-					if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
-						// ボーンの位置がずれている場合、キーを追加
-						for _, b := range relativeArmBones {
-							quat := getFixRotationForArmIk(originalVmdDeltas, armIkBone, originalVmdDeltas.Bones.Get(b.Index()))
-							if quat != nil {
-								bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
-								bf.Rotation = quat
-								sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
+						if originalDelta.FilledGlobalPosition().Distance(cleanDelta.FilledGlobalPosition()) > threshold {
+							// ボーンの位置がずれている場合、キーを追加
+							for _, b := range relativeArmBones {
+								quat := getFixRotationForArmIk(originalVmdDeltas, armIkBone, originalVmdDeltas.Bones.Get(b.Index()))
+								if quat != nil {
+									bf := sizingMotion.BoneFrames.Get(b.Name()).Get(frame)
+									bf.Rotation = quat
+									sizingMotion.InsertRegisteredBoneFrame(b.Name(), bf)
+								}
 							}
+							break
 						}
-						break
 					}
 				}
 			}
+		}(i, direction)
+	}
+
+	// すべてのゴルーチンの完了を待つ
+	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
 		}
 	}
 
