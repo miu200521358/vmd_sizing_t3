@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"fmt"
-	"runtime/debug"
 	"slices"
 	"sync"
 
@@ -149,21 +147,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		go func(i int, direction string) {
 			defer wg.Done()
 			defer func() {
-				// recoverによるpanicキャッチ
-				if r := recover(); r != nil {
-					stackTrace := debug.Stack()
-
-					var errMsg string
-					// パニックの値がerror型である場合、エラーメッセージを取得
-					if err, ok := r.(error); ok {
-						errMsg = err.Error()
-					} else {
-						// それ以外の型の場合は、文字列に変換
-						errMsg = fmt.Sprintf("%v", r)
-					}
-
-					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
-				}
+				errorChan <- miter.GetError()
 			}()
 
 			var armIkBone *pmx.Bone

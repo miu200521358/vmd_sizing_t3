@@ -3,7 +3,6 @@ package usecase
 import (
 	"fmt"
 	"math"
-	"runtime/debug"
 	"slices"
 	"sync"
 
@@ -206,83 +205,6 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		mlog.V("%s: %s", title, outputPath)
 	}
 
-	// // 腕補正 -----------------------------------------------------
-	// errorChan = make(chan error, 2)
-	// wg.Add(2)
-	// for i, direction := range directions {
-	// 	frames := allFrames[i]
-
-	// 	go func(i int, direction string, bfs *vmd.BoneNameFrames) {
-	// 		defer wg.Done()
-	// 		defer func() {
-	// 			// recoverによるpanicキャッチ
-	// 			if r := recover(); r != nil {
-	// 				stackTrace := debug.Stack()
-
-	// 				var errMsg string
-	// 				// パニックの値がerror型である場合、エラーメッセージを取得
-	// 				if err, ok := r.(error); ok {
-	// 					errMsg = err.Error()
-	// 				} else {
-	// 					// それ以外の型の場合は、文字列に変換
-	// 					errMsg = fmt.Sprintf("%v", r)
-	// 				}
-
-	// 				errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
-	// 			}
-	// 		}()
-
-	// 		mlog.I(mi18n.T("捩り補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
-
-	// 		sizingArmBone := sizingModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
-	// 		sizingElbowBone := sizingModel.Bones.GetByName(pmx.ELBOW.StringFromDirection(direction))
-
-	// 		// 先モデルの腕デフォーム(IK ON)
-	// 		for j, iFrame := range frames {
-	// 			frame := float32(iFrame)
-
-	// 			vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-	// 			vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-	// 			vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
-
-	// 			elbowGlobalPosition := sizingOriginalAllDeltas[i][j].Bones.Get(sizingElbowBone.Index()).FilledGlobalPosition()
-
-	// 			sizingArmIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, armIkBones[i], elbowGlobalPosition, arm_direction_bone_names[i])
-
-	// 			bf := bfs.Get(frame)
-	// 			bf.Rotation = sizingArmIkDeltas.Bones.Get(sizingArmBone.Index()).FilledFrameRotation()
-	// 			bf.Registered = true
-	// 			bfs.Insert(bf)
-
-	// 			if j < len(frames)-1 {
-	// 				nextFrame := float32(frames[j+1])
-	// 				nextBf := bfs.Get(nextFrame)
-	// 				nextBf.Rotation = bf.Rotation.Copy()
-	// 				nextBf.Registered = true
-	// 				bfs.Insert(nextBf)
-	// 			}
-	// 		}
-	// 	}(i, direction, sizingMotion.BoneFrames.Get(pmx.ARM.StringFromDirection(direction)))
-	// }
-
-	// // すべてのゴルーチンの完了を待つ
-	// wg.Wait()
-	// close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
-
-	// // チャネルからエラーを受け取る
-	// for err := range errorChan {
-	// 	if err != nil {
-	// 		return false, err
-	// 	}
-	// }
-
-	// if mlog.IsVerbose() {
-	// 	title := "捩り補正02_腕"
-	// 	outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
-	// 	repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-	// 	mlog.V("%s: %s", title, outputPath)
-	// }
-
 	// 腕捩り補正 -----------------------------------------------------
 	errorChan = make(chan error, 2)
 	wg.Add(2)
@@ -292,21 +214,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		go func(i int, direction string, bfs *vmd.BoneNameFrames) {
 			defer wg.Done()
 			defer func() {
-				// recoverによるpanicキャッチ
-				if r := recover(); r != nil {
-					stackTrace := debug.Stack()
-
-					var errMsg string
-					// パニックの値がerror型である場合、エラーメッセージを取得
-					if err, ok := r.(error); ok {
-						errMsg = err.Error()
-					} else {
-						// それ以外の型の場合は、文字列に変換
-						errMsg = fmt.Sprintf("%v", r)
-					}
-
-					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
-				}
+				errorChan <- miter.GetError()
 			}()
 
 			mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
@@ -369,21 +277,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		go func(i int, direction string, bfs *vmd.BoneNameFrames) {
 			defer wg.Done()
 			defer func() {
-				// recoverによるpanicキャッチ
-				if r := recover(); r != nil {
-					stackTrace := debug.Stack()
-
-					var errMsg string
-					// パニックの値がerror型である場合、エラーメッセージを取得
-					if err, ok := r.(error); ok {
-						errMsg = err.Error()
-					} else {
-						// それ以外の型の場合は、文字列に変換
-						errMsg = fmt.Sprintf("%v", r)
-					}
-
-					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
-				}
+				errorChan <- miter.GetError()
 			}()
 
 			mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
@@ -437,83 +331,6 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		mlog.V("%s: %s", title, outputPath)
 	}
 
-	// // 手首補正 -----------------------------------------------------
-	// errorChan = make(chan error, 2)
-	// wg.Add(2)
-	// for i, direction := range directions {
-	// 	frames := allFrames[i]
-
-	// 	go func(i int, direction string, bfs *vmd.BoneNameFrames) {
-	// 		defer wg.Done()
-	// 		defer func() {
-	// 			// recoverによるpanicキャッチ
-	// 			if r := recover(); r != nil {
-	// 				stackTrace := debug.Stack()
-
-	// 				var errMsg string
-	// 				// パニックの値がerror型である場合、エラーメッセージを取得
-	// 				if err, ok := r.(error); ok {
-	// 					errMsg = err.Error()
-	// 				} else {
-	// 					// それ以外の型の場合は、文字列に変換
-	// 					errMsg = fmt.Sprintf("%v", r)
-	// 				}
-
-	// 				errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
-	// 			}
-	// 		}()
-
-	// 		mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
-
-	// 		sizingWristBone := sizingModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
-	// 		sizingWristTailBone := sizingModel.Bones.GetByName(pmx.WRIST_TAIL.StringFromDirection(direction))
-
-	// 		// 先モデルの腕デフォーム(IK ON)
-	// 		for j, iFrame := range frames {
-	// 			frame := float32(iFrame)
-
-	// 			vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
-	// 			vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
-	// 			vmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, sizingMotion, vmdDeltas, true, frame, arm_direction_bone_names[i], false)
-
-	// 			wristTailGlobalPosition := sizingOriginalAllDeltas[i][j].Bones.Get(sizingWristTailBone.Index()).FilledGlobalPosition()
-
-	// 			sizingWristIkDeltas := deform.DeformIk(sizingModel, sizingMotion, vmdDeltas, frame, wristIkBones[i], wristTailGlobalPosition, arm_direction_bone_names[i])
-
-	// 			bf := bfs.Get(frame)
-	// 			bf.Rotation = sizingWristIkDeltas.Bones.Get(sizingWristBone.Index()).FilledFrameRotation()
-	// 			bf.Registered = true
-	// 			bfs.Insert(bf)
-
-	// 			if j < len(frames)-1 {
-	// 				nextFrame := float32(frames[j+1])
-	// 				nextBf := bfs.Get(nextFrame)
-	// 				nextBf.Rotation = bf.Rotation.Copy()
-	// 				nextBf.Registered = true
-	// 				bfs.Insert(nextBf)
-	// 			}
-	// 		}
-	// 	}(i, direction, sizingMotion.BoneFrames.Get(pmx.WRIST_TWIST.StringFromDirection(direction)))
-	// }
-
-	// // すべてのゴルーチンの完了を待つ
-	// wg.Wait()
-	// close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
-
-	// // チャネルからエラーを受け取る
-	// for err := range errorChan {
-	// 	if err != nil {
-	// 		return false, err
-	// 	}
-	// }
-
-	// if mlog.IsVerbose() {
-	// 	title := "捩り補正05_手首"
-	// 	outputPath := mutils.CreateOutputPath(sizingSet.OriginalVmdPath, title)
-	// 	repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
-	// 	mlog.V("%s: %s", title, outputPath)
-	// }
-
 	// 中間キーフレのズレをチェック
 	threshold := 0.02
 
@@ -524,21 +341,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		go func(i int, direction string) {
 			defer wg.Done()
 			defer func() {
-				// recoverによるpanicキャッチ
-				if r := recover(); r != nil {
-					stackTrace := debug.Stack()
-
-					var errMsg string
-					// パニックの値がerror型である場合、エラーメッセージを取得
-					if err, ok := r.(error); ok {
-						errMsg = err.Error()
-					} else {
-						// それ以外の型の場合は、文字列に変換
-						errMsg = fmt.Sprintf("%v", r)
-					}
-
-					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
-				}
+				errorChan <- miter.GetError()
 			}()
 
 			mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))

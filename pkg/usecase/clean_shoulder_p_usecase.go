@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"fmt"
-	"runtime/debug"
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
@@ -101,18 +99,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			defer func() {
 				// recoverによるpanicキャッチ
 				if r := recover(); r != nil {
-					stackTrace := debug.Stack()
-
-					var errMsg string
-					// パニックの値がerror型である場合、エラーメッセージを取得
-					if err, ok := r.(error); ok {
-						errMsg = err.Error()
-					} else {
-						// それ以外の型の場合は、文字列に変換
-						errMsg = fmt.Sprintf("%v", r)
-					}
-
-					errorChan <- fmt.Errorf("panic: %s\n%s", errMsg, stackTrace)
+					errorChan <- miter.GetError()
 				}
 			}()
 
