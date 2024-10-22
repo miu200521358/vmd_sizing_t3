@@ -188,7 +188,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		sizingFixCenterTargetY := originalGravityPos.Y * gravityRatio
 		yDiff := sizingFixCenterTargetY - sizingGravityPos.Y
 
-		mlog.V("足補正07[%.0f] originalY[%.4f], sizingY[%.4f], sizingFixY[%.4f], diff[%.4f]",
+		mlog.V("足補正07[%04.0f] originalY[%.4f], sizingY[%.4f], sizingFixY[%.4f], diff[%.4f]",
 			frame, originalGravityPos.Y, sizingGravityPos.Y, sizingFixCenterTargetY, yDiff)
 
 		if mlog.IsVerbose() && gravityMotion != nil {
@@ -431,7 +431,7 @@ func calcLegIkPositionY(
 			originalToeTailDelta.FilledGlobalPosition().Y/originalAnkleBone.Position.Y)
 		// 足首Y位置に近付くにつれて補正を弱める
 		legIkPositions[index].Y += lerpLeftToeDiff
-		mlog.V("足補正08[%.0f][%sつま先] originalLeftY[%.4f], sizingLeftY[%.4f], actualLeftY[%.4f], diff[%.4f], lerp[%.4f]",
+		mlog.V("足補正08[%04.0f][%sつま先] originalLeftY[%.4f], sizingLeftY[%.4f], actualLeftY[%.4f], diff[%.4f], lerp[%.4f]",
 			frame, direction, originalLeftToeTailY, sizingLeftToeTailY, actualLeftToeTailY, leftToeDiff, lerpLeftToeDiff)
 
 		return
@@ -452,7 +452,7 @@ func calcLegIkPositionY(
 	// 足首Y位置に近付くにつれて補正を弱める
 	legIkPositions[index].Y += lerpLeftHeelDiff
 
-	mlog.V("足補正08[%.0f][%sかかと] originalLeftY[%.4f], sizingLeftY[%.4f], actualLeftY[%.4f], diff[%.4f], lerp[%.4f]",
+	mlog.V("足補正08[%04.0f][%sかかと] originalLeftY[%.4f], sizingLeftY[%.4f], actualLeftY[%.4f], diff[%.4f], lerp[%.4f]",
 		frame, direction, originalLeftHeelY, sizingLeftHeelY, actualLeftHeelY, leftHeelDiff, lerpLeftHeelDiff)
 }
 
