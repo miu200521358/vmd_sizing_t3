@@ -61,7 +61,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			shoulderRotations[i][index] = shoulderRootDelta.FilledGlobalMatrix().Inverted().Muled(shoulderDelta.FilledGlobalMatrix()).Quaternion()
 			armRotations[i][index] = shoulderDelta.FilledGlobalMatrix().Inverted().Muled(armBoneDelta.FilledGlobalMatrix()).Quaternion()
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("肩P最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
+			mlog.I(mi18n.T("肩P最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -129,7 +129,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 
 				if endFrame > logEndFrame {
-					mlog.I(mi18n.T("肩P最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": allCount}))
+					mlog.I(mi18n.T("肩P最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logEndFrame += 1000
 				}
 

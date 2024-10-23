@@ -79,7 +79,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			allVmdDeltas[i][index] = vmdDeltas
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
+			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -128,7 +128,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			}
 
 			if endFrame > logEndFrame {
-				mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": allCount}))
+				mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 				logEndFrame += 1000
 			}
 

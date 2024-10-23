@@ -159,7 +159,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 					_, sizingWristRotations[i][fIndex] = nowWristRot.SeparateTwistByAxis(sizingWristBone.Extend.NormalizedLocalAxisX)
 				}
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
+				mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 			}); err != nil {
 				errorChan <- err
 			}
@@ -234,7 +234,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				frame := float32(iFrame)
 
 				if iFrame > logBlock {
-					mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": allCount}))
+					mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logBlock += 1000
 				}
 
@@ -302,7 +302,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			// 先モデルの手捩デフォーム(IK ON)
 			for j, iFrame := range frames {
 				if iFrame > logBlock {
-					mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": allCount}))
+					mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logBlock += 1000
 				}
 
@@ -379,7 +379,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			for _, iFrame := range frames {
 				if iFrame > logBlock {
-					mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iFrame, "AllCount": allCount}))
+					mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logBlock += 1000
 				}
 

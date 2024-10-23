@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
@@ -1293,6 +1294,8 @@ func execSizing(toolState *ToolState) {
 
 	mlog.IL(mi18n.T("サイジング開始"))
 
+	start := time.Now()
+
 	toolState.ControlWindow.Synchronize(func() {
 		toolState.SetEnabled(false)
 	})
@@ -1449,8 +1452,12 @@ func execSizing(toolState *ToolState) {
 		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 	})
 
+	// 処理時間の計測終了
+	elapsed := time.Since(start)
+
 	if isExec {
-		mlog.ILT(mi18n.T("サイジング終了"), mi18n.T("サイジング終了メッセージ"))
+		mlog.ILT(mi18n.T("サイジング終了"), mi18n.T("サイジング終了メッセージ",
+			map[string]interface{}{"ProcessTime": widget.FormatDuration(elapsed)}))
 	} else {
 		mlog.I(mi18n.T("サイジング終了"))
 	}

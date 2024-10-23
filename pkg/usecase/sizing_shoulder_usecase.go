@@ -95,7 +95,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, shoulder_direction_bone_names[i], false)
 				originalAllDeltas[index] = vmdDeltas
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
+				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 			})
 
 			sizingShoulderRotations[i] = make([]*mmath.MQuaternion, len(frames))
@@ -128,7 +128,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				upperDiffRotation := nowShoulderBf.Rotation.Inverted().Muled(sizingShoulderRotations[i][index]).Inverted()
 				sizingArmRotations[i][index] = upperDiffRotation.Muled(nowArmBf.Rotation)
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
+				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 			}); err != nil {
 				errorChan <- err
 			}

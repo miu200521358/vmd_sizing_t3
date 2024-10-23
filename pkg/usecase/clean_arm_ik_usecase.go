@@ -97,7 +97,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 			}
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
+			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -184,7 +184,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 
 				if endFrame > logEndFrame {
-					mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": allCount}))
+					mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logEndFrame += 1000
 				}
 
