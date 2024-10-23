@@ -23,8 +23,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		return false, nil
 	}
 
-	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	originalModel := sizingSet.OriginalPmx
 	originalMotion := sizingSet.OriginalVmd
 	sizingModel := sizingSet.SizingPmx
@@ -80,6 +78,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		return false, nil
 	}
 
+	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	sizingMotion.Processing = true
+
 	// 元モデルのデフォーム(IK ON)
 	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
 		frame := float32(data)
@@ -90,6 +91,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -211,6 +213,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -300,6 +303,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -381,6 +385,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -398,6 +403,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	}
 
 	sizingSet.CompletedSizingLeg = true
+	sizingMotion.Processing = false
 	return true, nil
 }
 

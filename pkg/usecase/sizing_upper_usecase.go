@@ -126,6 +126,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	mlog.I(mi18n.T("上半身補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	sizingMotion.Processing = true
 
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
@@ -139,6 +140,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -215,6 +217,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -242,6 +245,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	sizingSet.CompletedSizingUpper = true
+	sizingMotion.Processing = false
 	return true, nil
 }
 

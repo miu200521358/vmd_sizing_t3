@@ -32,12 +32,14 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	mlog.I(mi18n.T("全ての親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	sizingMotion.Processing = true
 
 	rootRelativeBoneNames := []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(rootRelativeBoneNames)
 	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
+		sizingMotion.Processing = false
 		return false, nil
 	}
 
@@ -70,6 +72,7 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -160,6 +163,8 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	sizingSet.CompletedCleanRoot = true
+	sizingMotion.Processing = false
+
 	return true, nil
 }
 

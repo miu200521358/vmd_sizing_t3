@@ -30,6 +30,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
+	sizingMotion.Processing = true
 
 	// armIkBones := make([]*pmx.Bone, 2)
 	armTwistIkBones := make([]*pmx.Bone, 2)
@@ -37,6 +38,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// wristIkBones := make([]*pmx.Bone, 2)
 
 	mlog.I(mi18n.T("捩り補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	sizingMotion.Processing = true
 
 	for i, direction := range directions {
 		// sizingArmBone := sizingModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
@@ -171,6 +173,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
+			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -266,6 +269,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
+			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -335,6 +339,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
+			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -486,11 +491,13 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
+			sizingMotion.Processing = false
 			return false, err
 		}
 	}
 
 	sizingSet.CompletedSizingArmTwist = true
+	sizingMotion.Processing = false
 
 	return true, nil
 }

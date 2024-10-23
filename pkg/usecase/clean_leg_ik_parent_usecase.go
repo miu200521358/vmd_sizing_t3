@@ -33,6 +33,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	mlog.I(mi18n.T("足IK親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	sizingMotion.Processing = true
 
 	legIkRelativeBoneNames := []string{
 		pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right(), pmx.LEG_IK.Left(), pmx.LEG_IK.Right()}
@@ -41,6 +42,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
+		sizingMotion.Processing = false
 		return false, nil
 	}
 
@@ -74,6 +76,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足IK親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
+		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -166,6 +169,7 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	sizingSet.CompletedCleanLegIkParent = true
+	sizingMotion.Processing = false
 	return true, nil
 }
 

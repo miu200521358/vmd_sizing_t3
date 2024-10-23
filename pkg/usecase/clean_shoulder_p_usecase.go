@@ -27,6 +27,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	sizingMotion := sizingSet.OutputVmd
 
 	mlog.I(mi18n.T("肩P最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	sizingMotion.Processing = true
 
 	allFrames := make([][]int, 2)
 	shoulderRotations := make([][]*mmath.MQuaternion, 2)
@@ -61,6 +62,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("肩P最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iterIndex, "AllCount": allCount}))
 		}); err != nil {
+			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -174,11 +176,13 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
+			sizingMotion.Processing = false
 			return false, err
 		}
 	}
 
 	sizingSet.CompletedCleanShoulderP = true
+	sizingMotion.Processing = false
 	return true, nil
 }
 
