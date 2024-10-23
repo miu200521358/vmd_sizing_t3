@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"slices"
 	"sync"
 
@@ -78,7 +79,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			allVmdDeltas[i][index] = vmdDeltas
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iterIndex, "AllCount": allCount}))
+			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -115,7 +116,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		fingerBoneNames := finger_direction_bone_names[i]
 
 		logEndFrame := 0
-		allCount := frames[len(frames)-1] - frames[0]
+		allCount := frames[len(frames)-1]
 		for j, endFrame := range frames {
 			if j == 0 {
 				continue
@@ -126,8 +127,8 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				continue
 			}
 
-			if endFrame%1000 == 0 && endFrame > logEndFrame {
-				mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": endFrame, "AllCount": allCount}))
+			if endFrame > logEndFrame {
+				mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": allCount}))
 				logEndFrame += 1000
 			}
 

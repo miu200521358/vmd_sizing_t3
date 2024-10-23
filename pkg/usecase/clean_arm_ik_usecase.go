@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"slices"
 	"sync"
 
@@ -96,7 +97,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 			}
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": iterIndex, "AllCount": allCount}))
+			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -171,7 +172,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			}
 
 			logEndFrame := 0
-			allCount := frames[len(frames)-1] - frames[0]
+			allCount := frames[len(frames)-1]
 			for j, endFrame := range frames {
 				if j == 0 {
 					continue
@@ -182,8 +183,8 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 					continue
 				}
 
-				if endFrame%1000 == 0 && endFrame > logEndFrame {
-					mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": endFrame, "AllCount": allCount}))
+				if endFrame > logEndFrame {
+					mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": allCount}))
 					logEndFrame += 1000
 				}
 

@@ -159,7 +159,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 					_, sizingWristRotations[i][fIndex] = nowWristRot.SeparateTwistByAxis(sizingWristBone.Extend.NormalizedLocalAxisX)
 				}
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iterIndex, "AllCount": allCount}))
+				mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 			}); err != nil {
 				errorChan <- err
 			}
@@ -227,15 +227,15 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			sizingWristBone := sizingModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
 
 			logBlock := 0
-			allCount := frames[len(frames)-1] - frames[0]
+			allCount := frames[len(frames)-1]
 
 			// 先モデルの腕捩デフォーム(IK ON)
 			for j, iFrame := range frames {
 				frame := float32(iFrame)
 
-				if int(iFrame/1000) > logBlock {
-					mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iFrame, "AllCount": allCount}))
-					logBlock++
+				if iFrame > logBlock {
+					mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": allCount}))
+					logBlock += 1000
 				}
 
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -297,13 +297,13 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			sizingWristTailBone := sizingModel.Bones.GetByName(pmx.WRIST_TAIL.StringFromDirection(direction))
 
 			logBlock := 0
-			allCount := frames[len(frames)-1] - frames[0]
+			allCount := frames[len(frames)-1]
 
 			// 先モデルの手捩デフォーム(IK ON)
 			for j, iFrame := range frames {
-				if int(iFrame/1000) > logBlock {
-					mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iFrame, "AllCount": allCount}))
-					logBlock++
+				if iFrame > logBlock {
+					mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": allCount}))
+					logBlock += 1000
 				}
 
 				frame := float32(iFrame)
@@ -375,12 +375,12 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			wristTwistBfs := sizingMotion.BoneFrames.Get(sizingWristTwistBone.Name())
 
 			logBlock := 0
-			allCount := frames[len(frames)-1] - frames[0]
+			allCount := frames[len(frames)-1]
 
 			for _, iFrame := range frames {
-				if int(iFrame/1000) > logBlock {
+				if iFrame > logBlock {
 					mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iFrame, "AllCount": allCount}))
-					logBlock++
+					logBlock += 1000
 				}
 
 				frame := float32(iFrame)

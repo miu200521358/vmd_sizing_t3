@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
@@ -70,7 +71,7 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				vmdDeltas.Bones.Get(bone.Index()).FilledGlobalBoneRotation()
 		}
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -97,7 +98,7 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	var wg sync.WaitGroup
 
 	logEndFrame := 0
-	allCount := frames[len(frames)-1] - frames[0]
+	allCount := frames[len(frames)-1]
 	for i, endFrame := range frames {
 		if i == 0 {
 			continue
@@ -108,8 +109,8 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			continue
 		}
 
-		if endFrame%1000 == 0 && endFrame > logEndFrame {
-			mlog.I(mi18n.T("全ての親最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": endFrame, "AllCount": allCount}))
+		if endFrame > logEndFrame {
+			mlog.I(mi18n.T("全ての親最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": allCount}))
 			logEndFrame += 1000
 		}
 

@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"fmt"
+
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
 	"github.com/miu200521358/mlib_go/pkg/domain/miter"
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
@@ -89,7 +91,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_gravity_lower_leg_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -211,7 +213,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		sizingGrooveBf := sizingMotion.BoneFrames.Get(sizingGrooveBone.Name()).Get(frame)
 		groovePositions[index] = sizingGrooveBf.Position.Added(&mmath.MVec3{X: 0, Y: yDiff, Z: 0})
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -242,8 +244,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		repository.NewVmdRepository().Save(outputPath, sizingMotion, true)
 		mlog.V("%s: %s", title, outputPath)
 	}
-
-	mlog.I(mi18n.T("足補正08", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	leftLegIkPositions := make([]*mmath.MVec3, len(frames))
 	leftLegIkRotations := make([]*mmath.MQuaternion, len(frames))
@@ -301,7 +301,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 			sizingRightAnkleDelta.FilledGlobalPosition()).Normalize().ToLocalMat()
 		rightLegIkRotations[index] = rightLegFkMat.Muled(rightLegIkMat.Inverted()).Quaternion()
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("足補正08", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -383,7 +383,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		rightKneeRotations[index] = vmdDeltas.Bones.Get(sizingRightKneeBone.Index()).FilledFrameRotation()
 		rightAnkleRotations[index] = vmdDeltas.Bones.Get(sizingRightAnkleBone.Index()).FilledFrameRotation()
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -463,47 +463,6 @@ func calcLegIkPositionY(
 	mlog.V("足補正08[%04.0f][%sかかと] originalLeftY[%.4f], sizingLeftY[%.4f], actualLeftY[%.4f], diff[%.4f], lerp[%.4f]",
 		frame, direction, originalLeftHeelY, sizingLeftHeelY, actualLeftHeelY, leftHeelDiff, lerpLeftHeelDiff)
 }
-
-// func deformLegIk(
-// 	index int,
-// 	frame float32,
-// 	sizingModel *pmx.PmxModel,
-// 	sizingMotion *vmd.VmdMotion,
-// 	originalAllDeltas []*delta.VmdDeltas,
-// 	sizingDeltas *delta.VmdDeltas,
-// 	originalSrcBone *pmx.Bone,
-// 	originalDstBone *pmx.Bone,
-// 	sizingSrcBone *pmx.Bone,
-// 	sizingDstBone *pmx.Bone,
-// 	sizingIkBone *pmx.Bone,
-// 	sizingSlopeMat *mmath.MMat4,
-// 	scale float64,
-// ) (dstIkDeltas *delta.VmdDeltas, diffSrcRotation *mmath.MQuaternion, sizingFixDstGlobalPosition *mmath.MVec3) {
-// 	// 元から見た先の相対位置を取得
-// 	originalSrcDelta := originalAllDeltas[index].Bones.Get(originalSrcBone.Index())
-// 	originalDstDelta := originalAllDeltas[index].Bones.Get(originalDstBone.Index())
-
-// 	// 元から見た先の相対位置をスケールに合わせる
-// 	originalSrcLocalPosition := originalDstDelta.FilledGlobalPosition().Subed(originalSrcDelta.FilledGlobalPosition())
-// 	sizingDstLocalPosition := originalSrcLocalPosition.MuledScalar(scale)
-// 	sizingDstSlopeLocalPosition := sizingSlopeMat.MulVec3(sizingDstLocalPosition)
-
-// 	// Fixさせた新しい先のグローバル位置を取得
-// 	sizingSrcDelta := sizingDeltas.Bones.Get(sizingSrcBone.Index())
-// 	sizingFixDstGlobalPosition = sizingSrcDelta.FilledGlobalPosition().Added(sizingDstSlopeLocalPosition)
-
-// 	// IK結果を返す
-// 	dstIkDeltas = deform.DeformIk(sizingModel, sizingMotion, sizingDeltas, frame, sizingIkBone,
-// 		sizingFixDstGlobalPosition, []string{sizingSrcBone.Name(), sizingDstBone.Name()})
-
-// 	originalSrcRotation := originalAllDeltas[index].Bones.Get(originalSrcBone.Index()).FilledFrameRotation()
-// 	sizingSrcRotation := dstIkDeltas.Bones.Get(sizingSrcBone.Index()).FilledFrameRotation()
-
-// 	// IK結果の回転差分
-// 	diffSrcRotation = sizingSrcRotation.Muled(originalSrcRotation.Inverted()).Inverted()
-
-// 	return dstIkDeltas, diffSrcRotation, sizingFixDstGlobalPosition
-// }
 
 func registerLegFk(
 	frames []int,

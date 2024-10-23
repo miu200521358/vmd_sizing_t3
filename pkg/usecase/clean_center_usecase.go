@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
@@ -85,7 +86,7 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			legRightRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelRightBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legRightBone.Index()).FilledFrameRotation())
 		}
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -131,6 +132,9 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	threshold := 0.001
 	var wg sync.WaitGroup
 
+	logEndFrame := 0
+	allCount := frames[len(frames)-1]
+
 	for i, endFrame := range frames {
 		if i == 0 {
 			continue
@@ -141,14 +145,12 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			continue
 		}
 
-		logEndFrame := 0
-		allCount := frames[len(frames)-1] - frames[0]
-		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
-			if iFrame%1000 == 0 && iFrame > logEndFrame {
-				mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": endFrame, "AllCount": allCount}))
-				logEndFrame += 1000
-			}
+		if endFrame > logEndFrame {
+			mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": allCount}))
+			logEndFrame += 1000
+		}
 
+		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
 			frame := float32(iFrame)
 
 			wg.Add(2)

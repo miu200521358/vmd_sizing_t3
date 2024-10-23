@@ -138,7 +138,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -215,7 +215,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			sizingNeckRotations[index] = upperDiffRotation.Muled(sizingNeckRotations[index])
 		}
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": iterIndex, "AllCount": allCount}))
+		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": allCount}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
