@@ -72,11 +72,9 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	sizingRightToeIkBone := sizingModel.Bones.GetByName(pmx.TOE_IK.Right())
 	sizingRightToeBone := sizingModel.Bones.GetIkTarget(pmx.TOE_IK.Right())
 
-	mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	frames := sizingMotion.BoneFrames.RegisteredFrames(all_lower_leg_bone_names)
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
-	blockSize := miter.GetBlockSize(len(frames) * setSize)
+	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil
@@ -89,6 +87,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_gravity_lower_leg_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}
@@ -162,8 +162,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 	sizingMotion.BoneFrames.Delete(pmx.TOE_IK.Left())
 	sizingMotion.BoneFrames.Delete(pmx.TOE_IK.Right())
 
-	mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	centerPositions := make([]*mmath.MVec3, len(frames))
 	groovePositions := make([]*mmath.MVec3, len(frames))
 
@@ -210,6 +208,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 
 		sizingGrooveBf := sizingMotion.BoneFrames.Get(sizingGrooveBone.Name()).Get(frame)
 		groovePositions[index] = sizingGrooveBf.Position.Added(&mmath.MVec3{X: 0, Y: yDiff, Z: 0})
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}
@@ -297,6 +297,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		rightLegFkMat := sizingRightToeDelta.FilledGlobalPosition().Subed(
 			sizingRightAnkleDelta.FilledGlobalPosition()).Normalize().ToLocalMat()
 		rightLegIkRotations[index] = rightLegFkMat.Muled(rightLegIkMat.Inverted()).Quaternion()
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}
@@ -353,8 +355,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		mlog.V("%s: %s", title, outputPath)
 	}
 
-	mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	leftLegRotations := make([]*mmath.MQuaternion, len(frames))
 	leftKneeRotations := make([]*mmath.MQuaternion, len(frames))
 	leftAnkleRotations := make([]*mmath.MQuaternion, len(frames))
@@ -378,6 +378,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		rightLegRotations[index] = vmdDeltas.Bones.Get(sizingRightLegBone.Index()).FilledFrameRotation()
 		rightKneeRotations[index] = vmdDeltas.Bones.Get(sizingRightKneeBone.Index()).FilledFrameRotation()
 		rightAnkleRotations[index] = vmdDeltas.Bones.Get(sizingRightAnkleBone.Index()).FilledFrameRotation()
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}

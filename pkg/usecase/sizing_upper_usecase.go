@@ -119,15 +119,13 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(trunk_upper_bone_names)
-	blockSize := miter.GetBlockSize(len(frames) * setSize)
+	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil
 	}
 
 	mlog.I(mi18n.T("上半身補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
-
-	mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
@@ -138,6 +136,8 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}
@@ -150,8 +150,6 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	sizingLeftShoulderRotations := make([]*mmath.MQuaternion, len(frames))
 	sizingRightShoulderRotations := make([]*mmath.MQuaternion, len(frames))
 	sizingNeckRotations := make([]*mmath.MQuaternion, len(frames))
-
-	mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScales.Y)}))
 
 	// 先モデルの上半身デフォーム(IK ON)
 	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
@@ -214,6 +212,8 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			sizingRightShoulderRotations[index] = upperDiffRotation.Muled(sizingRightShoulderRotations[index])
 			sizingNeckRotations[index] = upperDiffRotation.Muled(sizingNeckRotations[index])
 		}
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}

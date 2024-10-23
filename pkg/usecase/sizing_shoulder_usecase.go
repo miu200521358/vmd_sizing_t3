@@ -63,6 +63,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	sizingArmRotations := make([][]*mmath.MQuaternion, 2)
 	allFrames := make([][]int, 2)
 	allBlockSizes := make([]int, 2)
+	allBlockCounts := make([]int, 2)
 
 	errorChan := make(chan error, 2)
 
@@ -81,9 +82,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			frames := sizingMotion.BoneFrames.RegisteredFrames(shoulder_direction_bone_names[i])
 			allFrames[i] = frames
-			allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
-
-			mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
+			allBlockSizes[i], allBlockCounts[i] = miter.GetBlockSize(len(frames) * setSize)
 
 			originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
@@ -94,10 +93,9 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 				vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, shoulder_direction_bone_names[i], false)
 				originalAllDeltas[index] = vmdDeltas
+			}, func(iterIndex, allCount int) {
+				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iterIndex, "AllCount": allCount}))
 			})
-
-			mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction,
-				"Scale": fmt.Sprintf("%.4f", armScales[i])}))
 
 			sizingShoulderRotations[i] = make([]*mmath.MQuaternion, len(frames))
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
@@ -128,6 +126,8 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				// 腕は逆補正をかける
 				upperDiffRotation := nowShoulderBf.Rotation.Inverted().Muled(sizingShoulderRotations[i][index]).Inverted()
 				sizingArmRotations[i][index] = upperDiffRotation.Muled(nowArmBf.Rotation)
+			}, func(iterIndex, allCount int) {
+				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": iterIndex, "AllCount": allCount}))
 			}); err != nil {
 				errorChan <- err
 			}

@@ -58,8 +58,6 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		shoulderRootBone := originalModel.Bones.GetByName(pmx.SHOULDER_ROOT.StringFromDirection(direction))
 		wristBone := originalModel.Bones.GetByName(pmx.WRIST.StringFromDirection(direction))
 
-		mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
-
 		relativeBoneNames := make([]string, 0)
 		relativeBoneNames = append(relativeBoneNames, armIkBone.Name())
 		relativeBoneNames = append(relativeBoneNames, wristBone.Name())
@@ -74,7 +72,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}
 		relativeBoneNames = append(relativeBoneNames, pmx.MIDDLE1.StringFromDirection(direction))
 		frames := sizingMotion.BoneFrames.RegisteredFrames(relativeBoneNames)
-		allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
+		allBlockSizes[i], _ = miter.GetBlockSize(len(frames) * setSize)
 
 		allFrames[i] = frames
 		allRelativeBoneNames[i] = relativeBoneNames
@@ -95,6 +93,8 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 					armRotations[boneDelta.Bone.Index()][index] = quat
 				}
 			}
+		}, func(iterIndex, allCount int) {
+			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": iterIndex, "AllCount": allCount}))
 		}); err != nil {
 			return false, err
 		}
@@ -145,8 +145,8 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	for i, direction := range directions {
 		go func(i int, direction string) {
-			defer wg.Done()
 			defer func() {
+				wg.Done()
 				errorChan <- miter.GetError()
 			}()
 
@@ -158,8 +158,6 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				armIkBone = armIkRightBone
 			}
 
-			mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name()}))
-
 			frames := allFrames[i]
 			relativeBoneNames := allRelativeBoneNames[i]
 			relativeArmBones := make([]*pmx.Bone, 0)
@@ -169,6 +167,8 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 			}
 
+			logEndFrame := 0
+			allCount := frames[len(frames)-1] - frames[0]
 			for j, endFrame := range frames {
 				if j == 0 {
 					continue
@@ -177,6 +177,11 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 				if endFrame-startFrame-1 <= 0 {
 					continue
+				}
+
+				if endFrame%1000 == 0 && endFrame > logEndFrame {
+					mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": endFrame, "AllCount": allCount}))
+					logEndFrame += 1000
 				}
 
 				for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {

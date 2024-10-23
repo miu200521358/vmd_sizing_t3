@@ -48,7 +48,7 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	centerRelativeBoneNames := []string{pmx.CENTER.String(), pmx.WAIST.String(), pmx.GROOVE.String(), pmx.UPPER.String(), pmx.UPPER2.String(), pmx.LOWER.String(), pmx.LEG.Left(), pmx.LEG.Right()}
 
 	frames := sizingMotion.BoneFrames.RegisteredFrames(centerRelativeBoneNames)
-	blockSize := miter.GetBlockSize(len(frames) * setSize)
+	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil
@@ -60,8 +60,6 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	lowerRotations := make([]*mmath.MQuaternion, len(frames))
 	legLeftRotations := make([]*mmath.MQuaternion, len(frames))
 	legRightRotations := make([]*mmath.MQuaternion, len(frames))
-
-	mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 元モデルのデフォーム(IK ON)
 	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
@@ -84,6 +82,8 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			legLeftRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelLeftBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legLeftBone.Index()).FilledFrameRotation())
 			legRightRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelRightBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legRightBone.Index()).FilledFrameRotation())
 		}
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}
@@ -124,8 +124,6 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	sizingMotion.BoneFrames.Delete(pmx.WAIST.String())
 
-	mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	// 中間キーフレのズレをチェック
 	threshold := 0.001
 	var wg sync.WaitGroup
@@ -140,7 +138,14 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			continue
 		}
 
+		logEndFrame := 0
+		allCount := frames[len(frames)-1] - frames[0]
 		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+			if iFrame%1000 == 0 && iFrame > logEndFrame {
+				mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": endFrame, "AllCount": allCount}))
+				logEndFrame += 1000
+			}
+
 			frame := float32(iFrame)
 
 			wg.Add(2)

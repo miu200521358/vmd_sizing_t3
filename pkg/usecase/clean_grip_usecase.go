@@ -49,10 +49,9 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	allFrames := make([][]int, 2)
 	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
 	allBlockSizes := make([]int, 2)
+	allBlockCounts := make([]int, 2)
 
 	for i, direction := range directions {
-		mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
-
 		fingerBoneNames := make([]string, 0)
 		fingerBoneNames = append(fingerBoneNames, finger_direction_bone_names[i]...)
 		for _, gripBone := range gripBones {
@@ -62,7 +61,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}
 
 		frames := sizingMotion.BoneFrames.RegisteredFrames(fingerBoneNames)
-		allBlockSizes[i] = miter.GetBlockSize(len(frames) * setSize)
+		allBlockSizes[i], allBlockCounts[i] = miter.GetBlockSize(len(frames) * setSize)
 
 		allFrames[i] = frames
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
@@ -75,6 +74,8 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, fingerBoneNames, false)
 
 			allVmdDeltas[i][index] = vmdDeltas
+		}, func(iterIndex, allCount int) {
+			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": iterIndex, "AllCount": allCount}))
 		}); err != nil {
 			return false, err
 		}
@@ -106,11 +107,11 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	var wg sync.WaitGroup
 
 	for i, direction := range directions {
-		mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction}))
-
 		frames := allFrames[i]
 		fingerBoneNames := finger_direction_bone_names[i]
 
+		logEndFrame := 0
+		allCount := frames[len(frames)-1] - frames[0]
 		for j, endFrame := range frames {
 			if j == 0 {
 				continue
@@ -119,6 +120,11 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			if endFrame-startFrame-1 <= 0 {
 				continue
+			}
+
+			if endFrame%1000 == 0 && endFrame > logEndFrame {
+				mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": endFrame, "AllCount": allCount}))
+				logEndFrame += 1000
 			}
 
 			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {

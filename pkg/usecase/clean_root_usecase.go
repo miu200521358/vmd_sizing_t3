@@ -35,7 +35,7 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	rootRelativeBoneNames := []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(rootRelativeBoneNames)
-	blockSize := miter.GetBlockSize(len(frames) * setSize)
+	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
 		return false, nil
@@ -49,8 +49,6 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		childLocalPositions[bone.Index()] = make([]*mmath.MVec3, len(frames))
 		childLocalRotations[bone.Index()] = make([]*mmath.MQuaternion, len(frames))
 	}
-
-	mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1}))
 
 	// 元モデルのデフォーム(IK ON)
 	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
@@ -69,6 +67,8 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			childLocalRotations[bone.Index()][index] =
 				vmdDeltas.Bones.Get(bone.Index()).FilledGlobalBoneRotation()
 		}
+	}, func(iterIndex, allCount int) {
+		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": iterIndex, "AllCount": allCount}))
 	}); err != nil {
 		return false, err
 	}
@@ -89,12 +89,12 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 	sizingMotion.BoneFrames.Delete(pmx.ROOT.String())
 
-	mlog.I(mi18n.T("全ての親最適化02", map[string]interface{}{"No": sizingSet.Index + 1}))
-
 	// 中間キーフレのズレをチェック
 	threshold := 0.01
 	var wg sync.WaitGroup
 
+	logEndFrame := 0
+	allCount := frames[len(frames)-1] - frames[0]
 	for i, endFrame := range frames {
 		if i == 0 {
 			continue
@@ -103,6 +103,11 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 		if endFrame-startFrame-1 <= 0 {
 			continue
+		}
+
+		if endFrame%1000 == 0 && endFrame > logEndFrame {
+			mlog.I(mi18n.T("全ての親最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": endFrame, "AllCount": allCount}))
+			logEndFrame += 1000
 		}
 
 		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
