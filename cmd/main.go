@@ -5,8 +5,10 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
 	"runtime"
+	"time"
 
 	"github.com/miu200521358/vmd_sizing_t3/pkg/ui"
 	"github.com/miu200521358/walk/pkg/walk"
@@ -50,15 +52,26 @@ func main() {
 	mApp.RunControlToViewerChannel()
 
 	go func() {
+		fmt.Printf("ControlWindow 01: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
+
 		// 操作ウィンドウは別スレッドで起動
 		controlWindow := controller.NewControlWindow(appConfig, mApp.ControlToViewerChannel(), ui.GetMenuItems, 2)
 		mApp.SetControlWindow(controlWindow)
 
+		fmt.Printf("ControlWindow 02: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
+
 		controlWindow.InitTabWidget()
+
+		fmt.Printf("ControlWindow 03: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
+
 		ui.NewToolState(mApp, controlWindow)
+
+		fmt.Printf("ControlWindow 04: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 50)
 		log.SetOutput(consoleView)
+
+		fmt.Printf("ControlWindow 05: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		mApp.RunController()
 	}()
