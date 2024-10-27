@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
@@ -77,7 +76,6 @@ type ToolState struct {
 }
 
 func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolState {
-	fmt.Printf("-- NewToolState 01: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	toolState := &ToolState{
 		App:           app,
@@ -85,16 +83,11 @@ func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolS
 		SizingSets:    make([]*domain.SizingSet, 0),
 	}
 
-	fmt.Printf("-- NewToolState 02: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
-
 	newSizingTab(controlWindow, toolState)
-	fmt.Printf("-- NewToolState 03: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	toolState.addSizingSet()
 	toolState.SetSizingCheckEnabled(true)
 	toolState.SetOriginalPmxParameterEnabled(false)
-
-	fmt.Printf("-- NewToolState 04: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	toolState.App.SetFuncGetModels(
 		func() [][]*pmx.PmxModel {
@@ -126,12 +119,8 @@ func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolS
 		},
 	)
 
-	fmt.Printf("-- NewToolState 05: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
-
 	// json保存タブ
 	newJsonSaveTab(controlWindow, toolState)
-
-	fmt.Printf("-- NewToolState 06: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	return toolState
 }

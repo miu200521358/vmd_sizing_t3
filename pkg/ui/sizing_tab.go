@@ -20,14 +20,11 @@ import (
 )
 
 func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState) {
-	fmt.Printf("-- -- newSizingTab 01: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	toolState.SizingTab = widget.NewMTabPage(mi18n.T("サイジング"))
 	controlWindow.AddTabPage(toolState.SizingTab.TabPage)
 
 	toolState.SizingTab.SetLayout(walk.NewVBoxLayout())
-
-	fmt.Printf("-- -- newSizingTab 02: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// ヘッダ
 	{
@@ -83,8 +80,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		loadButton.SetText(mi18n.T("サイジングセット設定読込"))
 	}
 
-	fmt.Printf("-- -- newSizingTab 03: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
-
 	{
 		// スクロール
 		scrollView, err := walk.NewScrollView(toolState.SizingTab)
@@ -106,8 +101,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 	}
 
-	fmt.Printf("-- -- newSizingTab 04: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
-
 	{
 		// スクロール
 		scrollView, err := walk.NewScrollView(toolState.SizingTab)
@@ -122,8 +115,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			walk.Size{Width: toolState.ControlWindow.Config.ControlWindowSize.Width * 10,
 				Height: toolState.ControlWindow.Config.ControlWindowSize.Height * 10},
 		)
-
-		fmt.Printf("-- -- -- newSizingTab 04.01: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		{
 			toolState.OriginalVmdPicker = widget.NewVmdVpdReadFilePicker(
@@ -178,8 +169,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				}
 			})
 		}
-
-		fmt.Printf("-- -- -- newSizingTab 04.02: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		{
 			toolState.OriginalPmxPicker = widget.NewPmxJsonReadFilePicker(
@@ -265,7 +254,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				}
 			})
 		}
-		fmt.Printf("-- -- -- newSizingTab 04.03: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		{
 			toolState.SizingPmxPicker = widget.NewPmxReadFilePicker(
@@ -355,7 +343,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				}
 			})
 		}
-		fmt.Printf("-- -- -- newSizingTab 04.04: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		{
 			toolState.OutputVmdPicker = widget.NewVmdSaveFilePicker(
@@ -365,7 +352,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				mi18n.T("出力モーションツールチップ"),
 				mi18n.T("出力モーションの使い方"))
 		}
-		fmt.Printf("-- -- -- newSizingTab 04.05: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		{
 			toolState.OutputPmxPicker = widget.NewPmxSaveFilePicker(
@@ -377,8 +363,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 
 		walk.NewVSeparator(scrollView)
-
-		fmt.Printf("-- -- newSizingTab 05: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		// 一括オプション
 		{
@@ -534,7 +518,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 
 		walk.NewVSeparator(scrollView)
-		fmt.Printf("-- -- newSizingTab 06: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		// サイジングオプション
 		{
@@ -696,7 +679,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 
 		walk.NewVSeparator(scrollView)
-		fmt.Printf("-- -- newSizingTab 07: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		// 最適化オプション
 		{
@@ -841,7 +823,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 
 		walk.NewVSeparator(scrollView)
-		fmt.Printf("-- -- newSizingTab 08: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		// 素体調整パラメーター
 		{
@@ -1294,7 +1275,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			}
 		}
 	}
-	fmt.Printf("-- -- newSizingTab 09: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// フッター
 	{
@@ -1333,8 +1313,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		toolState.SizingTabModelSaveButton.SetText(mi18n.T("モデル保存"))
 		toolState.SizingTabModelSaveButton.Clicked().Attach(toolState.onClickSizingTabModelSave)
 	}
-	fmt.Printf("-- -- newSizingTab 10: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
-
 }
 
 func execSizing(toolState *ToolState) {
