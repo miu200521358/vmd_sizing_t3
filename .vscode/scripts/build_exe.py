@@ -33,7 +33,7 @@ env_name = "dev" if os.environ.get('ENV') == 'dev' else "prod"
 # -H=windowsgui コンソールを表示しない
 # -linkmode external -extldflags '-static -Wl,cmd/app/app.res' リソースを埋め込む
 build_command = f"go build -o {workspace_folder}/build/{app_name}_{app_version}.exe -trimpath " \
-                f"-v {all_rebuild} -buildmode=exe -ldflags \"-s -w -H=windowsgui -X main.env={env_name} " \
+                f"-v {all_rebuild} -buildmode=exe -ldflags \"-s -w -X main.env={env_name} " \
                 f"-linkmode external -extldflags '-static -Wl,{workspace_folder}/cmd/app/app.res'\" "
 
 print(f"build_command: {build_command}")
