@@ -195,11 +195,7 @@ func (toolState *ToolState) newPageAction() (*walk.Action, error) {
 	action := walk.NewAction()
 	action.SetCheckable(true)
 	action.SetExclusive(true)
-	if len(toolState.SizingSets) == 0 {
-		action.SetText(fmt.Sprintf("     No. %d", len(toolState.SizingSets)+1))
-	} else {
-		action.SetText(fmt.Sprintf("No. %d", len(toolState.SizingSets)+1))
-	}
+	action.SetText(fmt.Sprintf(" No. %d ", len(toolState.SizingSets)+1))
 	index := len(toolState.SizingSets)
 
 	action.Triggered().Attach(func() {
