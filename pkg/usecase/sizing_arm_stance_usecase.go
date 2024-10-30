@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/miu200521358/mlib_go/pkg/domain/delta"
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
+	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
@@ -86,56 +88,72 @@ func createArmFingerStanceQuats(
 ) map[int][]*mmath.MMat4 {
 	stanceQuats := make(map[int][]*mmath.MMat4)
 
-	for _, direction := range directions {
+	initialMotion := vmd.NewVmdMotion("")
+
+	for i, direction := range directions {
 		stanceBoneNames := make([][]string, 0)
+
+		var originalVmdDeltas, sizingVmdDeltas *delta.VmdDeltas
+		{
+			originalVmdDeltas = delta.NewVmdDeltas(0, originalModel.Bones, originalModel.Hash(), initialMotion.Hash())
+			originalVmdDeltas.Morphs = deform.DeformMorph(originalModel, initialMotion.MorphFrames, 0, nil)
+			originalVmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, initialMotion, originalVmdDeltas, true, 0, all_arm_stance_bone_names[i], false)
+		}
+		{
+			sizingVmdDeltas = delta.NewVmdDeltas(0, sizingModel.Bones, sizingModel.Hash(), initialMotion.Hash())
+			sizingVmdDeltas.Morphs = deform.DeformMorph(sizingModel, initialMotion.MorphFrames, 0, nil)
+			sizingVmdDeltas = deform.DeformBoneByPhysicsFlag(sizingModel, initialMotion, sizingVmdDeltas, true, 0, all_arm_stance_bone_names[i], false)
+		}
 
 		if isArmStance {
 			// 腕スタンス補正対象
-			stanceBoneNames = append(stanceBoneNames, []string{"", pmx.ARM.StringFromDirection(direction)})
+			stanceBoneNames = append(stanceBoneNames, []string{"", pmx.ARM.StringFromDirection(direction), pmx.ELBOW.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.ARM.StringFromDirection(direction), pmx.ELBOW.StringFromDirection(direction)})
+				[]string{pmx.ARM.StringFromDirection(direction), pmx.ELBOW.StringFromDirection(direction), pmx.WRIST.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.ELBOW.StringFromDirection(direction), pmx.WRIST.StringFromDirection(direction)})
+				[]string{pmx.ELBOW.StringFromDirection(direction), pmx.WRIST.StringFromDirection(direction), pmx.WRIST_TAIL.StringFromDirection(direction)})
 		}
 
 		if isFingerStance {
 			// 指スタンス補正対象
 			stanceBoneNames = append(stanceBoneNames, []string{
-				pmx.WRIST.StringFromDirection(direction), pmx.THUMB1.StringFromDirection(direction)})
+				pmx.WRIST.StringFromDirection(direction), pmx.THUMB1.StringFromDirection(direction), pmx.THUMB2.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.THUMB1.StringFromDirection(direction), pmx.THUMB2.StringFromDirection(direction)})
+				[]string{pmx.THUMB1.StringFromDirection(direction), pmx.THUMB2.StringFromDirection(direction), pmx.THUMB_TAIL.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames, []string{
-				pmx.WRIST.StringFromDirection(direction), pmx.INDEX1.StringFromDirection(direction)})
+				pmx.WRIST.StringFromDirection(direction), pmx.INDEX1.StringFromDirection(direction), pmx.INDEX2.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.INDEX1.StringFromDirection(direction), pmx.INDEX2.StringFromDirection(direction)})
+				[]string{pmx.INDEX1.StringFromDirection(direction), pmx.INDEX2.StringFromDirection(direction), pmx.INDEX3.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.INDEX2.StringFromDirection(direction), pmx.INDEX3.StringFromDirection(direction)})
+				[]string{pmx.INDEX2.StringFromDirection(direction), pmx.INDEX3.StringFromDirection(direction), pmx.INDEX_TAIL.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames, []string{
-				pmx.WRIST.StringFromDirection(direction), pmx.MIDDLE1.StringFromDirection(direction)})
+				pmx.WRIST.StringFromDirection(direction), pmx.MIDDLE1.StringFromDirection(direction), pmx.MIDDLE2.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.MIDDLE1.StringFromDirection(direction), pmx.MIDDLE2.StringFromDirection(direction)})
+				[]string{pmx.MIDDLE1.StringFromDirection(direction), pmx.MIDDLE2.StringFromDirection(direction), pmx.MIDDLE3.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.MIDDLE2.StringFromDirection(direction), pmx.MIDDLE3.StringFromDirection(direction)})
+				[]string{pmx.MIDDLE2.StringFromDirection(direction), pmx.MIDDLE3.StringFromDirection(direction), pmx.MIDDLE_TAIL.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames, []string{
-				pmx.WRIST.StringFromDirection(direction), pmx.RING1.StringFromDirection(direction)})
+				pmx.WRIST.StringFromDirection(direction), pmx.RING1.StringFromDirection(direction), pmx.RING2.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.RING1.StringFromDirection(direction), pmx.RING2.StringFromDirection(direction)})
+				[]string{pmx.RING1.StringFromDirection(direction), pmx.RING2.StringFromDirection(direction), pmx.RING3.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.RING2.StringFromDirection(direction), pmx.RING3.StringFromDirection(direction)})
+				[]string{pmx.RING2.StringFromDirection(direction), pmx.RING3.StringFromDirection(direction), pmx.RING_TAIL.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames, []string{
-				pmx.WRIST.StringFromDirection(direction), pmx.PINKY1.StringFromDirection(direction)})
+				pmx.WRIST.StringFromDirection(direction), pmx.PINKY1.StringFromDirection(direction), pmx.PINKY2.StringFromDirection(direction)})
 			stanceBoneNames = append(stanceBoneNames,
-				[]string{pmx.PINKY1.StringFromDirection(direction), pmx.PINKY2.StringFromDirection(direction)})
+				[]string{pmx.PINKY1.StringFromDirection(direction), pmx.PINKY2.StringFromDirection(direction), pmx.PINKY_TAIL.StringFromDirection(direction)})
 		}
 
 		for _, boneNames := range stanceBoneNames {
 			fromBoneName := boneNames[0]
 			targetBoneName := boneNames[1]
+			toBoneName := boneNames[2]
 
 			var sizingFromBone *pmx.Bone
 			if fromBoneName != "" && sizingModel.Bones.ContainsByName(fromBoneName) {
 				sizingFromBone = sizingModel.Bones.GetByName(fromBoneName)
 			}
+
 			var originalTargetBone, sizingTargetBone *pmx.Bone
 			if targetBoneName != "" && originalModel.Bones.ContainsByName(targetBoneName) &&
 				sizingModel.Bones.ContainsByName(targetBoneName) {
@@ -143,7 +161,15 @@ func createArmFingerStanceQuats(
 				sizingTargetBone = sizingModel.Bones.GetByName(targetBoneName)
 			}
 
-			if originalTargetBone == nil || sizingTargetBone == nil {
+			var originalToBone, sizingToBone *pmx.Bone
+			if toBoneName != "" && originalModel.Bones.ContainsByName(toBoneName) &&
+				sizingModel.Bones.ContainsByName(toBoneName) {
+				originalToBone = originalModel.Bones.GetByName(toBoneName)
+				sizingToBone = sizingModel.Bones.GetByName(toBoneName)
+			}
+
+			if originalTargetBone == nil || sizingTargetBone == nil ||
+				originalToBone == nil || sizingToBone == nil {
 				continue
 			}
 
@@ -161,19 +187,22 @@ func createArmFingerStanceQuats(
 				stanceQuats[sizingTargetBone.Index()][0] = mmath.NewMMat4()
 			}
 
-			// 元モデルのボーン傾き
-			originalDirection := originalTargetBone.Extend.NormalizedLocalAxisX
+			// 元モデルのボーン傾き(デフォーム後)
+			originalDirection := originalVmdDeltas.Bones.Get(originalTargetBone.Index()).FilledGlobalPosition().Subed(
+				originalVmdDeltas.Bones.Get(originalToBone.Index()).FilledGlobalPosition()).Normalized()
 			originalSlopeMat := originalDirection.ToLocalMat()
-			// サイジング先モデルのボーン傾き
-			sizingBoneDirection := sizingTargetBone.Extend.NormalizedLocalAxisX
-			sizingSlopeMat := sizingBoneDirection.ToLocalMat()
+
+			// サイジング先モデルのボーン傾き(デフォーム後)
+			sizingDirection := sizingVmdDeltas.Bones.Get(sizingTargetBone.Index()).FilledGlobalPosition().Subed(
+				sizingVmdDeltas.Bones.Get(sizingToBone.Index()).FilledGlobalPosition()).Normalized()
+			sizingSlopeMat := sizingDirection.ToLocalMat()
 			// 傾き補正
 			offsetQuat := sizingSlopeMat.Muled(originalSlopeMat.Inverted()).Inverted().Quaternion()
 
 			if offsetQuat.IsIdent() {
 				stanceQuats[sizingTargetBone.Index()][1] = mmath.NewMMat4()
 			} else {
-				_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(sizingBoneDirection)
+				_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(sizingDirection)
 				stanceQuats[sizingTargetBone.Index()][1] = yzOffsetQuat.ToMat4()
 			}
 		}
