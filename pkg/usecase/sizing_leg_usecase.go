@@ -16,7 +16,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bool, error) {
+func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsSizingLeg || (sizingSet.IsSizingLeg && sizingSet.CompletedSizingLeg) {
 		return false, nil
 	}
@@ -80,7 +80,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		return false, nil
 	}
 
-	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 	sizingMotion.Processing = true
 
 	// 元モデルのデフォーム(IK ON)
@@ -91,7 +91,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_gravity_lower_leg_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -213,7 +213,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		sizingGrooveBf := sizingMotion.BoneFrames.Get(sizingGrooveBone.Name()).Get(frame)
 		groovePositions[index] = sizingGrooveBf.Position.Added(&mmath.MVec3{X: 0, Y: yDiff, Z: 0})
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -301,7 +301,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 			sizingRightAnkleDelta.FilledGlobalPosition()).Normalize().ToLocalMat()
 		rightLegIkRotations[index] = rightLegFkMat.Muled(rightLegIkMat.Inverted()).Quaternion()
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正08", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+		mlog.I(mi18n.T("足補正08", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -383,7 +383,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize int) (bo
 		rightKneeRotations[index] = vmdDeltas.Bones.Get(sizingRightKneeBone.Index()).FilledFrameRotation()
 		rightAnkleRotations[index] = vmdDeltas.Bones.Get(sizingRightAnkleBone.Index()).FilledFrameRotation()
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err

@@ -13,7 +13,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
+func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsSizingUpper || (sizingSet.IsSizingUpper && sizingSet.CompletedSizingUpper) {
 		return false, nil
 	}
@@ -125,7 +125,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		return false, nil
 	}
 
-	mlog.I(mi18n.T("上半身補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("上半身補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 	sizingMotion.Processing = true
 
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
@@ -138,7 +138,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -215,7 +215,7 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			sizingNeckRotations[index] = upperDiffRotation.Muled(sizingNeckRotations[index])
 		}
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err

@@ -18,7 +18,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
+func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsSizingArmTwist || (sizingSet.IsSizingArmTwist && sizingSet.CompletedSizingArmTwist) {
 		return false, nil
 	}
@@ -36,7 +36,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	wristTwistIkBones := make([]*pmx.Bone, 2)
 	// wristIkBones := make([]*pmx.Bone, 2)
 
-	mlog.I(mi18n.T("捩り補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("捩り補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 	sizingMotion.Processing = true
 
 	for i, direction := range directions {
@@ -127,7 +127,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				_, sizingWristRotations[i][fIndex] = nowWristRot.SeparateTwistByAxis(sizingWristBone.Extend.NormalizedLocalAxisX)
 			}
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+			mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			errorChan <- err
 		}
@@ -187,7 +187,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			armTwistRotations[i][index] = sizingArmTwistIkDeltas.Bones.Get(sizingArmTwistBone.Index()).FilledFrameRotation()
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+			mlog.I(mi18n.T("捩り補正03", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -235,7 +235,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			wristTwistRotations[i][index] = sizingWristTwistIkDeltas.Bones.Get(sizingWristTwistBone.Index()).FilledFrameRotation()
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+			mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -289,7 +289,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			for _, iFrame := range frames {
 				if iFrame > logBlock {
-					mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
+					mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logBlock += log_block_size
 				}
 

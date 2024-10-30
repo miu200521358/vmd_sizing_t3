@@ -1365,6 +1365,42 @@ func execSizing(toolState *ToolState) {
 
 	mlog.IL(mi18n.T("サイジング開始"))
 
+	completedProcessCount := 1
+	totalProcessCount := 0
+	if toolState.CleanRootCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.CleanCenterCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.CleanLegIkParentCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.CleanShoulderPCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.CleanArmIkCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.CleanGripCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.SizingLegCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.SizingUpperCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.SizingShoulderCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.SizingArmStanceCheck.Checked() || toolState.SizingFingerStanceCheck.Checked() {
+		totalProcessCount++
+	}
+	if toolState.SizingArmTwistCheck.Checked() {
+		totalProcessCount++
+	}
+
 	start := time.Now()
 
 	toolState.ControlWindow.Synchronize(func() {
@@ -1418,92 +1454,103 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedCleanGrip = false
 				}
 
-				if res, err := usecase.CleanRoot(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanRoot(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.CleanCenter(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanCenter(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.CleanLegIkParent(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanLegIkParent(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.CleanArmIk(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanArmIk(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.CleanShoulderP(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanShoulderP(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.CleanGrip(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.CleanGrip(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index], len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index], len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.SizingUpper(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.SizingUpper(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.SizingShoulder(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.SizingShoulder(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.SizingArmFingerStance(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.SizingArmFingerStance(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 
-				if res, err := usecase.SizingArmTwist(sizingSet, len(toolState.SizingSets)); err != nil {
+				if res, err := usecase.SizingArmTwist(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
 					errorChan <- err
 					return
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
+					completedProcessCount++
 				}
 			}(sizingSet)
 		}

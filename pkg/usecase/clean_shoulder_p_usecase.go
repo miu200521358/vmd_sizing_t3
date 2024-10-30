@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
+func CleanShoulderP(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsCleanShoulderP || (sizingSet.IsCleanShoulderP && sizingSet.CompletedCleanShoulderP) {
 		return false, nil
 	}
@@ -27,7 +27,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	originalMotion := sizingSet.OriginalVmd
 	sizingMotion := sizingSet.OutputVmd
 
-	mlog.I(mi18n.T("肩P最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("肩P最適化開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 	sizingMotion.Processing = true
 
 	allFrames := make([][]int, 2)
@@ -61,7 +61,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			shoulderRotations[i][index] = shoulderRootDelta.FilledGlobalMatrix().Inverted().Muled(shoulderDelta.FilledGlobalMatrix()).Quaternion()
 			armRotations[i][index] = shoulderDelta.FilledGlobalMatrix().Inverted().Muled(armBoneDelta.FilledGlobalMatrix()).Quaternion()
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("肩P最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+			mlog.I(mi18n.T("肩P最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -129,7 +129,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 
 				if endFrame > logEndFrame {
-					mlog.I(mi18n.T("肩P最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
+					mlog.I(mi18n.T("肩P最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
 					logEndFrame += log_block_size
 				}
 

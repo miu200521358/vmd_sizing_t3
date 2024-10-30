@@ -15,7 +15,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
+func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsCleanArmIk || (sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) {
 		return false, nil
 	}
@@ -43,7 +43,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	sizingMotion.Processing = true
 
 	mlog.I(mi18n.T("腕IK最適化開始", map[string]interface{}{"No": sizingSet.Index + 1,
-		"LeftBoneName": armIkLeftBone.Name(), "RightBoneName": armIkRightBone.Name()}))
+		"LeftBoneName": armIkLeftBone.Name(), "RightBoneName": armIkRightBone.Name(), "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 
 	allFrames := make([][]int, 2)
 	allRelativeBoneNames := make([][]string, 2)
@@ -97,7 +97,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 			}
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -184,7 +184,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				}
 
 				if endFrame > logEndFrame {
-					mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
+					mlog.I(mi18n.T("腕IK最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
 					logEndFrame += log_block_size
 				}
 

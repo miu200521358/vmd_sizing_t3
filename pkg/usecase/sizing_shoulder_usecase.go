@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
+func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsSizingShoulder || (sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) {
 		return false, nil
 	}
@@ -31,7 +31,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	armScales := make([]float64, 2)
 	shoulderIkBones := make([]*pmx.Bone, 2)
 
-	mlog.I(mi18n.T("肩補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("肩補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 	sizingMotion.Processing = true
 
 	for i, direction := range directions {
@@ -95,7 +95,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, shoulder_direction_bone_names[i], false)
 				originalAllDeltas[index] = vmdDeltas
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 			})
 
 			sizingShoulderRotations[i] = make([]*mmath.MQuaternion, len(frames))
@@ -128,7 +128,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				upperDiffRotation := nowShoulderBf.Rotation.Inverted().Muled(sizingShoulderRotations[i][index]).Inverted()
 				sizingArmRotations[i][index] = upperDiffRotation.Muled(nowArmBf.Rotation)
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 			}); err != nil {
 				errorChan <- err
 			}

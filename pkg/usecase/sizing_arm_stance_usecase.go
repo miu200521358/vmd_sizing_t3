@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
@@ -11,7 +12,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize int) (bool, error) {
+func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	originalModel := sizingSet.OriginalPmx
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
@@ -25,7 +26,7 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize int) (bool, erro
 		return false, nil
 	}
 
-	mlog.I(mi18n.T("腕指スタンス補正開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("腕指スタンス補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 	sizingMotion.Processing = true
 
 	stanceQuats := createArmFingerStanceQuats(

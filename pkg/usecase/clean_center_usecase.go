@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
+func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsCleanCenter || (sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) {
 		return false, nil
 	}
@@ -34,7 +34,7 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		return false, nil
 	}
 
-	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1}))
+	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 	sizingMotion.Processing = true
 
 	centerBone := originalModel.Bones.GetByName(pmx.CENTER.String())
@@ -86,7 +86,7 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			legRightRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelRightBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legRightBone.Index()).FilledFrameRotation())
 		}
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
+		mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -146,7 +146,7 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}
 
 		if endFrame > logEndFrame {
-			mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
+			mlog.I(mi18n.T("センター最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
 			logEndFrame += log_block_size
 		}
 
