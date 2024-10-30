@@ -88,21 +88,21 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 				vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, shoulder_direction_bone_names[i], false)
 				originalAllDeltas[index] = vmdDeltas
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
+				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
 			})
 
 			sizingShoulderRotations[i] = make([]*mmath.MQuaternion, len(frames))
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの上半身デフォーム(IK ON)
-			if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -128,7 +128,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				upperDiffRotation := nowShoulderBf.Rotation.Inverted().Muled(sizingShoulderRotations[i][index]).Inverted()
 				sizingArmRotations[i][index] = upperDiffRotation.Muled(nowArmBf.Rotation)
 			}, func(iterIndex, allCount int) {
-				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
+				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
 			}); err != nil {
 				errorChan <- err
 			}

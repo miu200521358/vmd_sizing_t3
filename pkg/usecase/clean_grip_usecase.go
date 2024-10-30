@@ -71,7 +71,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 
 		// 元モデルのデフォーム(IK ON)
-		if err := miter.IterParallelByList(frames, allBlockSizes[i], func(data, index int) {
+		if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -79,7 +79,7 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 
 			allVmdDeltas[i][index] = vmdDeltas
 		}, func(iterIndex, allCount int) {
-			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
+			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
 		}); err != nil {
 			sizingMotion.Processing = false
 			return false, err
@@ -128,8 +128,8 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 			}
 
 			if endFrame > logEndFrame {
-				mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
-				logEndFrame += 1000
+				mlog.I(mi18n.T("握り最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "Direction": direction, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
+				logEndFrame += log_block_size
 			}
 
 			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {

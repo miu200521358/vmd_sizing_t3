@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
@@ -9,6 +10,9 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
+
+// ログはCPUのサイズに応じて可変でブロッキングして出力する
+var log_block_size = runtime.NumCPU() * 50
 
 var directions = []string{"左", "右"}
 

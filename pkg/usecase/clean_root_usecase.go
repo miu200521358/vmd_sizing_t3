@@ -54,7 +54,7 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 	}
 
 	// 元モデルのデフォーム(IK ON)
-	if err := miter.IterParallelByList(frames, blockSize, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -71,7 +71,7 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 				vmdDeltas.Bones.Get(bone.Index()).FilledGlobalBoneRotation()
 		}
 	}, func(iterIndex, allCount int) {
-		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%02d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
+		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount), "Progress": fmt.Sprintf("%.2f", float64(iterIndex)/float64(allCount)*100)}))
 	}); err != nil {
 		sizingMotion.Processing = false
 		return false, err
@@ -110,8 +110,8 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize int) (bool, error) {
 		}
 
 		if endFrame > logEndFrame {
-			mlog.I(mi18n.T("全ての親最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
-			logEndFrame += 1000
+			mlog.I(mi18n.T("全ての親最適化02", map[string]interface{}{"No": sizingSet.Index + 1, "IterIndex": fmt.Sprintf("%04d", endFrame), "AllCount": fmt.Sprintf("%04d", allCount), "Progress": fmt.Sprintf("%.2f", float64(endFrame)/float64(allCount)*100)}))
+			logEndFrame += log_block_size
 		}
 
 		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
