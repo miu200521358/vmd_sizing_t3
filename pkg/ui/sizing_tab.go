@@ -173,7 +173,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						} else {
 							toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = model
 							loadResult.model = originalModel
-							loadResult.model.SetIndex(toolState.CurrentIndex)
 						}
 					} else {
 						// pmxを読み込んだ場合、サイジング用に最適化する
@@ -185,7 +184,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						} else {
 							toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = nil
 							loadResult.model = originalModel
-							loadResult.model.SetIndex(toolState.CurrentIndex)
 						}
 					}
 
@@ -214,6 +212,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = result.model
+					toolState.SizingSets[toolState.CurrentIndex].OriginalPmx.SetIndex(toolState.CurrentIndex)
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = result.model.Name()
 
 					toolState.ControlWindow.Synchronize(func() {
@@ -226,10 +225,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
 					} else {
-
 						// モーション設定済みの場合、出力VMDを読み直す
 						loadVmd(toolState, toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath, false)
-
 					}
 				}
 
@@ -238,7 +235,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				}()
 
 				defer toolState.ControlWindow.Synchronize(func() {
-
 					// 出力パス設定
 					setOutputPath(toolState)
 					// 画面活性化
@@ -294,7 +290,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						return
 					} else {
 						loadResult.model = originalModel
-						loadResult.model.SetIndex(toolState.CurrentIndex)
 					}
 
 					loadResult.addBoneNames = addBoneNames
@@ -321,6 +316,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = result.model
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmx.SetIndex(toolState.CurrentIndex)
 					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = result.model.Name()
 
 					toolState.ControlWindow.Synchronize(func() {
@@ -347,6 +343,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// 出力モデル
 					result.model.SetName(fmt.Sprintf("%s_sizing", result.model.Name()))
 					toolState.SizingSets[toolState.CurrentIndex].OutputPmx = result.model
+					toolState.SizingSets[toolState.CurrentIndex].OutputPmx.SetIndex(toolState.CurrentIndex)
 					toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath = mutils.CreateOutputPath(path, "sizing")
 
 					if !toolState.OriginalVmdPicker.Exists() {
