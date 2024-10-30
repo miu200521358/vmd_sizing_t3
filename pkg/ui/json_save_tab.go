@@ -58,7 +58,7 @@ func newJsonSaveTab(controlWindow *controller.ControlWindow, toolState *ToolStat
 	jsonSavePmxPicker.SetOnPathChanged(func(path string) {
 		saveButton.SetEnabled(false)
 
-		if _, err := jsonSavePmxPicker.Load(); err == nil {
+		if _, err := jsonSavePmxPicker.Load(path); err == nil {
 			// 出力パス設定
 			outputPath := strings.ReplaceAll(path, ".pmx", "_config.json")
 			jsonSavePicker.SetPath(outputPath)
@@ -70,7 +70,7 @@ func newJsonSaveTab(controlWindow *controller.ControlWindow, toolState *ToolStat
 	})
 
 	saveButton.Clicked().Attach(func() {
-		if data, err := jsonSavePmxPicker.Load(); err == nil {
+		if data, err := jsonSavePmxPicker.Load(jsonSavePmxPicker.GetPath()); err == nil {
 			rep := repository.NewPmxJsonRepository()
 
 			if err := rep.Save(jsonSavePicker.GetPath(), data, false); err == nil {

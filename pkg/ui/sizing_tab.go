@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -25,8 +26,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	controlWindow.AddTabPage(toolState.SizingTab.TabPage)
 
 	toolState.SizingTab.SetLayout(walk.NewVBoxLayout())
-
-	fmt.Printf("-- -- newSizingTab 01: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// ヘッダ
 	{
@@ -90,7 +89,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			widget.RaiseError(err)
 		}
 	}
-	fmt.Printf("-- -- newSizingTab 02: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// スクロール
 	scrollView, err := walk.NewScrollView(toolState.SizingTab)
@@ -105,7 +103,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		walk.Size{Width: toolState.ControlWindow.Config.ControlWindowSize.Width * 10,
 			Height: toolState.ControlWindow.Config.ControlWindowSize.Height * 10},
 	)
-	fmt.Printf("-- -- newSizingTab 04: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	{
 		toolState.OriginalVmdPicker = widget.NewVmdVpdReadFilePicker(
@@ -117,50 +114,18 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			mi18n.T("サイジング対象モーションの使い方"))
 
 		toolState.OriginalVmdPicker.SetOnPathChanged(func(path string) {
-			toolState.ControlWindow.Synchronize(func() {
-				toolState.SetEnabled(false)
-			})
-			defer func() {
-				toolState.ControlWindow.Synchronize(func() {
-					toolState.SetEnabled(true)
-					toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
-				})
-			}()
+			toolState.SetEnabled(false)
 
-			if data, err := toolState.OriginalVmdPicker.Load(); err == nil {
-				if data == nil {
-					toolState.OutputVmdPicker.ChangePath("")
-					return
+			if canLoad, err := toolState.OriginalVmdPicker.CanLoad(); !canLoad {
+				if err != nil {
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
 				}
-
-				// 出力パス設定
-				setOutputPath(toolState)
-
-				// 元モデル用モーション
-				motion := data.(*vmd.VmdMotion)
-				// Fit用モーフ追加しておく
-				motion = usecase.AddFitMorph(motion)
-				// 強制更新用にハッシュ設定
-				motion.SetRandHash()
-				toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath = path
-				toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = motion
-				toolState.SizingSets[toolState.CurrentIndex].OriginalVmdName = motion.Name()
-
-				// サイジング先モデル用モーション
-				sizingMotion := toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-				sizingMotion.SetRandHash()
-				sizingMotion.Clean()
-				toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingMotion
-				toolState.ResetSizingCheck(false)
-
-				controlWindow.UpdateMaxFrame(motion.MaxFrame())
-				go execSizing(toolState)
-			} else {
-				mlog.ET(mi18n.T("読み込み失敗"), err.Error())
+				return
 			}
+
+			loadVmd(toolState, path, true)
 		})
 	}
-	fmt.Printf("-- -- newSizingTab 05: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	{
 		toolState.OriginalPmxPicker = widget.NewPmxJsonReadFilePicker(
@@ -172,81 +137,117 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			mi18n.T("モーション作成元モデルの使い方"))
 
 		toolState.OriginalPmxPicker.SetOnPathChanged(func(path string) {
-			toolState.ControlWindow.Synchronize(func() {
-				toolState.SetEnabled(false)
-			})
-			defer func() {
-				toolState.ControlWindow.Synchronize(func() {
-					toolState.SetEnabled(true)
-					toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
-				})
+			toolState.SetEnabled(false)
+
+			if canLoad, err := toolState.OriginalPmxPicker.CanLoad(); !canLoad {
+				if err != nil {
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
+				}
+				return
+			}
+
+			resultChan := make(chan loadPmxResult, 1)
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				var loadResult loadPmxResult
+				rep := repository.NewPmxRepository()
+				if data, err := rep.Load(path); err != nil {
+					loadResult.model = nil
+					loadResult.err = err
+					resultChan <- loadResult
+					return
+				} else {
+					model := data.(*pmx.PmxModel)
+
+					if toolState.IsOriginalJson() {
+						// jsonから読み込んだ場合、モデル定義を適用して読み込みしなおす
+						originalModel, err := usecase.LoadOriginalPmxByJson(model)
+						if err != nil {
+							loadResult.model = nil
+							loadResult.err = err
+							resultChan <- loadResult
+						} else {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = model
+							loadResult.model = originalModel
+							loadResult.model.SetIndex(toolState.CurrentIndex)
+						}
+					} else {
+						// pmxを読み込んだ場合、サイジング用に最適化する
+						originalModel, _, err := usecase.AdjustPmxForSizing(model, true)
+						if err != nil {
+							loadResult.model = nil
+							loadResult.err = err
+							resultChan <- loadResult
+						} else {
+							toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = nil
+							loadResult.model = originalModel
+							loadResult.model.SetIndex(toolState.CurrentIndex)
+						}
+					}
+
+					loadResult.err = nil
+					resultChan <- loadResult
+				}
 			}()
 
-			if data, err := toolState.OriginalPmxPicker.Load(); err == nil {
-				if data == nil {
+			// 非同期で結果を受け取る
+			go func() {
+				wg.Wait()
+				close(resultChan)
+
+				result := <-resultChan
+
+				if result.err != nil {
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
+				} else if result.model == nil {
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = nil
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = ""
 					toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = nil
-					return
-				}
-
-				model := data.(*pmx.PmxModel)
-				toolState.SetOriginalPmxParameterEnabled(false)
-
-				// jsonから読み込んだ場合、モデル定義を適用して読み込みしなおす
-				if toolState.IsOriginalJson() {
-					originalModel, err := usecase.LoadOriginalPmxByJson(model)
-					if err != nil {
-						mlog.E(mi18n.T("素体読み込み失敗"), err)
-					} else {
-						toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = model
-						model = originalModel
-
-						// 元モデル調整パラメータ有効化
-						toolState.ResetOriginalPmxParameter()
-						toolState.SetOriginalPmxParameterEnabled(true)
-					}
 				} else {
-					originalModel, _, err := usecase.AdjustPmxForSizing(model, true)
-					if err != nil {
-						mlog.E(mi18n.T("素体読み込み失敗"), err)
-						return
+					// 強制更新用にハッシュ設定
+					result.model.SetRandHash()
+
+					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
+					toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = result.model
+					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = result.model.Name()
+
+					toolState.ControlWindow.Synchronize(func() {
+						toolState.ResetSizingCheck(false)
+					})
+
+					if !toolState.OriginalVmdPicker.Exists() {
+
+						// モーション未設定の場合、空モーションを定義する
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
 					} else {
-						toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx = nil
-						model = originalModel
+
+						// モーション設定済みの場合、出力VMDを読み直す
+						loadVmd(toolState, toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath, false)
+
 					}
 				}
 
-				model.SetRandHash()
-				model.SetIndex(toolState.CurrentIndex)
+				go func() {
+					runtime.GC() // 読み込み時のメモリ解放
+				}()
 
-				// 元モデル
-				toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
-				toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = model
-				toolState.SizingSets[toolState.CurrentIndex].OriginalPmxName = model.Name()
-				toolState.ResetSizingCheck(false)
+				defer toolState.ControlWindow.Synchronize(func() {
 
-				if !toolState.OriginalVmdPicker.Exists() {
-					// モーション未設定の場合、空モーションを定義する
-					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
-					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
-				} else {
-					// モーション設定済みの場合、出力VMDを読み直す
-					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd =
-						toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-					toolState.SizingSets[toolState.CurrentIndex].OutputVmd =
-						toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-				}
-
-				// 出力パス設定
-				setOutputPath(toolState)
-			} else {
-				mlog.ET(mi18n.T("読み込み失敗"), err.Error())
-			}
+					// 出力パス設定
+					setOutputPath(toolState)
+					// 画面活性化
+					toolState.SetEnabled(true)
+					toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
+				})
+			}()
 		})
 	}
-	fmt.Printf("-- -- newSizingTab 06: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	{
 		toolState.SizingPmxPicker = widget.NewPmxReadFilePicker(
@@ -258,85 +259,121 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			mi18n.T("サイジング先モデルの使い方"))
 
 		toolState.SizingPmxPicker.SetOnPathChanged(func(path string) {
-			toolState.ControlWindow.Synchronize(func() {
-				toolState.SetEnabled(false)
-			})
-			defer func() {
-				toolState.ControlWindow.Synchronize(func() {
+			toolState.SetEnabled(false)
+
+			if canLoad, err := toolState.SizingPmxPicker.CanLoad(); !canLoad {
+				if err != nil {
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
+				}
+				return
+			}
+
+			resultChan := make(chan loadPmxResult, 1)
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			go func() {
+				defer wg.Done()
+
+				var loadResult loadPmxResult
+				rep := repository.NewPmxRepository()
+				if data, err := rep.Load(path); err != nil {
+					loadResult.model = nil
+					loadResult.err = err
+					resultChan <- loadResult
+					return
+				} else {
+					model := data.(*pmx.PmxModel)
+
+					// pmxを読み込んだ場合、サイジング用に最適化する
+					originalModel, addBoneNames, err := usecase.AdjustPmxForSizing(model, true)
+					if err != nil {
+						loadResult.model = nil
+						loadResult.err = err
+						resultChan <- loadResult
+						return
+					} else {
+						loadResult.model = originalModel
+						loadResult.model.SetIndex(toolState.CurrentIndex)
+					}
+
+					loadResult.addBoneNames = addBoneNames
+					loadResult.err = nil
+					resultChan <- loadResult
+				}
+			}()
+
+			// 非同期で結果を受け取る
+			go func() {
+				wg.Wait()
+				close(resultChan)
+
+				result := <-resultChan
+				if result.err != nil {
+					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
+				} else if result.model == nil {
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = nil
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = ""
+				} else {
+					// 強制更新用にハッシュ設定
+					result.model.SetRandHash()
+
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = result.model
+					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = result.model.Name()
+
+					toolState.ControlWindow.Synchronize(func() {
+						toolState.ResetSizingCheck(false)
+					})
+
+					isAdd := false
+					if toolState.OriginalVmdPicker.Exists() {
+						for _, boneName := range result.addBoneNames {
+							nowSizingSet := toolState.SizingSets[toolState.CurrentIndex]
+							if nowSizingSet.OriginalVmd.BoneFrames.ContainsActive(boneName) {
+								isAdd = true
+								break
+							}
+						}
+					}
+
+					if isAdd {
+						mlog.I(mi18n.T("不足ボーンあり", map[string]interface{}{
+							"No":           toolState.SizingSets[toolState.CurrentIndex].Index + 1,
+							"addBoneNames": mutils.JoinSlice(result.addBoneNames)}))
+					}
+
+					// 出力モデル
+					result.model.SetName(fmt.Sprintf("%s_sizing", result.model.Name()))
+					toolState.SizingSets[toolState.CurrentIndex].OutputPmx = result.model
+					toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath = mutils.CreateOutputPath(path, "sizing")
+
+					if !toolState.OriginalVmdPicker.Exists() {
+						// モーション未設定の場合、空モーションを定義する
+						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
+						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
+					} else {
+						// モーション設定済みの場合、出力VMDを読み直す
+						loadVmd(toolState, toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath, false)
+					}
+				}
+
+				go func() {
+					runtime.GC() // 読み込み時のメモリ解放
+				}()
+
+				defer toolState.ControlWindow.Synchronize(func() {
+					toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
+					// 出力パス設定
+					setOutputPath(toolState)
+					// 画面活性化
 					toolState.SetEnabled(true)
 					toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 				})
 			}()
-
-			if data, err := toolState.SizingPmxPicker.Load(); err == nil {
-				if data == nil {
-					toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
-					toolState.SizingSets[toolState.CurrentIndex].SizingPmx = nil
-					toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = ""
-
-					return
-				}
-
-				model := data.(*pmx.PmxModel)
-				sizingModel, addBoneNames, err := usecase.AdjustPmxForSizing(model, true)
-				if err != nil {
-					mlog.E(mi18n.T("素体読み込み失敗"), err)
-					return
-				}
-				sizingModel.SetIndex(toolState.CurrentIndex)
-
-				// サイジングモデル
-				toolState.SizingSets[toolState.CurrentIndex].SizingPmxPath = path
-				toolState.SizingSets[toolState.CurrentIndex].SizingPmx = sizingModel
-				toolState.SizingSets[toolState.CurrentIndex].SizingPmxName = sizingModel.Name()
-				toolState.SizingSets[toolState.CurrentIndex].SizingAddedBoneNames = addBoneNames
-				toolState.ResetSizingCheck(false)
-
-				isAdd := false
-				if toolState.OriginalVmdPicker.Exists() {
-					for _, boneName := range addBoneNames {
-						nowSizingSet := toolState.SizingSets[toolState.CurrentIndex]
-						if nowSizingSet.OriginalVmd.BoneFrames.ContainsActive(boneName) {
-							isAdd = true
-							break
-						}
-					}
-				}
-
-				if isAdd {
-					mlog.I(mi18n.T("不足ボーンあり", map[string]interface{}{
-						"No":           toolState.SizingSets[toolState.CurrentIndex].Index + 1,
-						"addBoneNames": mutils.JoinSlice(addBoneNames)}))
-				}
-
-				// 出力モデル
-				sizingModel.SetName(fmt.Sprintf("%s_sizing", sizingModel.Name()))
-				toolState.SizingSets[toolState.CurrentIndex].OutputPmx = sizingModel
-				toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath =
-					mutils.CreateOutputPath(path, "sizing")
-
-				toolState.OutputPmxPicker.SetPath(toolState.SizingSets[toolState.CurrentIndex].OutputPmxPath)
-
-				if !toolState.OriginalVmdPicker.Exists() {
-					// モーション未設定の場合、空モーションを定義する
-					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
-					toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
-				} else {
-					// モーション設定済みの場合、出力VMDを読み直す
-					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd =
-						toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-					toolState.SizingSets[toolState.CurrentIndex].OutputVmd =
-						toolState.OriginalVmdPicker.LoadForce().(*vmd.VmdMotion)
-				}
-
-				// 出力パス設定
-				setOutputPath(toolState)
-			} else {
-				mlog.ET(mi18n.T("読み込み失敗"), err.Error())
-			}
 		})
 	}
-	fmt.Printf("-- -- newSizingTab 07: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	{
 		toolState.OutputVmdPicker = widget.NewVmdSaveFilePicker(
@@ -346,7 +383,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			mi18n.T("出力モーションツールチップ"),
 			mi18n.T("出力モーションの使い方"))
 	}
-	fmt.Printf("-- -- newSizingTab 08: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	{
 		toolState.OutputPmxPicker = widget.NewPmxSaveFilePicker(
@@ -358,8 +394,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	}
 
 	walk.NewVSeparator(scrollView)
-
-	fmt.Printf("-- -- newSizingTab 09: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// 一括オプション
 	{
@@ -516,7 +550,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	}
 
 	walk.NewVSeparator(scrollView)
-	fmt.Printf("-- -- newSizingTab 10: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// サイジングオプション
 	{
@@ -679,7 +712,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	}
 
 	walk.NewVSeparator(scrollView)
-	fmt.Printf("-- -- newSizingTab 11: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// 最適化オプション
 	{
@@ -824,7 +856,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	}
 
 	walk.NewVSeparator(scrollView)
-	fmt.Printf("-- -- newSizingTab 12: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 	// 素体調整パラメーター
 	{
@@ -1284,8 +1315,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		}
 	}
 
-	fmt.Printf("-- -- newSizingTab 13: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
-
 	// フッター
 	{
 		walk.NewVSeparator(toolState.SizingTab)
@@ -1295,7 +1324,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			widget.RaiseError(err)
 		}
 		playerComposite.SetLayout(walk.NewVBoxLayout())
-		fmt.Printf("-- -- newSizingTab 14: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		// プレイヤー
 		player := widget.NewMotionPlayer(playerComposite, controlWindow)
@@ -1303,7 +1331,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		controlWindow.SetPlayer(player)
 
 		walk.NewVSeparator(toolState.SizingTab)
-		fmt.Printf("-- -- newSizingTab 15: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 		saveComposite, err := walk.NewComposite(toolState.SizingTab)
 		if err != nil {
@@ -1325,7 +1352,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 		toolState.SizingTabModelSaveButton.SetText(mi18n.T("モデル保存"))
 		toolState.SizingTabModelSaveButton.Clicked().Attach(toolState.onClickSizingTabModelSave)
 	}
-	fmt.Printf("-- -- newSizingTab 16: Now[%s]\n", time.Now().Format("2006-01-02 15:04:05.000"))
 
 }
 
@@ -1515,7 +1541,8 @@ func remakeFitMorph(toolState *ToolState) {
 		toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx != nil {
 		// jsonモデル再読み込み
 		toolState.SizingSets[toolState.CurrentIndex].OriginalJsonPmx =
-			toolState.OriginalPmxPicker.LoadForce().(*pmx.PmxModel)
+			toolState.OriginalPmxPicker.LoadForce(
+				toolState.OriginalPmxPicker.GetPath()).(*pmx.PmxModel)
 		// フィッティングモーフ再生成
 		toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = usecase.RemakeFitMorph(
 			toolState.SizingSets[toolState.CurrentIndex].OriginalPmx,
@@ -1564,4 +1591,92 @@ func setOutputPath(toolState *ToolState) {
 			}
 		}
 	}
+}
+
+func loadVmd(toolState *ToolState, path string, enableFormOnCompletion bool) {
+
+	resultChan := make(chan loadVmdResult, 2)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	for range 2 {
+		go func() {
+			defer wg.Done()
+
+			var loadResult loadVmdResult
+			rep := repository.NewVmdRepository()
+			if data, err := rep.Load(path); err != nil {
+				loadResult.motion = nil
+				loadResult.err = err
+			} else {
+				motion := data.(*vmd.VmdMotion)
+				loadResult.motion = motion
+				loadResult.err = nil
+			}
+
+			resultChan <- loadResult
+		}()
+	}
+
+	// 非同期で結果を受け取る
+	go func() {
+		wg.Wait()
+		close(resultChan)
+
+		originalResult := <-resultChan
+		if originalResult.err != nil {
+			mlog.ET(mi18n.T("読み込み失敗"), originalResult.err.Error())
+		} else if originalResult.motion != nil {
+			// 強制更新用にハッシュ設定
+			originalResult.motion.SetRandHash()
+
+			toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath = path
+			toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = originalResult.motion
+			toolState.SizingSets[toolState.CurrentIndex].OriginalVmdName = originalResult.motion.Name()
+		}
+
+		sizingResult := <-resultChan
+		if sizingResult.err != nil {
+			if originalResult.err == nil {
+				mlog.ET(mi18n.T("読み込み失敗"), sizingResult.err.Error())
+			}
+		} else if sizingResult.motion == nil {
+			toolState.ControlWindow.Synchronize(func() {
+				// 出力パス設定
+				toolState.OutputVmdPicker.ChangePath("")
+				setOutputPath(toolState)
+			})
+		} else {
+			// 強制更新用にハッシュ設定
+			sizingResult.motion.SetRandHash()
+
+			toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingResult.motion
+		}
+
+		if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd != nil &&
+			toolState.SizingSets[toolState.CurrentIndex].OutputVmd != nil {
+
+			toolState.ControlWindow.Synchronize(func() {
+				toolState.ResetSizingCheck(false)
+				toolState.ControlWindow.UpdateMaxFrame(
+					toolState.SizingSets[toolState.CurrentIndex].OriginalVmd.MaxFrame())
+			})
+
+			go execSizing(toolState)
+		}
+
+		go func() {
+			runtime.GC() // 読み込み時のメモリ解放
+		}()
+
+		defer toolState.ControlWindow.Synchronize(func() {
+			if enableFormOnCompletion {
+				// 出力パス設定
+				setOutputPath(toolState)
+				// 画面活性化
+				toolState.SetEnabled(true)
+				toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
+			}
+		})
+	}()
 }
