@@ -27,7 +27,7 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 	runtime.GOMAXPROCS(numCPU)
 	defer runtime.GOMAXPROCS(int(numCPU / 4))
 
-	reduced := vmd.NewBoneFrames()
+	reducedBoneFrames := make([]*vmd.BoneNameFrames, len(sizingMotion.BoneFrames.Data))
 	allCount := len(sizingMotion.BoneFrames.Data)
 	allBoneNames := sizingMotion.BoneFrames.Names()
 
@@ -62,7 +62,7 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 				iterIndex++
 				mu.Unlock()
 
-				reduced.Append(bnfs.Reduce())
+				reducedBoneFrames[j] = bnfs.Reduce()
 			}
 		}(startIndex)
 	}
@@ -75,11 +75,17 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
+			sizingMotion.Processing = false
 			return false, err
 		}
 	}
 
-	sizingMotion.BoneFrames = reduced
+	for _, bnfs := range reducedBoneFrames {
+		if bnfs != nil {
+			sizingMotion.BoneFrames.Data[bnfs.Name] = bnfs
+		}
+	}
+	sizingMotion.Processing = false
 
 	return true, nil
 }
