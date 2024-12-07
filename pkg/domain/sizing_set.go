@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"sync/atomic"
+
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 )
@@ -19,11 +21,12 @@ type SizingSet struct {
 	SizingPmxName        string
 	SizingAddedBoneNames []string
 
-	OriginalVmd *vmd.VmdMotion
-	OriginalPmx *pmx.PmxModel
-	SizingPmx   *pmx.PmxModel
-	OutputVmd   *vmd.VmdMotion
-	OutputPmx   *pmx.PmxModel
+	OriginalVmd     *vmd.VmdMotion
+	OriginalPmx     *pmx.PmxModel
+	SizingPmx       *pmx.PmxModel
+	OutputVmd       *vmd.VmdMotion
+	OutputPmx       *pmx.PmxModel
+	AtomicOutputVmd atomic.Value
 
 	IsSizingCleanAll bool
 	IsSizingAll      bool
@@ -85,6 +88,18 @@ type SizingSet struct {
 	OriginalPmxKneeLength     float64 // ひざ長さ
 	OriginalPmxKneeAngle      float64 // ひざ角度
 	OriginalPmxAnkleLength    float64 // 足首長さ
+}
+
+func (sizingSet *SizingSet) StoreOutputVmd(outputVmd *vmd.VmdMotion) {
+	sizingSet.AtomicOutputVmd.Store(outputVmd)
+	sizingSet.OutputVmd = outputVmd
+}
+
+func (sizingSet *SizingSet) LoadOutputVmd() *vmd.VmdMotion {
+	if sizingSet.AtomicOutputVmd.Load() == nil {
+		return vmd.NewVmdMotion("")
+	}
+	return sizingSet.AtomicOutputVmd.Load().(*vmd.VmdMotion)
 }
 
 func NewSizingSet(index int) *SizingSet {

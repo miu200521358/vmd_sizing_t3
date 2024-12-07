@@ -220,10 +220,11 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					})
 
 					if !toolState.OriginalVmdPicker.Exists() {
-
 						// モーション未設定の場合、空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
+						toolState.SizingSets[toolState.CurrentIndex].StoreOutputVmd(
+							toolState.SizingSets[toolState.CurrentIndex].OutputVmd)
 					} else {
 						// モーション設定済みの場合、出力VMDを読み直す
 						loadVmd(toolState, toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath, false)
@@ -350,6 +351,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						// モーション未設定の場合、空モーションを定義する
 						toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = vmd.NewVmdMotion("")
 						toolState.SizingSets[toolState.CurrentIndex].OutputVmd = vmd.NewVmdMotion("")
+						toolState.SizingSets[toolState.CurrentIndex].StoreOutputVmd(
+							toolState.SizingSets[toolState.CurrentIndex].OutputVmd)
 					} else {
 						// モーション設定済みの場合、出力VMDを読み直す
 						loadVmd(toolState, toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath, false)
@@ -1479,8 +1482,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1490,8 +1494,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1501,8 +1506,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1512,8 +1518,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1523,8 +1530,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1534,8 +1542,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1545,8 +1554,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1556,8 +1566,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1567,8 +1578,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1578,8 +1590,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1589,8 +1602,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1600,8 +1614,9 @@ func execSizing(toolState *ToolState) {
 					return
 				} else {
 					isExec = res || isExec
-					sizingSet.OutputVmd.SetRandHash()
 					if res {
+						sizingSet.OutputVmd.SetRandHash()
+						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 						completedProcessCount++
 					}
 				}
@@ -1752,9 +1767,11 @@ func loadVmd(toolState *ToolState, path string, enableFormOnCompletion bool) {
 			})
 		} else {
 			// 強制更新用にハッシュ設定
-			sizingResult.motion.SetRandHash()
-
 			toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingResult.motion
+			toolState.SizingSets[toolState.CurrentIndex].OutputVmd = sizingResult.motion
+			toolState.SizingSets[toolState.CurrentIndex].OutputVmd.SetRandHash()
+			toolState.SizingSets[toolState.CurrentIndex].StoreOutputVmd(
+				toolState.SizingSets[toolState.CurrentIndex].OutputVmd)
 		}
 
 		if toolState.SizingSets[toolState.CurrentIndex].OriginalVmd != nil &&

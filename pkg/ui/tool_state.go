@@ -123,7 +123,7 @@ func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolS
 			motions[1] = make([]*vmd.VmdMotion, len(toolState.SizingSets))
 
 			for i, sizingSet := range toolState.SizingSets {
-				motions[0][i] = sizingSet.OutputVmd
+				motions[0][i] = sizingSet.LoadOutputVmd()
 				motions[1][i] = sizingSet.OriginalVmd
 			}
 
