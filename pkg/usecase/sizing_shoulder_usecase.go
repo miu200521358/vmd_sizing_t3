@@ -32,7 +32,6 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	shoulderIkBones := make([]*pmx.Bone, 2)
 
 	mlog.I(mi18n.T("肩補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	for i, direction := range directions {
 		originalNeckRootBone := originalModel.Bones.GetByName(pmx.NECK_ROOT.String())
@@ -142,7 +141,6 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -166,7 +164,6 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	}
 
 	sizingSet.CompletedSizingShoulder = true
-	sizingMotion.Processing = false
 
 	return true, nil
 }

@@ -29,7 +29,6 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize, completedProces
 	}
 
 	mlog.I(mi18n.T("腕指スタンス補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	stanceQuats := createArmFingerStanceQuats(
 		originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
@@ -78,7 +77,6 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize, completedProces
 	// 腕スタンス補正だけしているときとかあるので、Completeは補正対象のフラグを受け継ぐ
 	sizingSet.CompletedSizingArmStance = sizingSet.IsSizingArmStance
 	sizingSet.CompletedSizingFingerStance = sizingSet.IsSizingFingerStance
-	sizingMotion.Processing = false
 
 	return true, nil
 }

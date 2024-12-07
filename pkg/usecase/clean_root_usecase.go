@@ -33,14 +33,12 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 	}
 
 	mlog.I(mi18n.T("全ての親最適化開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	rootRelativeBoneNames := []string{pmx.ROOT.String(), pmx.CENTER.String(), pmx.LEG_IK_PARENT.Left(), pmx.LEG_IK_PARENT.Right()}
 	frames := sizingMotion.BoneFrames.RegisteredFrames(rootRelativeBoneNames)
 	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
-		sizingMotion.Processing = false
 		return false, nil
 	}
 
@@ -73,7 +71,6 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -164,7 +161,6 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 	}
 
 	sizingSet.CompletedCleanRoot = true
-	sizingMotion.Processing = false
 
 	return true, nil
 }

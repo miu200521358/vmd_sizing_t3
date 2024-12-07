@@ -48,7 +48,6 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 	}
 
 	mlog.I(mi18n.T("握り最適化開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	allFrames := make([][]int, 2)
 	allVmdDeltas := make([][]*delta.VmdDeltas, 2)
@@ -81,7 +80,6 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -178,7 +176,6 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 	}
 
 	sizingSet.CompletedCleanGrip = true
-	sizingMotion.Processing = false
 	return true, nil
 }
 

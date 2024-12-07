@@ -30,7 +30,6 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
-	sizingMotion.Processing = true
 
 	// armIkBones := make([]*pmx.Bone, 2)
 	armTwistIkBones := make([]*pmx.Bone, 2)
@@ -38,7 +37,6 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	// wristIkBones := make([]*pmx.Bone, 2)
 
 	mlog.I(mi18n.T("捩り補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	for i, direction := range directions {
 		// sizingArmBone := sizingModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
@@ -158,7 +156,6 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%04d", allCount)}))
 		}); err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -257,7 +254,6 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -328,7 +324,6 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -480,13 +475,11 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
 
 	sizingSet.CompletedSizingArmTwist = true
-	sizingMotion.Processing = false
 
 	return true, nil
 }

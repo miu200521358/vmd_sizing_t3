@@ -35,7 +35,6 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	}
 
 	mlog.I(mi18n.T("センター最適化開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	centerBone := originalModel.Bones.GetByName(pmx.CENTER.String())
 	grooveBone := originalModel.Bones.GetByName(pmx.GROOVE.String())
@@ -53,7 +52,6 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	blockSize, _ := miter.GetBlockSize(len(frames) * setSize)
 
 	if len(frames) == 0 {
-		sizingMotion.Processing = false
 		return false, nil
 	}
 
@@ -88,7 +86,6 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -197,7 +194,6 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	}
 
 	sizingSet.CompletedCleanCenter = true
-	sizingMotion.Processing = false
 
 	return true, nil
 }

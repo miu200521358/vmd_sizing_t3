@@ -40,7 +40,6 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 		return false, nil
 	}
 
-	sizingMotion.Processing = true
 
 	mlog.I(mi18n.T("腕IK最適化開始", map[string]interface{}{"No": sizingSet.Index + 1,
 		"LeftBoneName": armIkLeftBone.Name(), "RightBoneName": armIkRightBone.Name(), "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
@@ -99,7 +98,6 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -228,13 +226,11 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
 
 	sizingSet.CompletedCleanArmIk = true
-	sizingMotion.Processing = false
 	return true, nil
 }
 

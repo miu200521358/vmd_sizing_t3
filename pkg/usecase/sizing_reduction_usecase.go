@@ -18,10 +18,8 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 	}
 
 	sizingMotion := sizingSet.OutputVmd
-	sizingMotion.Processing = true
 
 	mlog.I(mi18n.T("不要キー間引き開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	numCPU := runtime.NumCPU()
 	runtime.GOMAXPROCS(numCPU)
@@ -75,7 +73,6 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
-			sizingMotion.Processing = false
 			return false, err
 		}
 	}
@@ -85,7 +82,6 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 			sizingMotion.BoneFrames.Data[bnfs.Name] = bnfs
 		}
 	}
-	sizingMotion.Processing = false
 
 	return true, nil
 }

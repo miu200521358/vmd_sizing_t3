@@ -126,7 +126,6 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	}
 
 	mlog.I(mi18n.T("上半身補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
@@ -140,7 +139,6 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -217,7 +215,6 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -245,7 +242,6 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	}
 
 	sizingSet.CompletedSizingUpper = true
-	sizingMotion.Processing = false
 	return true, nil
 }
 

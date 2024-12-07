@@ -81,7 +81,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}
 
 	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
-	sizingMotion.Processing = true
 
 	// 元モデルのデフォーム(IK ON)
 	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
@@ -93,7 +92,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -215,7 +213,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -303,7 +300,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正08", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -385,7 +381,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
-		sizingMotion.Processing = false
 		return false, err
 	}
 
@@ -403,7 +398,6 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}
 
 	sizingSet.CompletedSizingLeg = true
-	sizingMotion.Processing = false
 	return true, nil
 }
 
