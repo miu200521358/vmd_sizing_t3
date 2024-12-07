@@ -99,9 +99,9 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 	scrollView.SetLayout(walk.NewVBoxLayout())
 	scrollView.SetMinMaxSize(
 		walk.Size{Width: toolState.ControlWindow.Config.ControlWindowSize.Width / 2,
-			Height: toolState.ControlWindow.Config.ControlWindowSize.Height / 2},
-		walk.Size{Width: toolState.ControlWindow.Config.ControlWindowSize.Width * 10,
-			Height: toolState.ControlWindow.Config.ControlWindowSize.Height * 10},
+			Height: int(float64(toolState.ControlWindow.Config.ControlWindowSize.Height) / 2.5)},
+		walk.Size{Width: toolState.ControlWindow.Config.ControlWindowSize.Width * 8,
+			Height: toolState.ControlWindow.Config.ControlWindowSize.Height * 18},
 	)
 
 	{
