@@ -746,5 +746,21 @@
     {
         "id": "肩P最適化02",
         "translation": "【No.{{.No}}】肩P統合 - 中間キーフレームのズレチェック 【{{.Direction}}】 [{{.CompletedProcessCount}}/{{.TotalProcessCount}} - {{.IterIndex}}/{{.AllCount}}]"
+    },
+    {
+        "id": "不要キー間引き",
+        "translation": "不要キー間引き"
+    },
+    {
+        "id": "不要キー間引き説明",
+        "translation": "サイジングの際に追加した、最終的に取り除いても問題のないキーフレームを削除します\n元の動きから変わらないように、補間曲線も再設定します\n記号: R"
+    },
+    {
+        "id": "不要キー間引き開始",
+        "translation": "【No.{{.No}}】不要キー間引き 開始 [{{.CompletedProcessCount}}/{{.TotalProcessCount}}] ---------------------------------"
+    },
+    {
+        "id": "不要キー間引き01",
+        "translation": "【No.{{.No}}】不要キー間引き 【{{.Name}}】 [{{.CompletedProcessCount}}/{{.TotalProcessCount}} - {{.IterIndex}}/{{.AllCount}}]"
     }
 ]

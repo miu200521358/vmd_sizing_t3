@@ -454,6 +454,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 								toolState.SizingFingerStanceCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 								toolState.SizingArmTwistCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
+								toolState.SizingReductionCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 
 								toolState.CleanRootCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
 								toolState.CleanCenterCheck.UpdateChecked(toolState.SizingCleanAllCheck.Checked())
@@ -493,6 +494,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingArmStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 								toolState.SizingFingerStanceCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 								toolState.SizingArmTwistCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
+								toolState.SizingReductionCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
 
 								go execSizing(toolState)
 
@@ -697,6 +699,22 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							MaxSize:     declarative.Size{Width: 150, Height: 20},
 							Text:        mi18n.T("捩り補正"),
 							ToolTipText: mi18n.T("捩り補正説明"),
+						},
+						// 不要キー間引き
+						declarative.CheckBox{
+							AssignTo: &toolState.SizingReductionCheck,
+							OnCheckedChanged: func() {
+								toolState.SizingSets[toolState.CurrentIndex].IsSizingReduction =
+									toolState.SizingReductionCheck.Checked()
+
+								go execSizing(toolState)
+								// 出力パス設定
+								setOutputPath(toolState)
+							},
+							MinSize:     declarative.Size{Width: 150, Height: 20},
+							MaxSize:     declarative.Size{Width: 150, Height: 20},
+							Text:        mi18n.T("不要キー間引き"),
+							ToolTipText: mi18n.T("不要キー間引き説明"),
 						},
 					},
 				},
@@ -1397,6 +1415,9 @@ func execSizing(toolState *ToolState) {
 	if toolState.SizingArmTwistCheck.Checked() {
 		totalProcessCount++
 	}
+	if toolState.SizingReductionCheck.Checked() {
+		totalProcessCount++
+	}
 
 	start := time.Now()
 
@@ -1422,6 +1443,7 @@ func execSizing(toolState *ToolState) {
 					(!sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance) ||
 					(!sizingSet.IsSizingFingerStance && sizingSet.CompletedSizingFingerStance) ||
 					(!sizingSet.IsSizingArmTwist && sizingSet.CompletedSizingArmTwist) ||
+					(!sizingSet.IsSizingReduction && sizingSet.CompletedSizingReduction) ||
 					(!sizingSet.IsCleanRoot && sizingSet.CompletedCleanRoot) ||
 					(!sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) ||
 					(!sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) ||
@@ -1442,6 +1464,7 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedSizingArmStance = false
 					sizingSet.CompletedSizingFingerStance = false
 					sizingSet.CompletedSizingArmTwist = false
+					sizingSet.CompletedSizingReduction = false
 
 					sizingSet.CompletedCleanRoot = false
 					sizingSet.CompletedCleanCenter = false
@@ -1457,7 +1480,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.CleanCenter(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1466,7 +1491,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.CleanLegIkParent(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1475,7 +1502,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.CleanArmIk(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1484,7 +1513,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.CleanShoulderP(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1493,7 +1524,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.CleanGrip(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1502,7 +1535,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index], len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1511,7 +1546,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.SizingUpper(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1520,7 +1557,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.SizingShoulder(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1529,7 +1568,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.SizingArmFingerStance(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1538,7 +1579,9 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
 
 				if res, err := usecase.SizingArmTwist(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
@@ -1547,8 +1590,22 @@ func execSizing(toolState *ToolState) {
 				} else {
 					isExec = res || isExec
 					sizingSet.OutputVmd.SetRandHash()
-					completedProcessCount++
+					if res {
+						completedProcessCount++
+					}
 				}
+
+				if res, err := usecase.SizingReduction(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
+					errorChan <- err
+					return
+				} else {
+					isExec = res || isExec
+					sizingSet.OutputVmd.SetRandHash()
+					if res {
+						completedProcessCount++
+					}
+				}
+
 			}(sizingSet)
 		}
 	}
@@ -1623,6 +1680,9 @@ func setOutputPath(toolState *ToolState) {
 			}
 			if toolState.SizingSets[i].IsSizingArmTwist {
 				suffix += "W"
+			}
+			if toolState.SizingSets[i].IsSizingReduction {
+				suffix += "R"
 			}
 			if len(suffix) > 0 {
 				suffix = fmt.Sprintf("_%s", suffix)

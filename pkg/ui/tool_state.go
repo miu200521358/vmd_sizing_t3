@@ -39,6 +39,7 @@ type ToolState struct {
 	SizingArmStanceCheck          *walk.CheckBox      // 腕チェック
 	SizingFingerStanceCheck       *walk.CheckBox      // 指チェック
 	SizingArmTwistCheck           *walk.CheckBox      // 腕捩りチェック
+	SizingReductionCheck          *walk.CheckBox      // 間引きチェック
 	CleanRootCheck                *walk.CheckBox      // 全親クリーニングチェック
 	CleanCenterCheck              *walk.CheckBox      // センタークリーニングチェック
 	CleanLegIkParentCheck         *walk.CheckBox      // 足IK親クリーニングチェック
@@ -239,6 +240,7 @@ func (toolState *ToolState) setCurrentAction(index int) error {
 	toolState.SizingArmStanceCheck.UpdateChecked(sizingSet.IsSizingArmStance)
 	toolState.SizingFingerStanceCheck.UpdateChecked(sizingSet.IsSizingFingerStance)
 	toolState.SizingArmTwistCheck.UpdateChecked(sizingSet.IsSizingArmTwist)
+	toolState.SizingReductionCheck.UpdateChecked(sizingSet.IsSizingReduction)
 
 	toolState.CleanRootCheck.UpdateChecked(sizingSet.IsCleanRoot)
 	toolState.CleanCenterCheck.UpdateChecked(sizingSet.IsCleanCenter)
@@ -328,6 +330,7 @@ func (toolState *ToolState) SetSizingCheckEnabled(enabled bool) {
 	toolState.SizingArmStanceCheck.SetEnabled(enabled)
 	toolState.SizingFingerStanceCheck.SetEnabled(enabled)
 	toolState.SizingArmTwistCheck.SetEnabled(enabled)
+	toolState.SizingReductionCheck.SetEnabled(enabled)
 
 	toolState.CleanRootCheck.SetEnabled(enabled)
 	toolState.CleanCenterCheck.SetEnabled(enabled)
@@ -460,6 +463,7 @@ func (toolState *ToolState) ResetSizingCheck(value bool) {
 	toolState.SizingArmStanceCheck.UpdateChecked(value)
 	toolState.SizingFingerStanceCheck.UpdateChecked(value)
 	toolState.SizingArmTwistCheck.UpdateChecked(value)
+	toolState.SizingReductionCheck.UpdateChecked(value)
 
 	toolState.CleanRootCheck.UpdateChecked(value)
 	toolState.CleanCenterCheck.UpdateChecked(value)

@@ -57,7 +57,7 @@ func main() {
 
 		ui.NewToolState(mApp, controlWindow)
 
-		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 50)
+		consoleView := widget.NewConsoleView(controlWindow.MainWindow, 256, 80)
 		log.SetOutput(consoleView)
 
 		mApp.RunController()
