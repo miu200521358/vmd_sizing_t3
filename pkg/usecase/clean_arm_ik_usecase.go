@@ -15,7 +15,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func CleanArmIk(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsCleanArmIk || (sizingSet.IsCleanArmIk && sizingSet.CompletedCleanArmIk) {
 		return false, nil
 	}

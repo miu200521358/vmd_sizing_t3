@@ -6,13 +6,14 @@ import (
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/miter"
+	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func SizingReduction(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsSizingReduction || (sizingSet.IsSizingReduction && sizingSet.CompletedSizingReduction) {
 		return false, nil
 	}

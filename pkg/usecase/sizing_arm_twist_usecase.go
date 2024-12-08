@@ -19,7 +19,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func SizingArmTwist(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsSizingArmTwist || (sizingSet.IsSizingArmTwist && sizingSet.CompletedSizingArmTwist) {
 		return false, nil
 	}

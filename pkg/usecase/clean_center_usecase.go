@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func CleanCenter(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsCleanCenter || (sizingSet.IsCleanCenter && sizingSet.CompletedCleanCenter) {
 		return false, nil
 	}

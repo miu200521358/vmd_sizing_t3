@@ -14,7 +14,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func SizingShoulder(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsSizingShoulder || (sizingSet.IsSizingShoulder && sizingSet.CompletedSizingShoulder) {
 		return false, nil
 	}

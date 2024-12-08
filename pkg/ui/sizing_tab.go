@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
@@ -1450,210 +1451,38 @@ func execSizing(toolState *ToolState) {
 					sizingSet.CompletedCleanGrip = false
 				}
 
-				if res, err := usecase.CleanRoot(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
+				for _, funcUseCase := range []func(*domain.SizingSet, *mmath.MVec3, int, int, int) (bool, error){
+					usecase.CleanRoot,
+					usecase.CleanCenter,
+					usecase.CleanLegIkParent,
+					usecase.CleanShoulderP,
+					usecase.CleanArmIk,
+					usecase.CleanGrip,
+					usecase.SizingLeg,
+					usecase.SizingUpper,
+					usecase.SizingShoulder,
+					usecase.SizingArmFingerStance,
+					usecase.SizingArmTwist,
+					usecase.SizingReduction,
+				} {
+					if execResult, err := funcUseCase(sizingSet, allScales[sizingSet.Index], len(toolState.SizingSets),
+						completedProcessCount, totalProcessCount); err != nil {
+						errorChan <- err
 						return
-					}
+					} else {
+						if sizingSet.IsTerminate {
+							isExec = false
+							return
+						}
 
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
+						isExec = execResult || isExec
+						if execResult {
+							sizingSet.OutputVmd.SetRandHash()
+							sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
+							completedProcessCount++
+						}
 					}
 				}
-
-				if res, err := usecase.CleanCenter(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.CleanLegIkParent(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.CleanArmIk(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.CleanShoulderP(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.CleanGrip(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.SizingLeg(sizingSet, allScales[sizingSet.Index], len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.SizingUpper(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.SizingShoulder(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.SizingArmFingerStance(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.SizingArmTwist(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
-				if res, err := usecase.SizingReduction(sizingSet, len(toolState.SizingSets), completedProcessCount, totalProcessCount); err != nil {
-					errorChan <- err
-					return
-				} else {
-					if sizingSet.IsTerminate {
-						isExec = false
-						return
-					}
-
-					isExec = res || isExec
-					if res {
-						sizingSet.OutputVmd.SetRandHash()
-						sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
-						completedProcessCount++
-					}
-				}
-
 			}(sizingSet)
 		}
 	}

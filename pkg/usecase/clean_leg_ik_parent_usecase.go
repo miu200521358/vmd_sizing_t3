@@ -15,7 +15,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanLegIkParent(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func CleanLegIkParent(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsCleanLegIkParent || (sizingSet.IsCleanLegIkParent && sizingSet.CompletedCleanLegIkParent) {
 		return false, nil
 	}

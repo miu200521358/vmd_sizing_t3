@@ -15,7 +15,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func CleanRoot(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	if !sizingSet.IsCleanRoot || (sizingSet.IsCleanRoot && sizingSet.CompletedCleanRoot) {
 		return false, nil
 	}

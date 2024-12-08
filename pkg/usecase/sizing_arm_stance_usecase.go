@@ -16,7 +16,7 @@ import (
 	"github.com/miu200521358/vmd_sizing_t3/pkg/domain"
 )
 
-func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
+func SizingArmFingerStance(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, completedProcessCount, totalProcessCount int) (bool, error) {
 	originalModel := sizingSet.OriginalPmx
 	sizingModel := sizingSet.SizingPmx
 	sizingMotion := sizingSet.OutputVmd
