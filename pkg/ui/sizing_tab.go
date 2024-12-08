@@ -114,7 +114,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			mi18n.T("サイジング対象モーションの使い方"))
 
 		toolState.OriginalVmdPicker.SetOnPathChanged(func(path string) {
-			toolState.SetEnabled(false)
+			toolState.SetSizingEnabled(false)
 
 			if canLoad, err := toolState.OriginalVmdPicker.CanLoad(); !canLoad {
 				if err != nil {
@@ -137,7 +137,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			mi18n.T("モーション作成元モデルの使い方"))
 
 		toolState.OriginalPmxPicker.SetOnPathChanged(func(path string) {
-			toolState.SetEnabled(false)
+			toolState.SetSizingEnabled(false)
 
 			if canLoad, err := toolState.OriginalPmxPicker.CanLoad(); !canLoad {
 				if err != nil {
@@ -239,7 +239,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// 出力パス設定
 					setOutputPath(toolState)
 					// 画面活性化
-					toolState.SetEnabled(true)
+					toolState.SetSizingEnabled(true)
 					toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 				})
 			}()
@@ -256,7 +256,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 			mi18n.T("サイジング先モデルの使い方"))
 
 		toolState.SizingPmxPicker.SetOnPathChanged(func(path string) {
-			toolState.SetEnabled(false)
+			toolState.SetSizingEnabled(false)
 
 			if canLoad, err := toolState.SizingPmxPicker.CanLoad(); !canLoad {
 				if err != nil {
@@ -368,7 +368,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 					// 出力パス設定
 					setOutputPath(toolState)
 					// 画面活性化
-					toolState.SetEnabled(true)
+					toolState.SetSizingEnabled(true)
 					toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 				})
 			}()
@@ -423,6 +423,22 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							Text:        mi18n.T("即時反映"),
 							ToolTipText: mi18n.T("即時反映説明"),
 							Checked:     true,
+						},
+						// 停止ボタン
+						declarative.PushButton{
+							AssignTo: &toolState.TerminateButton,
+							OnClicked: func() {
+								// 押したら非活性
+								toolState.TerminateButton.SetEnabled(false)
+								for _, sizingSet := range toolState.SizingSets {
+									sizingSet.IsTerminate = true
+								}
+							},
+							MinSize:     declarative.Size{Width: 100, Height: 20},
+							MaxSize:     declarative.Size{Width: 100, Height: 20},
+							Text:        mi18n.T("処理停止"),
+							ToolTipText: mi18n.T("処理停止説明"),
+							Enabled:     false,
 						},
 					},
 				},
@@ -489,6 +505,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 									sizingSet.IsSizingArmStance = toolState.SizingAllCheck.Checked()
 									sizingSet.IsSizingFingerStance = toolState.SizingAllCheck.Checked()
 									sizingSet.IsSizingArmTwist = toolState.SizingAllCheck.Checked()
+									sizingSet.IsSizingReduction = toolState.SizingAllCheck.Checked()
 								}
 
 								toolState.SizingLegCheck.UpdateChecked(toolState.SizingAllCheck.Checked())
@@ -581,18 +598,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								// 足補正は全セットに適用する
 								for _, sizingSet := range toolState.SizingSets {
 									sizingSet.IsSizingLeg = toolState.SizingLegCheck.Checked()
-
-									sizingSet.IsCleanRoot = toolState.SizingLegCheck.Checked()
-									sizingSet.IsCleanCenter = toolState.SizingLegCheck.Checked()
-									sizingSet.IsCleanLegIkParent = toolState.SizingLegCheck.Checked()
 								}
-
-								toolState.CleanRootCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
-								toolState.CleanCenterCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
-								toolState.CleanLegIkParentCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent)
 
 								go execSizing(toolState)
 								// 出力パス設定
@@ -626,11 +632,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsSizingShoulder =
 									toolState.SizingShoulderCheck.Checked()
 
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP =
-									toolState.SizingShoulderCheck.Checked()
-								toolState.CleanShoulderPCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanShoulderP)
-
 								go execSizing(toolState)
 								// 出力パス設定
 								setOutputPath(toolState)
@@ -646,11 +647,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							OnCheckedChanged: func() {
 								toolState.SizingSets[toolState.CurrentIndex].IsSizingArmStance =
 									toolState.SizingArmStanceCheck.Checked()
-
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
-									toolState.SizingArmStanceCheck.Checked()
-								toolState.CleanArmIkCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
 
 								go execSizing(toolState)
 								// 出力パス設定
@@ -668,11 +664,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 								toolState.SizingSets[toolState.CurrentIndex].IsSizingFingerStance =
 									toolState.SizingFingerStanceCheck.Checked()
 
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip =
-									toolState.SizingFingerStanceCheck.Checked()
-								toolState.CleanGripCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanGrip)
-
 								go execSizing(toolState)
 								// 出力パス設定
 								setOutputPath(toolState)
@@ -688,11 +679,6 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 							OnCheckedChanged: func() {
 								toolState.SizingSets[toolState.CurrentIndex].IsSizingArmTwist =
 									toolState.SizingArmTwistCheck.Checked()
-
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk =
-									toolState.SizingArmTwistCheck.Checked()
-								toolState.CleanArmIkCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanArmIk)
 
 								go execSizing(toolState)
 								// 出力パス設定
@@ -771,13 +757,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						declarative.CheckBox{
 							AssignTo: &toolState.CleanCenterCheck,
 							OnCheckedChanged: func() {
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot ||
-										toolState.CleanCenterCheck.Checked()
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
 									toolState.CleanCenterCheck.Checked()
-								toolState.CleanRootCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
 
 								go execSizing(toolState)
 								// 出力パス設定
@@ -792,19 +773,8 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 						declarative.CheckBox{
 							AssignTo: &toolState.CleanLegIkParentCheck,
 							OnCheckedChanged: func() {
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot =
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot ||
-										toolState.CleanLegIkParentCheck.Checked()
-								toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter =
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter ||
-										toolState.CleanLegIkParentCheck.Checked()
 								toolState.SizingSets[toolState.CurrentIndex].IsCleanLegIkParent =
 									toolState.CleanLegIkParentCheck.Checked()
-
-								toolState.CleanRootCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanRoot)
-								toolState.CleanCenterCheck.UpdateChecked(
-									toolState.SizingSets[toolState.CurrentIndex].IsCleanCenter)
 
 								go execSizing(toolState)
 								// 出力パス設定
@@ -1381,8 +1351,6 @@ func execSizing(toolState *ToolState) {
 		return
 	}
 
-	mlog.IL(mi18n.T("サイジング開始"))
-
 	completedProcessCount := 1
 	totalProcessCount := 0
 	if toolState.CleanRootCheck.Checked() {
@@ -1425,13 +1393,16 @@ func execSizing(toolState *ToolState) {
 	start := time.Now()
 
 	toolState.ControlWindow.Synchronize(func() {
-		toolState.SetEnabled(false)
+		toolState.SetSizingEnabled(false)
+		toolState.TerminateButton.SetEnabled(true)
 	})
 
 	allScales := usecase.GenerateSizingScales(toolState.SizingSets)
 	isExec := false
 
 	errorChan := make(chan error, len(toolState.SizingSets))
+
+	mlog.IL(mi18n.T("サイジング開始"))
 
 	var wg sync.WaitGroup
 	for _, sizingSet := range toolState.SizingSets {
@@ -1460,6 +1431,8 @@ func execSizing(toolState *ToolState) {
 						return
 					}
 					sizingSet.OutputVmd = sizingMotion.(*vmd.VmdMotion)
+					sizingSet.OutputVmd.SetRandHash()
+					sizingSet.StoreOutputVmd(sizingSet.OutputVmd)
 
 					sizingSet.CompletedSizingLeg = false
 					sizingSet.CompletedSizingUpper = false
@@ -1481,6 +1454,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1493,6 +1471,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1505,6 +1488,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1517,6 +1505,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1529,6 +1522,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1541,6 +1539,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1553,6 +1556,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1565,6 +1573,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1577,6 +1590,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1589,6 +1607,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1601,6 +1624,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1613,6 +1641,11 @@ func execSizing(toolState *ToolState) {
 					errorChan <- err
 					return
 				} else {
+					if sizingSet.IsTerminate {
+						isExec = false
+						return
+					}
+
 					isExec = res || isExec
 					if res {
 						sizingSet.OutputVmd.SetRandHash()
@@ -1624,18 +1657,24 @@ func execSizing(toolState *ToolState) {
 			}(sizingSet)
 		}
 	}
+
 	wg.Wait()
 	close(errorChan)
 
 	// チャネルからエラーを受け取る
 	for err := range errorChan {
 		if err != nil {
-			widget.RaiseError(err)
+			if err == domain.TerminateErrorInstance {
+				mlog.I(mi18n.T("サイジング中断"))
+			} else {
+				widget.RaiseError(err)
+			}
 		}
 	}
 
 	toolState.ControlWindow.Synchronize(func() {
-		toolState.SetEnabled(true)
+		toolState.SetSizingEnabled(true)
+		toolState.TerminateButton.SetEnabled(false)
 		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 	})
 
@@ -1647,6 +1686,17 @@ func execSizing(toolState *ToolState) {
 			map[string]interface{}{"ProcessTime": widget.FormatDuration(elapsed)}))
 	} else {
 		mlog.I(mi18n.T("サイジング終了"))
+	}
+
+	// 中断したら、データを戻してフラグを落としておく
+	for _, sizingSet := range toolState.SizingSets {
+		if sizingSet.IsTerminate {
+			outputVmd := sizingSet.LoadOutputVmd()
+			sizingSet.OutputVmd = outputVmd
+			sizingSet.StoreOutputVmd(outputVmd)
+
+			sizingSet.IsTerminate = false
+		}
 	}
 
 	widget.Beep()
@@ -1718,6 +1768,7 @@ func loadVmd(toolState *ToolState, path string, enableFormOnCompletion bool) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
+	// 元モーション用と編集用モーションで2回読み込み
 	for range 2 {
 		go func() {
 			defer wg.Done()
@@ -1795,7 +1846,7 @@ func loadVmd(toolState *ToolState, path string, enableFormOnCompletion bool) {
 				// 出力パス設定
 				setOutputPath(toolState)
 				// 画面活性化
-				toolState.SetEnabled(true)
+				toolState.SetSizingEnabled(true)
 				toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 			}
 		})

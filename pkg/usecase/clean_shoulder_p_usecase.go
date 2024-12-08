@@ -47,7 +47,11 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 		armBone := originalModel.Bones.GetByName(pmx.ARM.StringFromDirection(direction))
 
 		// 元モデルのデフォーム(IK ON)
-		if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
+		if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) error {
+			if sizingSet.IsTerminate {
+				return domain.TerminateErrorInstance
+			}
+
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -59,6 +63,8 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 
 			shoulderRotations[i][index] = shoulderRootDelta.FilledGlobalMatrix().Inverted().Muled(shoulderDelta.FilledGlobalMatrix()).Quaternion()
 			armRotations[i][index] = shoulderDelta.FilledGlobalMatrix().Inverted().Muled(armBoneDelta.FilledGlobalMatrix()).Quaternion()
+
+			return nil
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("肩P最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
@@ -73,6 +79,9 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 		armBoneName := pmx.ARM.StringFromDirection(direction)
 
 		for j, iFrame := range allFrames[i] {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
 			frame := float32(iFrame)
 
 			{
@@ -95,7 +104,7 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	wg.Add(2)
 
 	for i, direction := range directions {
-		go func(i int, direction string) {
+		go func(i int, direction string) error {
 			defer wg.Done()
 			defer func() {
 				// recoverによるpanicキャッチ
@@ -132,6 +141,10 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 				}
 
 				for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+					if sizingSet.IsTerminate {
+						return domain.TerminateErrorInstance
+					}
+
 					frame := float32(iFrame)
 
 					originalVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
@@ -165,6 +178,8 @@ func CleanShoulderP(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 					}
 				}
 			}
+
+			return nil
 		}(i, direction)
 	}
 

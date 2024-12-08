@@ -63,7 +63,11 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	legRightRotations := make([]*mmath.MQuaternion, len(frames))
 
 	// 元モデルのデフォーム(IK ON)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 		ikOnVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		ikOnVmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -83,6 +87,8 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 			legLeftRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelLeftBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legLeftBone.Index()).FilledFrameRotation())
 			legRightRotations[index] = ikOffVmdDeltas.Bones.TotalBoneRotation(waistCancelRightBone.Index()).Muled(ikOffVmdDeltas.Bones.Get(legRightBone.Index()).FilledFrameRotation())
 		}
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("センター最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -93,6 +99,10 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 		frame := float32(iFrame)
 
 		for _, bone := range []*pmx.Bone{centerBone, grooveBone, upperBone, lowerBone, legLeftBone, legRightBone} {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			bf := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame)
 
 			switch bone.Name() {
@@ -148,6 +158,10 @@ func CleanCenter(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 		}
 
 		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			frame := float32(iFrame)
 
 			wg.Add(2)

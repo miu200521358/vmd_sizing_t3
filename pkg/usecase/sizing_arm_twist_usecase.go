@@ -132,7 +132,11 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 		sizingWristRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 		// 先モデルの元デフォーム(IK ON)
-		if err := miter.IterParallelByList(allFullFrames[i], blockSize, log_block_size, func(data, index int) {
+		if err := miter.IterParallelByList(allFullFrames[i], blockSize, log_block_size, func(data, index int) error {
+			if sizingSet.IsTerminate {
+				return domain.TerminateErrorInstance
+			}
+
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -153,6 +157,8 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 				nowWristRot := vmdDeltas.Bones.Get(sizingWristBone.Index()).FilledFrameRotation()
 				_, sizingWristRotations[i][fIndex] = nowWristRot.SeparateTwistByAxis(sizingWristBone.Extend.NormalizedLocalAxisX)
 			}
+
+			return nil
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("捩り補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%04d", allCount)}))
 		}); err != nil {
@@ -170,6 +176,10 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 		// sizingMotion.BoneFrames.Delete(pmx.WRIST_TWIST.StringFromDirection(directions[i]))
 
 		for j, iFrame := range frames {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			frame := float32(iFrame)
 
 			armBf := sizingMotion.BoneFrames.Get(armBoneName).Get(frame)
@@ -202,7 +212,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	for i, direction := range directions {
 		frames := allFrames[i]
 
-		go func(i int, direction string, bfs *vmd.BoneNameFrames) {
+		go func(i int, direction string, bfs *vmd.BoneNameFrames) error {
 			defer wg.Done()
 			defer func() {
 				errorChan <- miter.GetError()
@@ -216,6 +226,9 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 
 			// 先モデルの腕捩デフォーム(IK ON)
 			for j, iFrame := range frames {
+				if sizingSet.IsTerminate {
+					return domain.TerminateErrorInstance
+				}
 				frame := float32(iFrame)
 
 				if iFrame > logBlock {
@@ -244,6 +257,8 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 					bfs.Insert(nextBf)
 				}
 			}
+
+			return nil
 		}(i, direction, sizingMotion.BoneFrames.Get(pmx.ARM_TWIST.StringFromDirection(direction)))
 	}
 
@@ -272,7 +287,7 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	for i, direction := range directions {
 		frames := allFrames[i]
 
-		go func(i int, direction string, bfs *vmd.BoneNameFrames) {
+		go func(i int, direction string, bfs *vmd.BoneNameFrames) error {
 			defer wg.Done()
 			defer func() {
 				errorChan <- miter.GetError()
@@ -286,6 +301,10 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 
 			// 先モデルの手捩デフォーム(IK ON)
 			for j, iFrame := range frames {
+				if sizingSet.IsTerminate {
+					return domain.TerminateErrorInstance
+				}
+
 				if iFrame > logBlock {
 					mlog.I(mi18n.T("捩り補正04", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logBlock += log_block_size
@@ -314,6 +333,8 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 					bfs.Insert(nextBf)
 				}
 			}
+
+			return nil
 		}(i, direction, sizingMotion.BoneFrames.Get(pmx.WRIST_TWIST.StringFromDirection(direction)))
 	}
 
@@ -342,10 +363,12 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	wg.Add(2)
 
 	for i, direction := range directions {
-		go func(i int, direction string) {
+		go func(i int, direction string) error {
 			defer wg.Done()
 			defer func() {
-				errorChan <- miter.GetError()
+				if r := recover(); r != nil {
+					errorChan <- miter.GetError()
+				}
 			}()
 
 			frames := allFullFrames[i]
@@ -362,6 +385,10 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 			allCount := frames[len(frames)-1]
 
 			for _, iFrame := range frames {
+				if sizingSet.IsTerminate {
+					return domain.TerminateErrorInstance
+				}
+
 				if iFrame > logBlock {
 					mlog.I(mi18n.T("捩り補正05", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iFrame), "AllCount": fmt.Sprintf("%04d", allCount)}))
 					logBlock += log_block_size
@@ -426,6 +453,10 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 				}
 
 				for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+					if sizingSet.IsTerminate {
+						return domain.TerminateErrorInstance
+					}
+
 					frame := float32(iFrame)
 
 					originalVmdDeltas := sizingOriginalAllDeltas[i][iFrame]
@@ -465,6 +496,8 @@ func SizingArmTwist(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 					}
 				}
 			}
+
+			return nil
 		}(i, direction)
 	}
 

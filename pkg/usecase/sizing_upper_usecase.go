@@ -130,12 +130,18 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 	// 元モデルのデフォーム(IK ON)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, trunk_upper_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("上半身補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -152,7 +158,11 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 	sizingNeckRotations := make([]*mmath.MQuaternion, len(frames))
 
 	// 先モデルの上半身デフォーム(IK ON)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -212,6 +222,8 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 			sizingRightShoulderRotations[index] = upperDiffRotation.Muled(sizingRightShoulderRotations[index])
 			sizingNeckRotations[index] = upperDiffRotation.Muled(sizingNeckRotations[index])
 		}
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("上半身補正02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Scale": fmt.Sprintf("%.4f", upperScales.Y), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -220,6 +232,10 @@ func SizingUpper(sizingSet *domain.SizingSet, setSize, completedProcessCount, to
 
 	// 補正を登録
 	for i, iFrame := range frames {
+		if sizingSet.IsTerminate {
+			return false, domain.TerminateErrorInstance
+		}
+
 		frame := float32(iFrame)
 
 		for n, bone := range upperBones {

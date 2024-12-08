@@ -70,13 +70,19 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 		allVmdDeltas[i] = make([]*delta.VmdDeltas, len(frames))
 
 		// 元モデルのデフォーム(IK ON)
-		if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
+		if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) error {
+			if sizingSet.IsTerminate {
+				return domain.TerminateErrorInstance
+			}
+
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
 			vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, sizingMotion, vmdDeltas, true, frame, fingerBoneNames, false)
 
 			allVmdDeltas[i][index] = vmdDeltas
+
+			return nil
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("握り最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
@@ -94,6 +100,10 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 		directionVmdDeltas := allVmdDeltas[i]
 		for _, vmdDeltas := range directionVmdDeltas {
 			for _, fingerBoneName := range fingerBoneNames {
+				if sizingSet.IsTerminate {
+					return false, domain.TerminateErrorInstance
+				}
+
 				fingerQuat := getFixRotationForGrip(originalModel, vmdDeltas, fingerBoneName)
 				if fingerQuat != nil {
 					boneDelta := vmdDeltas.Bones.GetByName(fingerBoneName)
@@ -131,6 +141,10 @@ func CleanGrip(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 			}
 
 			for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+				if sizingSet.IsTerminate {
+					return false, domain.TerminateErrorInstance
+				}
+
 				frame := float32(iFrame)
 
 				wg.Add(2)

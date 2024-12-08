@@ -52,7 +52,11 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 	}
 
 	// 元モデルのデフォーム(IK ON)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -68,6 +72,8 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 			childLocalRotations[bone.Index()][index] =
 				vmdDeltas.Bones.Get(bone.Index()).FilledGlobalBoneRotation()
 		}
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("全ての親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -75,6 +81,10 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 	}
 
 	for _, boneName := range rootRelativeBoneNames {
+		if sizingSet.IsTerminate {
+			return false, domain.TerminateErrorInstance
+		}
+
 		if boneName == pmx.ROOT.String() {
 			continue
 		}
@@ -112,6 +122,10 @@ func CleanRoot(sizingSet *domain.SizingSet, setSize, completedProcessCount, tota
 		}
 
 		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			frame := float32(iFrame)
 
 			wg.Add(2)

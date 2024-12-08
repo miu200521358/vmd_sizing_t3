@@ -29,7 +29,8 @@ type ToolState struct {
 	SizingPmxPicker               *widget.FilePicker  // サイジング先モデル(Pmx)ファイル選択
 	OutputVmdPicker               *widget.FilePicker  // 出力モーション(Vmd)ファイル選択
 	OutputPmxPicker               *widget.FilePicker  // 出力モデル(Pmx)ファイル選択
-	AdoptSizingCheck              *walk.CheckBox      // サイジング適用ボタン
+	AdoptSizingCheck              *walk.CheckBox      // サイジング適用チェック
+	TerminateButton               *walk.PushButton    // 停止ボタン
 	SizingCleanAllCheck           *walk.CheckBox      // 全補正&最適化チェック
 	SizingAllCheck                *walk.CheckBox      // 全補正チェック
 	CleanAllCheck                 *walk.CheckBox      // 全最適化チェック
@@ -98,7 +99,7 @@ func NewToolState(app *app.MApp, controlWindow *controller.ControlWindow) *ToolS
 	newSizingTab(controlWindow, toolState)
 
 	toolState.addSizingSet()
-	toolState.SetSizingCheckEnabled(true)
+	toolState.SetSizingEnabled(true)
 	toolState.SetOriginalPmxParameterEnabled(false)
 
 	toolState.App.SetFuncGetModels(
@@ -313,12 +314,15 @@ func (toolState *ToolState) ResetOriginalPmxParameter() {
 	toolState.OriginalPmxAnkleLengthEdit.SetValue(1.0)
 }
 
-func (toolState *ToolState) SetEnabled(enabled bool) {
-	toolState.ControlWindow.SetEnabled(enabled)
-}
+func (toolState *ToolState) SetSizingEnabled(enabled bool) {
+	toolState.OriginalVmdPicker.SetEnabled(enabled)
+	toolState.OriginalPmxPicker.SetEnabled(enabled)
+	toolState.SizingPmxPicker.SetEnabled(enabled)
+	toolState.OutputVmdPicker.SetEnabled(enabled)
+	toolState.OutputPmxPicker.SetEnabled(enabled)
 
-func (toolState *ToolState) SetSizingCheckEnabled(enabled bool) {
 	toolState.AdoptSizingCheck.SetEnabled(enabled)
+	toolState.TerminateButton.SetEnabled(enabled)
 
 	toolState.SizingCleanAllCheck.SetEnabled(enabled)
 	toolState.SizingAllCheck.SetEnabled(enabled)
@@ -376,12 +380,7 @@ func (toolState *ToolState) OriginalPmxParameterEnabled() bool {
 }
 
 func (toolState *ToolState) onPlay(playing bool) {
-	toolState.OriginalVmdPicker.SetEnabled(!playing)
-	toolState.OriginalPmxPicker.SetEnabled(!playing)
-	toolState.SizingPmxPicker.SetEnabled(!playing)
-	toolState.OutputVmdPicker.SetEnabled(!playing)
-	toolState.OutputPmxPicker.SetEnabled(!playing)
-	toolState.SetSizingCheckEnabled(!playing)
+	toolState.SetSizingEnabled(!playing)
 	toolState.SetOriginalPmxParameterEnabled(!playing && toolState.IsOriginalJson())
 }
 
@@ -391,7 +390,7 @@ func (toolState *ToolState) IsOriginalJson() bool {
 
 func (toolState *ToolState) onClickSizingTabMotionSave() {
 	toolState.ControlWindow.Synchronize(func() {
-		toolState.SetEnabled(false)
+		toolState.SetSizingEnabled(false)
 	})
 
 	for i, sizingSet := range toolState.SizingSets {
@@ -407,7 +406,7 @@ func (toolState *ToolState) onClickSizingTabMotionSave() {
 	}
 
 	toolState.ControlWindow.Synchronize(func() {
-		toolState.SetEnabled(true)
+		toolState.SetSizingEnabled(true)
 		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 	})
 
@@ -416,7 +415,7 @@ func (toolState *ToolState) onClickSizingTabMotionSave() {
 
 func (toolState *ToolState) onClickSizingTabModelSave() {
 	toolState.ControlWindow.Synchronize(func() {
-		toolState.SetEnabled(false)
+		toolState.SetSizingEnabled(false)
 	})
 
 	for i, sizingSet := range toolState.SizingSets {
@@ -443,7 +442,7 @@ func (toolState *ToolState) onClickSizingTabModelSave() {
 	}
 
 	toolState.ControlWindow.Synchronize(func() {
-		toolState.SetEnabled(true)
+		toolState.SetSizingEnabled(true)
 		toolState.SetOriginalPmxParameterEnabled(toolState.IsOriginalJson())
 	})
 

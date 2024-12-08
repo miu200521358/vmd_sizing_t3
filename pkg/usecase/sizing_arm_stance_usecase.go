@@ -1,10 +1,12 @@
 package usecase
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/delta"
+	"github.com/miu200521358/mlib_go/pkg/domain/miter"
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
@@ -33,7 +35,12 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize, completedProces
 	stanceQuats := createArmFingerStanceQuats(
 		originalModel, sizingModel, sizingSet.IsSizingArmStance, sizingSet.IsSizingFingerStance)
 
+	errorChan := make(chan error, len(all_arm_bone_names)+len(all_finger_bone_names))
+
 	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // 最終的なクリーンアップ
+
 	for i, boneNames := range [][]string{all_arm_bone_names, all_finger_bone_names} {
 		if i == 0 && (!sizingSet.IsSizingArmStance ||
 			(sizingSet.IsSizingArmStance && sizingSet.CompletedSizingArmStance)) {
@@ -47,9 +54,30 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize, completedProces
 		for _, boneName := range boneNames {
 			wg.Add(1)
 
-			go func(sizingBfs *vmd.BoneNameFrames) {
+			go func(sizingBfs *vmd.BoneNameFrames) error {
 				defer wg.Done()
+				defer func() {
+					// recoverによるpanicキャッチ
+					if r := recover(); r != nil {
+						errorChan <- miter.GetError()
+					}
+				}()
+
+				// コンテキストが既にキャンセルされていないかチェック
+				select {
+				case <-ctx.Done():
+					// 他のゴルーチンでエラーが出たので終了
+					return nil
+				default:
+				}
+
 				for _, frame := range sizingBfs.Indexes.List() {
+					if sizingSet.IsTerminate {
+						// エラー発生時にキャンセルをかける
+						cancel()
+						return domain.TerminateErrorInstance
+					}
+
 					sizingBf := sizingBfs.Get(frame)
 					if sizingBf == nil {
 						continue
@@ -68,11 +96,21 @@ func SizingArmFingerStance(sizingSet *domain.SizingSet, setSize, completedProces
 						}
 					}
 				}
+
+				return nil
 			}(sizingMotion.BoneFrames.Get(boneName))
 		}
 	}
 
 	wg.Wait()
+	close(errorChan) // 全てのゴルーチンが終了したらチャネルを閉じる
+
+	// チャネルからエラーを受け取る
+	for err := range errorChan {
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// 腕スタンス補正だけしているときとかあるので、Completeは補正対象のフラグを受け継ぐ
 	sizingSet.CompletedSizingArmStance = sizingSet.IsSizingArmStance

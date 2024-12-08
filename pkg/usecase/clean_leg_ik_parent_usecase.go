@@ -51,7 +51,11 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize, completedProcessCoun
 	legIkRightRotations := make([]*mmath.MQuaternion, len(frames))
 
 	// 元モデルのデフォーム(IK OFF)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -72,6 +76,8 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize, completedProcessCoun
 				legIkRightRotations[index] = legIkLocalRotation
 			}
 		}
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足IK親最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -82,6 +88,10 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize, completedProcessCoun
 		frame := float32(iFrame)
 
 		for _, boneName := range legIkBoneNames {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			bone := originalModel.Bones.GetByName(boneName)
 			bf := sizingMotion.BoneFrames.Get(bone.Name()).Get(frame)
 
@@ -122,6 +132,10 @@ func CleanLegIkParent(sizingSet *domain.SizingSet, setSize, completedProcessCoun
 		}
 
 		for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			frame := float32(iFrame)
 
 			wg.Add(2)

@@ -83,12 +83,18 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	mlog.I(mi18n.T("足補正開始", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 
 	// 元モデルのデフォーム(IK ON)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 		vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 		vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 		vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, all_gravity_lower_leg_bone_names, false)
 		originalAllDeltas[index] = vmdDeltas
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -97,6 +103,10 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 
 	// サイジング先にFKを焼き込み
 	for _, vmdDeltas := range originalAllDeltas {
+		if sizingSet.IsTerminate {
+			return false, domain.TerminateErrorInstance
+		}
+
 		{
 			// 足
 			for _, boneName := range []string{pmx.LEG.Left(), pmx.LEG.Right()} {
@@ -173,7 +183,11 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}
 
 	// 先モデルのデフォーム
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -210,6 +224,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 
 		sizingGrooveBf := sizingMotion.BoneFrames.Get(sizingGrooveBone.Name()).Get(frame)
 		groovePositions[index] = sizingGrooveBf.Position.Added(&mmath.MVec3{X: 0, Y: yDiff, Z: 0})
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正07", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -224,6 +240,10 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 
 	// 補正を登録
 	for i, iFrame := range frames {
+		if sizingSet.IsTerminate {
+			return false, domain.TerminateErrorInstance
+		}
+
 		frame := float32(iFrame)
 
 		sizingCenterBf := sizingMotion.BoneFrames.Get(sizingCenterBone.Name()).Get(frame)
@@ -248,7 +268,11 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	rightLegIkRotations := make([]*mmath.MQuaternion, len(frames))
 
 	// 先モデルのデフォーム(IK OFF+センター補正済み)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -297,6 +321,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 		rightLegFkMat := sizingRightToeDelta.FilledGlobalPosition().Subed(
 			sizingRightAnkleDelta.FilledGlobalPosition()).Normalize().ToLocalMat()
 		rightLegIkRotations[index] = rightLegFkMat.Muled(rightLegIkMat.Inverted()).Quaternion()
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正08", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -304,6 +330,10 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 	}
 
 	for i, iFrame := range frames {
+		if sizingSet.IsTerminate {
+			return false, domain.TerminateErrorInstance
+		}
+
 		frame := float32(iFrame)
 
 		originalLeftAnklePosition := originalAllDeltas[i].Bones.GetByName(pmx.ANKLE.Left()).FilledGlobalPosition()
@@ -355,6 +385,10 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 		mlog.V("%s: %s", title, outputPath)
 	}
 
+	if sizingSet.IsTerminate {
+		return false, domain.TerminateErrorInstance
+	}
+
 	leftLegRotations := make([]*mmath.MQuaternion, len(frames))
 	leftKneeRotations := make([]*mmath.MQuaternion, len(frames))
 	leftAnkleRotations := make([]*mmath.MQuaternion, len(frames))
@@ -364,7 +398,11 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 
 	// 足IK再計算
 	// 元モデルのデフォーム(IK ON)
-	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) {
+	if err := miter.IterParallelByList(frames, blockSize, log_block_size, func(data, index int) error {
+		if sizingSet.IsTerminate {
+			return domain.TerminateErrorInstance
+		}
+
 		frame := float32(data)
 
 		vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
@@ -378,6 +416,8 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 		rightLegRotations[index] = vmdDeltas.Bones.Get(sizingRightLegBone.Index()).FilledFrameRotation()
 		rightKneeRotations[index] = vmdDeltas.Bones.Get(sizingRightKneeBone.Index()).FilledFrameRotation()
 		rightAnkleRotations[index] = vmdDeltas.Bones.Get(sizingRightAnkleBone.Index()).FilledFrameRotation()
+
+		return nil
 	}, func(iterIndex, allCount int) {
 		mlog.I(mi18n.T("足補正09", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 	}); err != nil {
@@ -386,7 +426,7 @@ func SizingLeg(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, complet
 
 	registerLegFk(frames, sizingMotion, sizingLeftLegBone, sizingLeftKneeBone, sizingLeftAnkleBone, sizingRightLegBone,
 		sizingRightKneeBone, sizingRightAnkleBone, leftLegRotations, leftKneeRotations, leftAnkleRotations,
-		rightLegRotations, rightKneeRotations, rightAnkleRotations)
+		rightLegRotations, rightKneeRotations, rightAnkleRotations, sizingSet)
 
 	if mlog.IsVerbose() {
 		sizingMotion.IkFrames.Delete(0)
@@ -465,10 +505,15 @@ func registerLegFk(
 	sizingRightLegBone, sizingRightKneeBone, sizingRightAnkleBone *pmx.Bone,
 	leftLegRotations, leftKneeRotations, leftAnkleRotations,
 	rightLegRotations, rightKneeRotations, rightAnkleRotations []*mmath.MQuaternion,
+	sizingSet *domain.SizingSet,
 ) (sizingLeftFkAllDeltas, sizingRightFkAllDeltas []*delta.VmdDeltas) {
 
 	// サイジング先にFKを焼き込み
 	for i, iFrame := range frames {
+		if sizingSet.IsTerminate {
+			return sizingLeftFkAllDeltas, sizingRightFkAllDeltas
+		}
+
 		frame := float32(iFrame)
 
 		{

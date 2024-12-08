@@ -8,7 +8,8 @@ import (
 )
 
 type SizingSet struct {
-	Index int
+	Index       int
+	IsTerminate bool
 
 	OriginalVmdPath string
 	OriginalPmxPath string
@@ -104,11 +105,14 @@ func (sizingSet *SizingSet) LoadOutputVmd() *vmd.VmdMotion {
 
 func NewSizingSet(index int) *SizingSet {
 	return &SizingSet{
-		Index: index,
+		Index:       index,
+		IsTerminate: false,
 	}
 }
 
 func (sizingSet *SizingSet) ResetSizingFlag() {
+	sizingSet.IsTerminate = false
+
 	sizingSet.IsSizingCleanAll = false
 	sizingSet.IsSizingAll = false
 	sizingSet.IsCleanAll = false

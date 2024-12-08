@@ -39,7 +39,7 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 	iterIndex := 0
 	for startIndex := 0; startIndex < allCount; startIndex += blockSize {
 		wg.Add(1)
-		go func(startIndex int) {
+		go func(startIndex int) error {
 			defer func() {
 				if err := miter.GetError(); err != nil {
 					errorChan <- err
@@ -53,6 +53,10 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 			}
 
 			for j := startIndex; j < endIndex; j++ {
+				if sizingSet.IsTerminate {
+					return domain.TerminateErrorInstance
+				}
+
 				mu.Lock()
 				bnfs := sizingMotion.BoneFrames.Get(allBoneNames[j])
 
@@ -62,6 +66,8 @@ func SizingReduction(sizingSet *domain.SizingSet, setSize, completedProcessCount
 
 				reducedBoneFrames[j] = bnfs.Reduce()
 			}
+
+			return nil
 		}(startIndex)
 	}
 

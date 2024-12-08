@@ -40,7 +40,6 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 		return false, nil
 	}
 
-
 	mlog.I(mi18n.T("腕IK最適化開始", map[string]interface{}{"No": sizingSet.Index + 1,
 		"LeftBoneName": armIkLeftBone.Name(), "RightBoneName": armIkRightBone.Name(), "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount)}))
 
@@ -80,7 +79,11 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 		allRelativeBoneNames[i] = relativeBoneNames
 
 		// 元モデルのデフォーム(IK ON)
-		if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
+		if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) error {
+			if sizingSet.IsTerminate {
+				return domain.TerminateErrorInstance
+			}
+
 			frame := float32(data)
 			vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), sizingMotion.Hash())
 			vmdDeltas.Morphs = deform.DeformMorph(originalModel, sizingMotion.MorphFrames, frame, nil)
@@ -95,6 +98,8 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 					armRotations[boneDelta.Bone.Index()][index] = quat
 				}
 			}
+
+			return nil
 		}, func(iterIndex, allCount int) {
 			mlog.I(mi18n.T("腕IK最適化01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "BoneName": armIkBone.Name(), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 		}); err != nil {
@@ -121,6 +126,10 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 
 	for i, rotations := range armRotations {
 		for j, rot := range rotations {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			if rot == nil {
 				continue
 			}
@@ -146,7 +155,7 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 	wg.Add(2)
 
 	for i, direction := range directions {
-		go func(i int, direction string) {
+		go func(i int, direction string) error {
 			defer func() {
 				wg.Done()
 				errorChan <- miter.GetError()
@@ -187,6 +196,10 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 				}
 
 				for iFrame := startFrame + 1; iFrame < endFrame; iFrame++ {
+					if sizingSet.IsTerminate {
+						return domain.TerminateErrorInstance
+					}
+
 					frame := float32(iFrame)
 
 					originalVmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
@@ -216,6 +229,8 @@ func CleanArmIk(sizingSet *domain.SizingSet, setSize, completedProcessCount, tot
 					}
 				}
 			}
+
+			return nil
 		}(i, direction)
 	}
 

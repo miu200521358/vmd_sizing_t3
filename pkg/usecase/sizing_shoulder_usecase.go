@@ -70,7 +70,7 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 	var wg sync.WaitGroup
 	wg.Add(2)
 	for i, direction := range directions {
-		go func(i int, direction string) {
+		go func(i int, direction string) error {
 			defer wg.Done()
 
 			originalNeckRootBone := originalModel.Bones.GetByName(pmx.NECK_ROOT.String())
@@ -87,21 +87,34 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 			originalAllDeltas := make([]*delta.VmdDeltas, len(frames))
 
 			// 元モデルのデフォーム(IK ON)
-			miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) error {
+				if sizingSet.IsTerminate {
+					return domain.TerminateErrorInstance
+				}
+
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, originalModel.Bones, originalModel.Hash(), originalMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(originalModel, originalMotion.MorphFrames, frame, nil)
 				vmdDeltas = deform.DeformBoneByPhysicsFlag(originalModel, originalMotion, vmdDeltas, true, frame, shoulder_direction_bone_names[i], false)
 				originalAllDeltas[index] = vmdDeltas
+
+				return nil
 			}, func(iterIndex, allCount int) {
 				mlog.I(mi18n.T("肩補正01", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
-			})
+			}); err != nil {
+				errorChan <- err
+				return err
+			}
 
 			sizingShoulderRotations[i] = make([]*mmath.MQuaternion, len(frames))
 			sizingArmRotations[i] = make([]*mmath.MQuaternion, len(frames))
 
 			// 先モデルの上半身デフォーム(IK ON)
-			if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) {
+			if err := miter.IterParallelByList(frames, allBlockSizes[i], log_block_size, func(data, index int) error {
+				if sizingSet.IsTerminate {
+					return domain.TerminateErrorInstance
+				}
+
 				frame := float32(data)
 				vmdDeltas := delta.NewVmdDeltas(frame, sizingModel.Bones, sizingModel.Hash(), sizingMotion.Hash())
 				vmdDeltas.Morphs = deform.DeformMorph(sizingModel, sizingMotion.MorphFrames, frame, nil)
@@ -126,11 +139,16 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 				// 腕は逆補正をかける
 				upperDiffRotation := nowShoulderBf.Rotation.Inverted().Muled(sizingShoulderRotations[i][index]).Inverted()
 				sizingArmRotations[i][index] = upperDiffRotation.Muled(nowArmBf.Rotation)
+
+				return nil
 			}, func(iterIndex, allCount int) {
 				mlog.I(mi18n.T("肩補正02", map[string]interface{}{"No": sizingSet.Index + 1, "CompletedProcessCount": fmt.Sprintf("%02d", completedProcessCount), "TotalProcessCount": fmt.Sprintf("%02d", totalProcessCount), "Direction": direction, "Scale": fmt.Sprintf("%.4f", armScales[i]), "IterIndex": fmt.Sprintf("%04d", iterIndex), "AllCount": fmt.Sprintf("%02d", allCount)}))
 			}); err != nil {
 				errorChan <- err
+				return err
 			}
+
+			return nil
 		}(i, direction)
 	}
 
@@ -151,6 +169,10 @@ func SizingShoulder(sizingSet *domain.SizingSet, setSize, completedProcessCount,
 		armBoneName := pmx.ARM.StringFromDirection(directions[i])
 
 		for j, iFrame := range frames {
+			if sizingSet.IsTerminate {
+				return false, domain.TerminateErrorInstance
+			}
+
 			frame := float32(iFrame)
 
 			shoulderBf := sizingMotion.BoneFrames.Get(shoulderBoneName).Get(frame)

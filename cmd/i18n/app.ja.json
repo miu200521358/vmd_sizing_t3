@@ -762,5 +762,17 @@
     {
         "id": "不要キー間引き01",
         "translation": "【No.{{.No}}】不要キー間引き 【{{.Name}}】 [{{.CompletedProcessCount}}/{{.TotalProcessCount}} - {{.IterIndex}}/{{.AllCount}}]"
+    },
+    {
+        "id": "処理停止",
+        "translation": "処理停止"
+    },
+    {
+        "id": "処理停止説明",
+        "translation": "サイジング処理を中断します"
+    },
+    {
+        "id": "サイジング中断",
+        "translation": "サイジング処理を中断しました"
     }
 ]
