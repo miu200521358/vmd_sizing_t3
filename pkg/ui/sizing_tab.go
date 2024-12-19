@@ -155,7 +155,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				defer wg.Done()
 
 				var loadResult loadPmxResult
-				rep := repository.NewPmxRepository()
+				rep := repository.NewPmxPmxJsonRepository()
 				if data, err := rep.Load(path); err != nil {
 					loadResult.model = nil
 					loadResult.err = err
@@ -201,7 +201,7 @@ func newSizingTab(controlWindow *controller.ControlWindow, toolState *ToolState)
 				result := <-resultChan
 
 				if result.err != nil {
-					mlog.ET(mi18n.T("読み込み失敗"), err.Error())
+					mlog.ET(mi18n.T("読み込み失敗"), result.err.Error())
 				} else if result.model == nil {
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmxPath = path
 					toolState.SizingSets[toolState.CurrentIndex].OriginalPmx = nil
@@ -1628,10 +1628,11 @@ func loadVmd(toolState *ToolState, path string, enableFormOnCompletion bool) {
 		} else if originalResult.motion != nil {
 			// 強制更新用にハッシュ設定
 			originalResult.motion.SetRandHash()
+			originalMotion := usecase.AddFitMorph(originalResult.motion)
 
 			toolState.SizingSets[toolState.CurrentIndex].OriginalVmdPath = path
-			toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = originalResult.motion
-			toolState.SizingSets[toolState.CurrentIndex].OriginalVmdName = originalResult.motion.Name()
+			toolState.SizingSets[toolState.CurrentIndex].OriginalVmd = originalMotion
+			toolState.SizingSets[toolState.CurrentIndex].OriginalVmdName = originalMotion.Name()
 		}
 
 		sizingResult := <-resultChan

@@ -8,6 +8,7 @@ import (
 	"github.com/miu200521358/mlib_go/pkg/domain/miter"
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
+	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
 	"github.com/miu200521358/mlib_go/pkg/infrastructure/deform"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
@@ -29,7 +30,9 @@ func CleanCenter(sizingSet *domain.SizingSet, scale *mmath.MVec3, setSize, compl
 
 	isContainsActiveWaist := sizingMotion.BoneFrames.ContainsActive(pmx.WAIST.String())
 
+	// センター、センターY、腰がない場合は処理しない
 	if !(sizingMotion.BoneFrames.ContainsActive(pmx.CENTER.String()) ||
+		containsActiveCenterY(sizingMotion.BoneFrames.Get(pmx.CENTER.String())) ||
 		isContainsActiveWaist) {
 		return false, nil
 	}
@@ -252,4 +255,21 @@ func isValidCleanCenter(sizingSet *domain.SizingSet) bool {
 	}
 
 	return true
+}
+
+// ContainsActive 有効なキーフレが存在するか
+func containsActiveCenterY(bnfs *vmd.BoneNameFrames) bool {
+	for _, f := range bnfs.Indexes.List() {
+		bf := bnfs.Get(f)
+		if bf == nil {
+			return false
+		}
+
+		if (bf.Position != nil && !mmath.NearEquals(bf.Position.Y, 0.0, 1e-2)) ||
+			(bf.Rotation != nil && !bf.Rotation.NearEquals(mmath.MQuaternionIdent, 1e-2)) {
+			return true
+		}
+	}
+
+	return false
 }

@@ -5,6 +5,7 @@ go 1.22.4
 require github.com/miu200521358/walk v0.0.4
 
 require (
+	github.com/ftrvxmtrx/tga v0.0.0-20150524081124-bd8e8d5be13a // indirect
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240118000515-a250818d05e3 // indirect
 	github.com/go-gl/mathgl v1.1.0 // indirect
@@ -13,21 +14,17 @@ require (
 	github.com/gonum/internal v0.0.0-20181124074243-f884aa714029 // indirect
 	github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9 // indirect
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
-	github.com/nicksnyder/go-i18n/v2 v2.4.0 // indirect
-	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
-	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.15.0 // indirect
-	gonum.org/v1/gonum v0.15.0 // indirect
-)
-
-require (
-	github.com/ftrvxmtrx/tga v0.0.0-20150524081124-bd8e8d5be13a // indirect
 	github.com/miu200521358/dds v0.0.0 // indirect
 	github.com/miu200521358/mlib_go v0.0.1
 	github.com/miu200521358/win v0.0.1 // indirect
+	github.com/nicksnyder/go-i18n/v2 v2.4.0 // indirect
+	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/tools v0.15.0 // indirect
+	gonum.org/v1/gonum v0.15.0 // indirect
 	gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect
 )
 
