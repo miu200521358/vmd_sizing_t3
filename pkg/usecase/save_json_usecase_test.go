@@ -11,6 +11,7 @@ import (
 func TestSaveJson(t *testing.T) {
 	// pmxPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.pmx"
 	pmxPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/003_三日月宗近/三日月宗近 わち式 （刀ミュインナーβ）/わち式三日月宗近（刀ミュインナーβ）.pmx"
+	// pmxPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/VOCALOID/初音ミク/Lat式ミクVer2.31/Lat式ミクVer2.31_Normal.pmx"
 
 	jsonSavePath := strings.ReplaceAll(pmxPath, ".pmx", ".json")
 

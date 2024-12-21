@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -14,6 +15,10 @@ func SaveJson(savePath string, model *pmx.PmxModel) error {
 		return err
 	}
 
+	if err := addRigidBodies(model); err != nil {
+		return err
+	}
+
 	pmxPath := strings.ReplaceAll(savePath, ".json", "_json.pmx")
 	pmxRep := repository.NewPmxRepository()
 	pmxRep.Save(pmxPath, model, false)
@@ -21,6 +26,61 @@ func SaveJson(savePath string, model *pmx.PmxModel) error {
 	rep := repository.NewPmxJsonRepository()
 
 	return rep.Save(savePath, model, false)
+}
+
+func addRigidBodies(model *pmx.PmxModel) error {
+	// 頂点をボーンINDEX別に纏める
+	allBoneVertices := model.Vertices.GetMapByBoneIndex(0.0)
+
+	for _, bone := range model.Bones.Data {
+		if bone.Config() == nil &&
+			(bone.Extend.RigidBody == nil || bone.Extend.RigidBody.PhysicsType == pmx.PHYSICS_TYPE_STATIC) {
+			// 準標準ボーンではなく、物理剛体に紐付いていない場合、親の中で最も近い準標準ボーンに頂点INDEXリストを載せ替える
+			for _, parentIndex := range bone.Extend.ParentBoneIndexes {
+				parentBone := model.Bones.Get(parentIndex)
+				if parentBone.Config() != nil && !parentBone.IsHead() {
+					// 親が準標準ボーンの場合、頂点INDEXリストを載せ替える
+					allBoneVertices[parentIndex] = append(allBoneVertices[parentIndex], allBoneVertices[bone.Index()]...)
+					break
+				}
+			}
+		}
+	}
+
+	// 準標準ボーンINDEX別に頂点を覆うバウンディングボックスを計算
+	for _, bone := range model.Bones.Data {
+		if bone.Config() == nil || bone.Config().BoundingBoxShape == pmx.SHAPE_NONE {
+			continue
+		}
+		if _, ok := allBoneVertices[bone.Index()]; !ok {
+			continue
+		}
+
+		boneVertices := allBoneVertices[bone.Index()]
+		if len(boneVertices) == 0 {
+			continue
+		}
+
+		positions := make([]*mmath.MVec3, len(boneVertices))
+		for i, vertex := range boneVertices {
+			positions[i] = vertex.Position
+		}
+
+		spheres := mmath.AdaptiveCoverPointsWithSpheres(positions, 0.3, 100)
+		for n, sphere := range spheres {
+			rigidBody := pmx.NewRigidBody()
+			rigidBody.SetName(fmt.Sprintf("%s%s_%04d", pmx.MLIB_PREFIX, bone.Name(), n))
+			rigidBody.BoneIndex = bone.Index()
+			rigidBody.PhysicsType = pmx.PHYSICS_TYPE_STATIC
+			rigidBody.ShapeType = pmx.SHAPE_SPHERE
+			rigidBody.Position = sphere.Center
+			rigidBody.Size = &mmath.MVec3{X: sphere.Radius, Y: sphere.Radius, Z: sphere.Radius}
+			rigidBody.IsSystem = false
+			model.RigidBodies.Append(rigidBody)
+		}
+	}
+
+	return nil
 }
 
 func addBones(model *pmx.PmxModel) error {
