@@ -135,7 +135,7 @@ func addAdjustBones(model *pmx.PmxModel) {
 			adjustBone.LocalAxisZ = bone.LocalAxisZ.Copy()
 		}
 
-		afterIndex := model.Bones.GetByName(pmx.ROOT.String()).Index()
+		// afterIndex := model.Bones.GetByName(pmx.ROOT.String()).Index()
 		adjustBone.ParentIndex = 0
 		for _, parentIndex := range bone.Extend.ParentBoneIndexes {
 			// 親ボーンが存在する場合、該当親ボーンの調整ボーンを親とする
@@ -143,7 +143,7 @@ func addAdjustBones(model *pmx.PmxModel) {
 			adjustParentBone := addedBones[fmt.Sprintf("%s_調整", parentBone.Name())]
 			if adjustParentBone != nil {
 				adjustBone.ParentIndex = adjustParentBone.Index()
-				afterIndex = adjustParentBone.Index()
+				// afterIndex = adjustParentBone.Index()
 				break
 			}
 		}
@@ -151,7 +151,7 @@ func addAdjustBones(model *pmx.PmxModel) {
 		// 横方向に作成
 		adjustBone.Position = bone.Position.Added(&mmath.MVec3{X: -10, Y: 0, Z: 0})
 
-		model.Bones.Insert(adjustBone, afterIndex)
+		model.Bones.Insert(adjustBone)
 		addedBones[adjustBone.Name()] = adjustBone
 
 		// 表示枠追加

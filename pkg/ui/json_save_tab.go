@@ -3,11 +3,12 @@ package ui
 import (
 	"strings"
 
-	"github.com/miu200521358/mlib_go/pkg/infrastructure/repository"
+	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller"
 	"github.com/miu200521358/mlib_go/pkg/interface/controller/widget"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mi18n"
 	"github.com/miu200521358/mlib_go/pkg/mutils/mlog"
+	"github.com/miu200521358/vmd_sizing_t3/pkg/usecase"
 	"github.com/miu200521358/walk/pkg/walk"
 )
 
@@ -71,9 +72,7 @@ func newJsonSaveTab(controlWindow *controller.ControlWindow, toolState *ToolStat
 
 	saveButton.Clicked().Attach(func() {
 		if data, err := jsonSavePmxPicker.Load(jsonSavePmxPicker.GetPath()); err == nil {
-			rep := repository.NewPmxJsonRepository()
-
-			if err := rep.Save(jsonSavePicker.GetPath(), data, false); err == nil {
+			if err := usecase.SaveJson(jsonSavePicker.GetPath(), data.(*pmx.PmxModel)); err == nil {
 				mlog.IT(mi18n.T("出力成功"), mi18n.T("json出力成功メッセージ",
 					map[string]interface{}{"Path": jsonSavePicker.GetPath()}))
 			} else {

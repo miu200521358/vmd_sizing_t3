@@ -308,7 +308,7 @@ func getArmIkBones(model *pmx.PmxModel) (armIkLeftBone, armIkRightBone *pmx.Bone
 	for _, direction := range directions {
 		var armIkBone *pmx.Bone
 
-		for _, standardBoneName := range []pmx.StandardBoneNames{
+		for _, standardBoneName := range []pmx.StandardBoneName{
 			pmx.ARM, pmx.ARM_TWIST, pmx.ELBOW, pmx.WRIST_TWIST, pmx.WRIST} {
 			// 腕・腕捩・ひじ・手捩・手首のいずれかのボーンがリンクもしくはターゲットになっているボーン
 			bone := model.Bones.GetByName(standardBoneName.StringFromDirection(direction))

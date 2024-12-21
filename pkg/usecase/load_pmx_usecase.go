@@ -956,7 +956,7 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 			}
 		}
 
-		afterIndex := newBone.ParentIndex
+		// afterIndex := newBone.ParentIndex
 
 		// 付与親がある場合、付与親のINDEXを変更
 		if (baseBone.IsEffectorTranslation() || baseBone.IsEffectorRotation()) && baseBone.EffectIndex >= 0 {
@@ -977,25 +977,25 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 				newBone.EffectIndex = effectBone.Index()
 				newBone.EffectFactor = baseBone.EffectFactor
 
-				// 付与親ボーン、付与親がIKリンクであった場合のIKボーン、親ボーンのうち、最も後ろのボーンの後に追加
-				parentLayerIndex := slices.Index(model.Bones.LayerSortedIndexes, newBone.ParentIndex)
-				effectLayerIndex := slices.Index(model.Bones.LayerSortedIndexes, effectBone.Index())
-				ikBoneIndex := -1
-				effectIkLayerIndex := -1
-				if len(effectBone.Extend.IkLinkBoneIndexes) > 0 {
-					ikBone := model.Bones.Get(effectBone.Extend.IkLinkBoneIndexes[0])
-					ikBoneIndex = ikBone.Index()
-					effectIkLayerIndex = slices.Index(model.Bones.LayerSortedIndexes, ikBoneIndex)
-				}
+				// // 付与親ボーン、付与親がIKリンクであった場合のIKボーン、親ボーンのうち、最も後ろのボーンの後に追加
+				// parentLayerIndex := slices.Index(model.Bones.LayerSortedIndexes, newBone.ParentIndex)
+				// effectLayerIndex := slices.Index(model.Bones.LayerSortedIndexes, effectBone.Index())
+				// ikBoneIndex := -1
+				// effectIkLayerIndex := -1
+				// if len(effectBone.Extend.IkLinkBoneIndexes) > 0 {
+				// 	ikBone := model.Bones.Get(effectBone.Extend.IkLinkBoneIndexes[0])
+				// 	ikBoneIndex = ikBone.Index()
+				// 	effectIkLayerIndex = slices.Index(model.Bones.LayerSortedIndexes, ikBoneIndex)
+				// }
 
-				switch mmath.ArgMax([]float64{float64(effectLayerIndex), float64(effectIkLayerIndex), float64(parentLayerIndex)}) {
-				case 0:
-					afterIndex = effectBone.Index()
-				case 1:
-					afterIndex = ikBoneIndex
-				case 2:
-					afterIndex = newBone.ParentIndex
-				}
+				// switch mmath.ArgMax([]float64{float64(effectLayerIndex), float64(effectIkLayerIndex), float64(parentLayerIndex)}) {
+				// case 0:
+				// 	afterIndex = effectBone.Index()
+				// case 1:
+				// 	afterIndex = ikBoneIndex
+				// case 2:
+				// 	afterIndex = newBone.ParentIndex
+				// }
 			}
 		}
 
@@ -1019,7 +1019,8 @@ func addNonExistBones(baseModel, model *pmx.PmxModel, fromJson, includeSystem bo
 		}
 
 		// ボーン追加
-		model.Bones.Insert(newBone, afterIndex)
+		// TODO afterIndex
+		model.Bones.Insert(newBone)
 		nonExistBones[newBone.Name()] = newBone
 		if newBone.IsStandard() {
 			nonExistStandardBoneNames = append(nonExistStandardBoneNames, newBone.Name())
