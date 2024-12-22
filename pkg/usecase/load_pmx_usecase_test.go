@@ -39,10 +39,8 @@ func TestUsecase_LoadOriginalPmxByJson(t *testing.T) {
 	deformPath := strings.ReplaceAll(jsonPath, ".json", "_deform.pmx")
 	repository.NewPmxRepository().Save(deformPath, model, true)
 
-	jsonModel.Vertices = model.Vertices
-	jsonModel.Faces = model.Faces
-	jsonModel.Textures = model.Textures
-	jsonModel.Materials = model.Materials
+	// メッシュを調整
+	adjustMesh(model, jsonModel)
 
 	// 強制更新用にハッシュ上書き
 	jsonModel.Setup()

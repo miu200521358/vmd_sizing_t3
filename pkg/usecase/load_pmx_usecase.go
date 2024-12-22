@@ -29,7 +29,7 @@ var sizing_display_slot_name = "Sizing"
 
 func AdjustPmxForSizing(model *pmx.PmxModel, includeSystem bool) (*pmx.PmxModel, []string, error) {
 	// 足りないボーンを追加
-	if err := addBones(model); err != nil {
+	if err := addSizingBones(model); err != nil {
 		return nil, nil, err
 	}
 
@@ -56,16 +56,40 @@ func LoadOriginalPmxByJson(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 	// 素体モデルの頂点をデフォーム
 	model = deform.DeformModel(model, jsonStanceMotion, 0)
 
-	jsonModel.Vertices = model.Vertices
-	jsonModel.Faces = model.Faces
-	jsonModel.Textures = model.Textures
-	jsonModel.Materials = model.Materials
+	// メッシュを調整
+	adjustMesh(model, jsonModel)
 
 	// 強制更新用にハッシュ上書き
 	jsonModel.Setup()
 	jsonModel.SetRandHash()
 
 	return jsonModel, nil
+}
+
+// adjustMesh メッシュを調整
+func adjustMesh(model, jsonModel *pmx.PmxModel) {
+	boneMapping := make(map[int]int, 0)
+	for _, baseBone := range model.Bones.Data {
+		if jsonModel.Bones.ContainsByName(baseBone.Name()) {
+			jsonBone := jsonModel.Bones.GetByName(baseBone.Name())
+			boneMapping[baseBone.Index()] = jsonBone.Index()
+		}
+	}
+
+	for _, vertex := range model.Vertices.Data {
+		indexes := vertex.Deform.AllIndexes()
+		for n, baseBoneIndex := range indexes {
+			if _, ok := boneMapping[baseBoneIndex]; ok {
+				indexes[n] = boneMapping[baseBoneIndex]
+			}
+		}
+		vertex.Deform.SetIndexes(indexes)
+		jsonModel.Vertices.Append(vertex)
+	}
+
+	jsonModel.Faces = model.Faces
+	jsonModel.Textures = model.Textures
+	jsonModel.Materials = model.Materials
 }
 
 func createJsonStanceMotion(model, jsonModel *pmx.PmxModel) *vmd.VmdMotion {
@@ -83,8 +107,6 @@ func createJsonStanceMotion(model, jsonModel *pmx.PmxModel) *vmd.VmdMotion {
 		baseVmdDeltas = deform.DeformBoneByPhysicsFlag(model, motion, baseVmdDeltas, true, 0, nil, false)
 	}
 
-	// allBoneVertices := model.Vertices.GetMapByBoneIndex(0.0)
-
 	for _, baseTargetBone := range model.Bones.Data {
 		jsonTargetBone := jsonModel.Bones.GetByName(baseTargetBone.Name())
 		if jsonTargetBone == nil {
@@ -95,11 +117,6 @@ func createJsonStanceMotion(model, jsonModel *pmx.PmxModel) *vmd.VmdMotion {
 		if config == nil {
 			continue
 		}
-
-		// if _, ok := allBoneVertices[baseTargetBone.Index()]; !ok {
-		// 	// ウェイトを持ってないのは一旦スルー
-		// 	continue
-		// }
 
 		var jsonParentBone, baseParentBone *pmx.Bone
 		for _, parentBoneName := range config.ParentBoneNames {

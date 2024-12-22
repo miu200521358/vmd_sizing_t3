@@ -10,7 +10,7 @@ import (
 )
 
 func SaveJson(savePath string, model *pmx.PmxModel) error {
-	if err := addBones(model); err != nil {
+	if err := addSizingBones(model); err != nil {
 		return err
 	}
 
@@ -76,7 +76,7 @@ func addRigidBodies(model *pmx.PmxModel) error {
 	return nil
 }
 
-func addBones(model *pmx.PmxModel) error {
+func addSizingBones(model *pmx.PmxModel) error {
 	for _, funcs := range [][]func() *pmx.Bone{
 		{model.Bones.GetRoot, model.Bones.CreateRoot},
 		{model.Bones.GetGroove, model.Bones.CreateGroove},

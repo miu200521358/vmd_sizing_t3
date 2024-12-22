@@ -23,7 +23,7 @@ func TestSaveJson(t *testing.T) {
 	}
 	model := data.(*pmx.PmxModel)
 
-	if err := addBones(model); err != nil {
+	if err := addSizingBones(model); err != nil {
 		t.Errorf("Expected error to be nil, got %q", err)
 	}
 
