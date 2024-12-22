@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
@@ -11,12 +12,54 @@ import (
 )
 
 func TestUsecase_LoadOriginalPmxByJson(t *testing.T) {
+	jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.json"
+
+	data, err := repository.NewPmxJsonRepository().Load(jsonPath)
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %q", err)
+	}
+	jsonModel := data.(*pmx.PmxModel)
+
+	// 素体PMXモデルを読み込む
+	model, err := loadMannequinPmx()
+	if err != nil {
+		t.Errorf("Expected error to be nil, got %q", err)
+	}
+
+	// テクスチャをTempディレクトリに読み込んでおく
+	loadOriginalPmxTextures(model)
+
+	// 素体モデルをJsonモデルの角度に合わせる
+	jsonStanceMotion := createJsonStanceMotion(model, jsonModel)
+
+	// 素体モデルの頂点をデフォーム
+	model = deform.DeformModel(model, jsonStanceMotion, 0)
+
+	// デフォームモデルを保存
+	deformPath := strings.ReplaceAll(jsonPath, ".json", "_deform.pmx")
+	repository.NewPmxRepository().Save(deformPath, model, true)
+
+	jsonModel.Vertices = model.Vertices
+	jsonModel.Faces = model.Faces
+	jsonModel.Textures = model.Textures
+	jsonModel.Materials = model.Materials
+
+	// 強制更新用にハッシュ上書き
+	jsonModel.Setup()
+	jsonModel.SetRandHash()
+
+	// Jsonモデルを保存
+	jsonSavePath := strings.ReplaceAll(jsonPath, ".json", "_json.pmx")
+	repository.NewPmxRepository().Save(jsonSavePath, jsonModel, true)
+}
+
+func TestUsecase_LoadOriginalPmxByJson1(t *testing.T) {
 	// Save the domain
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/003_三日月宗近/三日月宗近 わち式 （刀ミュインナーβ）/わち式三日月宗近（刀ミュインナーβ）.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_あにまさ式/カイト.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.json"
 	// jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/刀剣乱舞/055_鶯丸/鶯丸 さとく式 ver0.90/さとく式鶯丸ver0.90.json"
-	jsonPath := "C:/MMD/vmd_sizing_t3/archive/sizing_model.json"
+	jsonPath := "D:/MMD/MikuMikuDance_v926x64/UserFile/Model/_VMDサイジング/wa_129cm 20240628/wa_129cm.json"
 
 	data, err := repository.NewPmxJsonRepository().Load(jsonPath)
 	if err != nil {

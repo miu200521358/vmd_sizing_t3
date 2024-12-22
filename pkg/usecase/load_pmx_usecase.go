@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/miu200521358/mlib_go/pkg/domain/delta"
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
 	"github.com/miu200521358/mlib_go/pkg/domain/vmd"
@@ -27,20 +28,16 @@ var fit_morph_name = fmt.Sprintf("%s_%s", pmx.MLIB_PREFIX, "FitBone")
 var sizing_display_slot_name = "Sizing"
 
 func AdjustPmxForSizing(model *pmx.PmxModel, includeSystem bool) (*pmx.PmxModel, []string, error) {
-	// 素体PMXモデルを読み込む
-	baseModel, err := loadMannequinPmx()
-	if err != nil {
+	// 足りないボーンを追加
+	if err := addBones(model); err != nil {
 		return nil, nil, err
 	}
-
-	// 足りないボーンを追加
-	nonExistBoneNames := addNonExistBones(baseModel, model, false, includeSystem)
 
 	model.Setup()
 	// 強制更新用にハッシュ上書き
 	model.SetRandHash()
 
-	return model, nonExistBoneNames, nil
+	return model, nil, nil
 }
 
 func LoadOriginalPmxByJson(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
@@ -53,19 +50,153 @@ func LoadOriginalPmxByJson(jsonModel *pmx.PmxModel) (*pmx.PmxModel, error) {
 	// テクスチャをTempディレクトリに読み込んでおく
 	loadOriginalPmxTextures(model)
 
-	// 足りないボーンを追加
-	addNonExistBones(model, jsonModel, true, true)
+	// 素体モデルをJsonモデルの角度に合わせる
+	jsonStanceMotion := createJsonStanceMotion(model, jsonModel)
 
-	jsonModel.Setup()
-	model.Setup()
+	// 素体モデルの頂点をデフォーム
+	model = deform.DeformModel(model, jsonStanceMotion, 0)
+
+	jsonModel.Vertices = model.Vertices
+	jsonModel.Faces = model.Faces
+	jsonModel.Textures = model.Textures
+	jsonModel.Materials = model.Materials
+
 	// 強制更新用にハッシュ上書き
-	model.SetRandHash()
+	jsonModel.Setup()
+	jsonModel.SetRandHash()
 
-	// フィットボーンモーフを作成
-	createFitMorph(model, jsonModel, fit_morph_name)
-	model.Setup()
+	return jsonModel, nil
+}
 
-	return model, nil
+func createJsonStanceMotion(model, jsonModel *pmx.PmxModel) *vmd.VmdMotion {
+	motion := vmd.NewVmdMotion("")
+
+	var jsonVmdDeltas, baseVmdDeltas *delta.VmdDeltas
+	{
+		jsonVmdDeltas = delta.NewVmdDeltas(0, jsonModel.Bones, jsonModel.Hash(), motion.Hash())
+		jsonVmdDeltas.Morphs = deform.DeformMorph(jsonModel, motion.MorphFrames, 0, nil)
+		jsonVmdDeltas = deform.DeformBoneByPhysicsFlag(jsonModel, motion, jsonVmdDeltas, true, 0, nil, false)
+	}
+	{
+		baseVmdDeltas = delta.NewVmdDeltas(0, model.Bones, model.Hash(), motion.Hash())
+		baseVmdDeltas.Morphs = deform.DeformMorph(model, motion.MorphFrames, 0, nil)
+		baseVmdDeltas = deform.DeformBoneByPhysicsFlag(model, motion, baseVmdDeltas, true, 0, nil, false)
+	}
+
+	// allBoneVertices := model.Vertices.GetMapByBoneIndex(0.0)
+
+	for _, baseTargetBone := range model.Bones.Data {
+		jsonTargetBone := jsonModel.Bones.GetByName(baseTargetBone.Name())
+		if jsonTargetBone == nil {
+			continue
+		}
+
+		config := baseTargetBone.Config()
+		if config == nil {
+			continue
+		}
+
+		// if _, ok := allBoneVertices[baseTargetBone.Index()]; !ok {
+		// 	// ウェイトを持ってないのは一旦スルー
+		// 	continue
+		// }
+
+		var jsonParentBone, baseParentBone *pmx.Bone
+		for _, parentBoneName := range config.ParentBoneNames {
+			if jsonModel.Bones.ContainsByName(parentBoneName.StringFromDirection(baseTargetBone.Direction())) &&
+				model.Bones.ContainsByName(parentBoneName.StringFromDirection(baseTargetBone.Direction())) {
+				jsonParentBone = jsonModel.Bones.GetByName(parentBoneName.StringFromDirection(baseTargetBone.Direction()))
+				baseParentBone = model.Bones.GetByName(parentBoneName.StringFromDirection(baseTargetBone.Direction()))
+				break
+			}
+		}
+
+		var jsonChildBone, baseChildBone *pmx.Bone
+		for _, childBoneName := range config.ChildBoneNames {
+			if jsonModel.Bones.ContainsByName(childBoneName.StringFromDirection(baseTargetBone.Direction())) &&
+				model.Bones.ContainsByName(childBoneName.StringFromDirection(baseTargetBone.Direction())) {
+				jsonChildBone = jsonModel.Bones.GetByName(childBoneName.StringFromDirection(baseTargetBone.Direction()))
+				baseChildBone = model.Bones.GetByName(childBoneName.StringFromDirection(baseTargetBone.Direction()))
+				break
+			}
+		}
+
+		var offsetFromQuatMat, offsetToQuatMat *mmath.MMat4
+
+		if jsonParentBone != nil && baseParentBone != nil {
+			// 元モデルのボーン傾き(デフォーム後)
+			jsonDirection := jsonVmdDeltas.Bones.Get(jsonTargetBone.Index()).FilledGlobalPosition().Subed(
+				jsonVmdDeltas.Bones.Get(jsonParentBone.Index()).FilledGlobalPosition()).Normalized()
+			jsonSlopeMat := jsonDirection.ToLocalMat()
+
+			// サイジング先モデルのボーン傾き(デフォーム後)
+			baseDirection := baseVmdDeltas.Bones.Get(baseTargetBone.Index()).FilledGlobalPosition().Subed(
+				baseVmdDeltas.Bones.Get(baseParentBone.Index()).FilledGlobalPosition()).Normalized()
+			baseSlopeMat := baseDirection.ToLocalMat()
+
+			if jsonDirection.IsZero() || baseDirection.IsZero() {
+				offsetFromQuatMat = mmath.MMat4Ident
+			} else {
+				// 傾き補正
+				offsetQuat := baseSlopeMat.Muled(jsonSlopeMat.Inverted()).Inverted().Quaternion()
+				if offsetQuat.IsIdent() {
+					offsetFromQuatMat = mmath.MMat4Ident
+				} else {
+					_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(baseDirection)
+					offsetFromQuatMat = yzOffsetQuat.ToMat4()
+				}
+			}
+		} else {
+			offsetFromQuatMat = mmath.MMat4Ident
+		}
+
+		if jsonChildBone != nil && baseChildBone != nil {
+			// 元モデルのボーン傾き(デフォーム後)
+			jsonDirection := jsonVmdDeltas.Bones.Get(jsonChildBone.Index()).FilledGlobalPosition().Subed(
+				jsonVmdDeltas.Bones.Get(jsonTargetBone.Index()).FilledGlobalPosition()).Normalized()
+			jsonSlopeMat := jsonDirection.ToLocalMat()
+
+			// サイジング先モデルのボーン傾き(デフォーム後)
+			baseDirection := baseVmdDeltas.Bones.Get(baseChildBone.Index()).FilledGlobalPosition().Subed(
+				baseVmdDeltas.Bones.Get(baseTargetBone.Index()).FilledGlobalPosition()).Normalized()
+			baseSlopeMat := baseDirection.ToLocalMat()
+
+			// 傾き補正
+			if jsonDirection.IsZero() || baseDirection.IsZero() {
+				offsetToQuatMat = mmath.MMat4Ident
+			} else {
+				offsetQuat := baseSlopeMat.Muled(jsonSlopeMat.Inverted()).Inverted().Quaternion()
+				if offsetQuat.IsIdent() {
+					offsetToQuatMat = mmath.MMat4Ident
+				} else {
+					_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(baseDirection)
+					offsetToQuatMat = yzOffsetQuat.ToMat4()
+				}
+			}
+		} else {
+			offsetToQuatMat = mmath.MMat4Ident
+		}
+
+		if offsetFromQuatMat.IsIdent() && offsetToQuatMat.IsIdent() {
+			continue
+		}
+
+		bf := vmd.NewBoneFrame(float32(0.0))
+		bf.CancelableRotation = offsetToQuatMat.Quaternion()
+		// if jsonFromBone != nil && baseFromBone != nil {
+		// 	// 親からの距離差を補正
+		// 	scale := jsonTargetBone.Position.Subed(jsonFromBone.Position).Length() / (baseTargetBone.Position.Subed(baseFromBone.Position)).Length()
+		// 	scale = mmath.Effective(scale)
+		// 	if scale == 0 {
+		// 		scale = 1
+		// 	}
+		// 	bf.CancelableScale = &mmath.MVec3{X: scale, Y: scale, Z: scale}
+		// }
+
+		motion.AppendRegisteredBoneFrame(baseTargetBone.Name(), bf)
+	}
+
+	return motion
 }
 
 func AddFitMorph(motion *vmd.VmdMotion) *vmd.VmdMotion {
@@ -1633,7 +1764,7 @@ func loadTex(texPath string) error {
 	fsTexPath := strings.ReplaceAll(texPath, "\\", "/")
 	texFile, err := modelFs.ReadFile(fsTexPath)
 	if err != nil {
-		mlog.E(fmt.Sprintf("Failed to read original pmx tex file: %s", texPath), err)
+		mlog.E(fmt.Sprintf("Failed to read json pmx tex file: %s", texPath), err)
 		return err
 	}
 
@@ -1642,14 +1773,14 @@ func loadTex(texPath string) error {
 	// 仮パスのフォルダ構成を作成する
 	err = os.MkdirAll(filepath.Dir(tmpTexPath), 0755)
 	if err != nil {
-		mlog.E(fmt.Sprintf("Failed to create original pmx tex tmp directory: %s", tmpTexPath), err)
+		mlog.E(fmt.Sprintf("Failed to create json pmx tex tmp directory: %s", tmpTexPath), err)
 		return err
 	}
 
 	// 作業フォルダにファイルを書き込む
 	err = os.WriteFile(tmpTexPath, texFile, 0644)
 	if err != nil {
-		mlog.E(fmt.Sprintf("Failed to write original pmx tex tmp file: %s", tmpTexPath), err)
+		mlog.E(fmt.Sprintf("Failed to write json pmx tex tmp file: %s", tmpTexPath), err)
 		return err
 	}
 

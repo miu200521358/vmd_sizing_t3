@@ -3,7 +3,6 @@ package usecase
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/miu200521358/mlib_go/pkg/domain/mmath"
 	"github.com/miu200521358/mlib_go/pkg/domain/pmx"
@@ -19,13 +18,7 @@ func SaveJson(savePath string, model *pmx.PmxModel) error {
 		return err
 	}
 
-	pmxPath := strings.ReplaceAll(savePath, ".json", "_json.pmx")
-	pmxRep := repository.NewPmxRepository()
-	pmxRep.Save(pmxPath, model, false)
-
-	rep := repository.NewPmxJsonRepository()
-
-	return rep.Save(savePath, model, false)
+	return repository.NewPmxJsonRepository().Save(savePath, model, false)
 }
 
 func addRigidBodies(model *pmx.PmxModel) error {
