@@ -31,7 +31,7 @@ func TestSaveJson(t *testing.T) {
 		t.Errorf("Expected error to be nil, got %q", err)
 	}
 
-	pmxJsonPath := strings.ReplaceAll(jsonSavePath, ".json", "_json.pmx")
+	pmxJsonPath := strings.ReplaceAll(jsonSavePath, ".json", "_json_save.pmx")
 	pmxRep.Save(pmxJsonPath, model, false)
 
 	jsonRep := repository.NewPmxJsonRepository()

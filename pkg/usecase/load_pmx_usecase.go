@@ -107,7 +107,18 @@ func createJsonStanceMotion(model, jsonModel *pmx.PmxModel) *vmd.VmdMotion {
 		baseVmdDeltas = deform.DeformBoneByPhysicsFlag(model, motion, baseVmdDeltas, true, 0, nil, false)
 	}
 
-	for _, baseTargetBone := range model.Bones.Data {
+	// // 首根元までのスケールを基準スケールとする
+	// var baseScale float64
+	// {
+	// 	baseNeckRootLength := baseVmdDeltas.Bones.GetByName(pmx.NECK_ROOT.String()).FilledGlobalPosition().Length()
+	// 	jsonNeckRootLength := jsonVmdDeltas.Bones.GetByName(pmx.NECK_ROOT.String()).FilledGlobalPosition().Length()
+	// 	baseScale = jsonNeckRootLength / baseNeckRootLength
+	// }
+
+	scaleMap := make(map[int]*mmath.MVec3, 0)
+
+	for _, baseTargetBoneIndex := range model.Bones.LayerSortedIndexes {
+		baseTargetBone := model.Bones.Get(baseTargetBoneIndex)
 		jsonTargetBone := jsonModel.Bones.GetByName(baseTargetBone.Name())
 		if jsonTargetBone == nil {
 			continue
@@ -116,16 +127,6 @@ func createJsonStanceMotion(model, jsonModel *pmx.PmxModel) *vmd.VmdMotion {
 		config := baseTargetBone.Config()
 		if config == nil {
 			continue
-		}
-
-		var jsonParentBone, baseParentBone *pmx.Bone
-		for _, parentBoneName := range config.ParentBoneNames {
-			if jsonModel.Bones.ContainsByName(parentBoneName.StringFromDirection(baseTargetBone.Direction())) &&
-				model.Bones.ContainsByName(parentBoneName.StringFromDirection(baseTargetBone.Direction())) {
-				jsonParentBone = jsonModel.Bones.GetByName(parentBoneName.StringFromDirection(baseTargetBone.Direction()))
-				baseParentBone = model.Bones.GetByName(parentBoneName.StringFromDirection(baseTargetBone.Direction()))
-				break
-			}
 		}
 
 		var jsonChildBone, baseChildBone *pmx.Bone
@@ -138,79 +139,75 @@ func createJsonStanceMotion(model, jsonModel *pmx.PmxModel) *vmd.VmdMotion {
 			}
 		}
 
-		var offsetFromQuatMat, offsetToQuatMat *mmath.MMat4
+		targetBf := motion.BoneFrames.Get(baseTargetBone.Name()).Get(0.0)
 
-		if jsonParentBone != nil && baseParentBone != nil {
-			// 元モデルのボーン傾き(デフォーム後)
-			jsonDirection := jsonVmdDeltas.Bones.Get(jsonTargetBone.Index()).FilledGlobalPosition().Subed(
-				jsonVmdDeltas.Bones.Get(jsonParentBone.Index()).FilledGlobalPosition()).Normalized()
-			jsonSlopeMat := jsonDirection.ToLocalMat()
-
-			// サイジング先モデルのボーン傾き(デフォーム後)
-			baseDirection := baseVmdDeltas.Bones.Get(baseTargetBone.Index()).FilledGlobalPosition().Subed(
-				baseVmdDeltas.Bones.Get(baseParentBone.Index()).FilledGlobalPosition()).Normalized()
-			baseSlopeMat := baseDirection.ToLocalMat()
-
-			if jsonDirection.IsZero() || baseDirection.IsZero() {
-				offsetFromQuatMat = mmath.MMat4Ident
-			} else {
-				// 傾き補正
-				offsetQuat := baseSlopeMat.Muled(jsonSlopeMat.Inverted()).Inverted().Quaternion()
-				if offsetQuat.IsIdent() {
-					offsetFromQuatMat = mmath.MMat4Ident
-				} else {
-					_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(baseDirection)
-					offsetFromQuatMat = yzOffsetQuat.ToMat4()
-				}
-			}
-		} else {
-			offsetFromQuatMat = mmath.MMat4Ident
-		}
-
-		if jsonChildBone != nil && baseChildBone != nil {
-			// 元モデルのボーン傾き(デフォーム後)
-			jsonDirection := jsonVmdDeltas.Bones.Get(jsonChildBone.Index()).FilledGlobalPosition().Subed(
-				jsonVmdDeltas.Bones.Get(jsonTargetBone.Index()).FilledGlobalPosition()).Normalized()
-			jsonSlopeMat := jsonDirection.ToLocalMat()
-
-			// サイジング先モデルのボーン傾き(デフォーム後)
-			baseDirection := baseVmdDeltas.Bones.Get(baseChildBone.Index()).FilledGlobalPosition().Subed(
-				baseVmdDeltas.Bones.Get(baseTargetBone.Index()).FilledGlobalPosition()).Normalized()
-			baseSlopeMat := baseDirection.ToLocalMat()
-
-			// 傾き補正
-			if jsonDirection.IsZero() || baseDirection.IsZero() {
-				offsetToQuatMat = mmath.MMat4Ident
-			} else {
-				offsetQuat := baseSlopeMat.Muled(jsonSlopeMat.Inverted()).Inverted().Quaternion()
-				if offsetQuat.IsIdent() {
-					offsetToQuatMat = mmath.MMat4Ident
-				} else {
-					_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(baseDirection)
-					offsetToQuatMat = yzOffsetQuat.ToMat4()
-				}
-			}
-		} else {
-			offsetToQuatMat = mmath.MMat4Ident
-		}
-
-		if offsetFromQuatMat.IsIdent() && offsetToQuatMat.IsIdent() {
+		if jsonChildBone == nil || baseChildBone == nil {
 			continue
 		}
 
-		bf := vmd.NewBoneFrame(float32(0.0))
-		bf.CancelableRotation = offsetToQuatMat.Quaternion()
-		// if jsonFromBone != nil && baseFromBone != nil {
-		// 	// 親からの距離差を補正
-		// 	scale := jsonTargetBone.Position.Subed(jsonFromBone.Position).Length() / (baseTargetBone.Position.Subed(baseFromBone.Position)).Length()
-		// 	scale = mmath.Effective(scale)
-		// 	if scale == 0 {
-		// 		scale = 1
-		// 	}
-		// 	bf.CancelableScale = &mmath.MVec3{X: scale, Y: scale, Z: scale}
-		// }
+		// 元モデルのボーン傾き(デフォーム後)
+		jsonDirection := jsonVmdDeltas.Bones.Get(jsonChildBone.Index()).FilledGlobalPosition().Subed(
+			jsonVmdDeltas.Bones.Get(jsonTargetBone.Index()).FilledGlobalPosition()).Normalized()
+		jsonSlopeMat := jsonDirection.ToLocalMat()
 
-		motion.AppendRegisteredBoneFrame(baseTargetBone.Name(), bf)
+		// サイジング先モデルのボーン傾き(デフォーム後)
+		baseDirection := baseVmdDeltas.Bones.Get(baseChildBone.Index()).FilledGlobalPosition().Subed(
+			baseVmdDeltas.Bones.Get(baseTargetBone.Index()).FilledGlobalPosition()).Normalized()
+		baseSlopeMat := baseDirection.ToLocalMat()
+
+		// 元モデルのボーンの長さ
+		jsonLength := jsonVmdDeltas.Bones.Get(jsonChildBone.Index()).FilledGlobalPosition().Distance(
+			jsonVmdDeltas.Bones.Get(jsonTargetBone.Index()).FilledGlobalPosition())
+
+		// サイジング先モデルのボーンの長さ
+		baseLength := baseVmdDeltas.Bones.Get(baseChildBone.Index()).FilledGlobalPosition().Distance(
+			baseVmdDeltas.Bones.Get(baseTargetBone.Index()).FilledGlobalPosition())
+
+		parentInvScales := &mmath.MVec3{X: 1, Y: 1, Z: 1}
+		for _, parentIndex := range baseTargetBone.Extend.ParentBoneIndexes {
+			if parentScales, ok := scaleMap[parentIndex]; ok {
+				parentInvScales = mmath.MVec3One.Dived(parentScales).Muled(parentInvScales)
+			}
+		}
+
+		// 補正値
+		var offsetToQuatMat *mmath.MMat4
+		var offsetScales *mmath.MVec3
+		var offsetPosition *mmath.MVec3
+		if mmath.NearEquals(jsonLength, 0, 1e-2) || mmath.NearEquals(baseLength, 0, 1e-2) ||
+			jsonDirection.IsZero() || baseDirection.IsZero() {
+			offsetToQuatMat = mmath.MMat4Ident
+			offsetScales = &mmath.MVec3{X: 1, Y: 1, Z: 1}
+		} else {
+			offsetQuat := baseSlopeMat.Muled(jsonSlopeMat.Inverted()).Inverted().Quaternion()
+			if offsetQuat.IsIdent() {
+				offsetToQuatMat = mmath.MMat4Ident
+			} else {
+				_, yzOffsetQuat := offsetQuat.SeparateTwistByAxis(baseDirection)
+				offsetToQuatMat = yzOffsetQuat.ToMat4()
+			}
+
+			offsetScale := jsonLength / baseLength
+			offsetScales = &mmath.MVec3{X: offsetScale, Y: offsetScale, Z: offsetScale}
+			// offsetScales = baseSlopeMat.MulVec3(offsetScales).Absed()
+			offsetScales.Mul(parentInvScales)
+		}
+
+		scaleMap[baseTargetBoneIndex] = offsetScales.Copy()
+
+		baseScaledVmdDeltas := delta.NewVmdDeltas(0, model.Bones, model.Hash(), motion.Hash())
+		baseScaledVmdDeltas.Morphs = deform.DeformMorph(model, motion.MorphFrames, 0, nil)
+		baseScaledVmdDeltas = deform.DeformBoneByPhysicsFlag(model, motion, baseScaledVmdDeltas, true, 0, []string{baseTargetBone.Name()}, false)
+
+		jsonTargetPosition := jsonVmdDeltas.Bones.Get(jsonTargetBone.Index()).FilledGlobalPosition()
+		baseScaledTargetPosition := baseScaledVmdDeltas.Bones.Get(baseTargetBone.Index()).FilledGlobalPosition()
+		offsetPosition = jsonTargetPosition.Subed(baseScaledTargetPosition)
+		offsetPosition.Mul(parentInvScales)
+
+		targetBf.Position = offsetPosition
+		targetBf.CancelableRotation = offsetToQuatMat.Quaternion()
+		targetBf.Scale = offsetScales
+		motion.AppendRegisteredBoneFrame(baseTargetBone.Name(), targetBf)
 	}
 
 	return motion
